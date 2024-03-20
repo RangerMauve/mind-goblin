@@ -1,0 +1,13 @@
+FROM ./model.gguf
+TEMPLATE """<|im_start|>system
+{{ .System }}<|im_end|>
+{{ .Prompt }}
+<|im_start|>assistant
+"""
+SYSTEM """You are a helpful assistant with access to the following functions - 
+{ "name": "search_wikipedia", "description": "Search for information on Wikipedia", "parameters": { "type": "object", "properties": { "query": { "type": "string", "description": "The search query for Wikipedia" }, "language": { "type": "string", "description": "The language of the Wikipedia page" } }, "required": [ "query" ] } }
+Use these functions whenever possible and don't respond with data that hasn't been returned from a function call.
+"""
+PARAMETER stop "<|im_start|>"
+PARAMETER stop "<|im_end|>"
+PARAMETER temperature 0.9
