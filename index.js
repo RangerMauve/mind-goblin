@@ -3,14 +3,9 @@ import { stdin as input, stdout as output } from 'node:process'
 
 import striptags from 'striptags'
 
-const FUNCTIONS = {
-  search_wikipedia: searchWikipedia,
-  get_current_time: getCurrentTime,
-  delegate_task: delegateTask
-}
 const TOOL_CALL_START = '<tool_call>'
 const TOOL_CALL_END = '</tool_call>'
-const STOP = ['<|im_end|>', 'Reference(s)', '<|im_end>', '<|im_continuation|>']
+const STOP = ['<|im_end|>', 'Reference(s)', '<|im_end>', '<|im_continuation|>', '<|im_start']
 const USER = 'user'
 const SYSTEM = 'system'
 const ASSISTANT = 'assistant'
@@ -18,7 +13,41 @@ const TOOL = 'tool'
 const PRE_GENERATE = `\n<|im_start>${ASSISTANT}\nOkay, `
 const POST_TOOL = "Does this answer the user's query? If not I should use a more detailed query"
 
+const FUNCTIONS = {
+  search_wikipedia: searchWikipedia,
+  get_current_time: getCurrentTime,
+  delegate_task: delegateTask,
+  get_crypto_values: getCryptoValues,
+  calc
+}
+
 const TOOL_DESCRIPTIONS = [{
+  type: 'function',
+  function: {
+    name: 'delegate_task',
+    description: 'Ask a more focused assistant to think about something and respond to you. Use this when breaking tasks down to stay focused.',
+    properties: {
+      task: {
+        type: 'string',
+        description: 'The task you want prformed. Be as verbose as you can and include all relevant information.'
+      }
+    }
+  },
+  required: ['task']
+}, {
+  type: 'function',
+  function: {
+    name: 'calc',
+    description: 'Run a calculation. Always use this for math like multiplication or currency conversion. This can run any JavaScript expression',
+    properties: {
+      expression: {
+        type: 'string',
+        description: 'A JavaScript math expression to evaluate. Assume the last statement is the return value.'
+      }
+    }
+  },
+  required: ['expression']
+}, {
   type: 'function',
   function: {
     name: 'search_wikipedia',
@@ -47,16 +76,16 @@ const TOOL_DESCRIPTIONS = [{
 }, {
   type: 'function',
   function: {
-    name: 'delegate_task',
-    description: 'Ask a more focused assistant to think about something and respond to you. Use this when breaking tasks down to stay focused.',
+    name: 'get_crypto_values',
+    description: 'Search for information about a crypto currency. Gets the value in USD as well as supply and market cap.',
     properties: {
-      task: {
+      symbol: {
         type: 'string',
-        description: 'The task you want prformed. Be as verbose as you can and include all relevant information.'
+        description: 'The name or symbol for the crypto currency'
       }
     }
   },
-  required: ['task']
+  required: ['symbol']
 }]
 
 const SYSTEM_PROMPT = `
@@ -186,6 +215,24 @@ Don't delegate this task any further unless you have a specific sub-task to dele
 
 function getCurrentTime () {
   return new Date().toString()
+}
+
+async function getCryptoValues ({ symbol }) {
+  const response = await fetch('https://api.coincap.io/v2/assets')
+  const { data } = await response.json()
+  const found = data.find((item) => same(symbol, item.name) || same(symbol, item.symbol))
+  if (!found) return 'Unable to find cryptocurrency with that name. Try the symbol or a shorter form of the name. If this is your second attempt, give up.'
+  return found
+}
+
+function calc ({ expression }) {
+// TODO: make this more secure 😈
+  const fn = new Function(expression)
+  return fn()
+}
+
+function same (a, b) {
+  return a.trim().toLowerCase() === b.trim().toLowerCase()
 }
 
 async function searchWikipedia ({ query }) {
