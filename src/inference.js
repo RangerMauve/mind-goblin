@@ -4,14 +4,10 @@ export const ASSISTANT = 'assistant'
 const STOP = ['<|end|>',
   '<|user|>',
   '<|assistant|>',
-  '<|im_end|>',
-  'Reference(s)',
-  '<|im_end>',
-  '<|im_continuation|>',
-  '<|im_start'
+  'Reference(s)'
 ]
 
-const PRE_GENERATE = `\n<|${ASSISTANT}|>\n`
+const PRE_GENERATE = `\n<|${ASSISTANT}|>`
 
 export const DEFAULT_MODEL = 'phi3'
 
@@ -25,10 +21,10 @@ function message ({ role, content }) {
   return `<|${role}|>\n${content}<|end|>`
 }
 
-export async function generate (messages) {
+export async function generate (messages, options = {}) {
   const prompt = serialize(messages) + PRE_GENERATE
 
-  return genAnswerOllama(prompt)
+  return genAnswerOllama(prompt, options)
 }
 
 export async function genAnswerOllama (prompt, { images = [], model = 'phi3:instruct' } = {}) {

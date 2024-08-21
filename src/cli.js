@@ -34,7 +34,8 @@ program
   .argument('<prompt>', 'The task you wish for the assistant to complete')
   .argument('[file]')
   .action(async (prompt, file, options) => {
-    const goblin = Goblin.fromOptions({ ...program.opts(), ...options })
+    const goblin = await Goblin.fromOptions({ ...program.opts(), ...options })
+    console.log(goblin)
     // TODO: Handle file
     const answer = await goblin.query(prompt)
     console.log(answer)
@@ -48,7 +49,7 @@ program
 await program.parseAsync(process.argv)
 
 async function repl (options) {
-  const goblin = Goblin.fromOptions({ ...program.opts(), ...options })
+  const goblin = await Goblin.fromOptions({ ...program.opts(), ...options })
 
   const rl = readline.createInterface({ input, output })
 

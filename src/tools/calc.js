@@ -13,6 +13,6 @@ export const parameters = {
 
 export default function calc ({ expression }) {
   // TODO: make this more secure 😈
-  const fn = new Function(`return ` + expression)
+  const fn = new Function('return ' + expression)
   return fn()
 }

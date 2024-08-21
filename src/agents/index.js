@@ -1,45 +1,21 @@
-import * as tools from './tools.js'
-import { TOOL } from './tools.js'
-import { SYSTEM, ASSISTANT, USER, generate } from './inference.js'
+import { SYSTEM, USER, ASSISTANT, generate } from '../inference.js'
+import { TOOL, Tools, exists, formatResponse, parse, sanitize } from '../tools.js'
 
-const DEFAULT_SYSTEM_PROMPT = "I am an advanced AI assistant."
+export const DEFAULT_PROMPT = 'You are a helpful AI assistant.'
 
-await Promise.all([
-  // tools.loadTool('search_wikipedia'),
-  tools.loadTool('get_current_time'),
-  // tools.loadTool('log'),
-  tools.loadTool('read_clipboard'),
-  tools.loadTool('calc'),
-  tools.loadTool('desktop_notification')
-])
-
-const SYSTEM_PROMPT = tools.genSystemPrompt()
-
-export class Goblin {
-  static default () {
-    return new Goblin(tools.genSystemPrompt())
-  }
-
-  static fromOptions ({ system = DEFAULT_SYSTEM_PROMPT, debug = false }) {
-    const goblin = new Goblin(tools.genSystemPrompt(system))
-
-    if (debug) {
-      goblin.debug = true
-    }
-
-    return goblin
-  }
-
+export class Agent {
   #systemPrompt = ''
-  constructor (systemPrompt) {
+  constructor (systemPrompt = DEFAULT_PROMPT, tools = new Tools()) {
     this.#systemPrompt = systemPrompt
+    this.tools = tools
     this.debug = false
   }
 
   async query (prompt, history) {
+    const systemPrompt = this.tools.genSystemPrompt(this.#systemPrompt)
     const messages = [{
       role: SYSTEM,
-      content: SYSTEM_PROMPT
+      content: systemPrompt
     }]
 
     if (history) {
@@ -73,25 +49,25 @@ Avoid using these tools for unrelated tasks and ensure that each function is use
     let answer = (await generate(messages)).trim()
 
     // TODO: Handle multi calls
-    while (tools.exists(answer)) {
-      answer = tools.sanitize(answer)
+    while (exists(answer)) {
+      answer = sanitize(answer)
       messages.push({ role: ASSISTANT, content: answer })
 
       if (this.debug) console.log(messages)
 
       try {
-        const { name, parameters } = tools.parse(answer)
+        const { name, parameters } = parse(answer)
         if (this.debug) console.log(`(( calling ${name}${JSON.stringify(parameters)} ))`)
-        const response = await tools.call(name, parameters)
+        const response = await this.tools.call(name, parameters)
         if (this.debug) console.log({ response })
         messages.push({
           role: TOOL,
-          content: tools.formatResponse(response)
+          content: formatResponse(response)
         })
       } catch (e) {
         messages.push({
           role: TOOL,
-          content: tools.formatResponse(`Unable to invoke tool:\n${e.message}`)
+          content: formatResponse(`Unable to invoke tool:\n${e.message}`)
         })
         if (this.debug) console.error(e.stack)
       }
