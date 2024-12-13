@@ -4,8 +4,7 @@ import { stdin as input, stdout as output } from 'node:process'
 
 import { program } from 'commander'
 
-import { USER, ASSISTANT } from './inference.js'
-import { Goblin } from './index.js'
+import { USER, ASSISTANT, Goblin } from './index.js'
 
 program
   .name('mind-goblin')
@@ -16,16 +15,15 @@ program
 program
   .command('refactor')
   .description('Refactor a file or the clipboard buffer')
+  .argument('<prompt>', 'The task you wish for the assistant to complete')
   .argument('[file]', 'the file to refactor, omit this to pull from clipboard')
   .action((file, options) => {
-    const history = []
     if (file) {
-
+      // Read file
     } else {
       // load clipboard into history
     }
-
-    console.log('Refactoring')
+    throw new Error('Not yet implemented')
   })
 
 program
@@ -35,7 +33,6 @@ program
   .argument('[file]')
   .action(async (prompt, file, options) => {
     const goblin = await Goblin.fromOptions({ ...program.opts(), ...options })
-    console.log(goblin)
     // TODO: Handle file
     const answer = await goblin.query(prompt)
     console.log(answer)

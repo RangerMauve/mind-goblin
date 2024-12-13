@@ -24,5 +24,5 @@ export default async function notify ({ message }) {
     })
   })
 
-  return 'OK'
+  return 'Notification sent to desktop.'
 }
