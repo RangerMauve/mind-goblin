@@ -5,6 +5,7 @@ import { stdin as input, stdout as output } from 'node:process'
 import { program } from 'commander'
 
 import { USER, ASSISTANT, Goblin } from './index.js'
+import speakTool from './tools/speak.js'
 
 program
   .name('mind-goblin')
@@ -13,8 +14,8 @@ program
   .option('--debug', 'output extra debug info to inspect the train of thought')
 
 program
-  .command('refactor')
-  .description('Refactor a file or the clipboard buffer')
+  .command('transform')
+  .description('Transform a file or the clipboard buffer')
   .argument('<prompt>', 'The task you wish for the assistant to complete')
   .argument('[file]', 'the file to refactor, omit this to pull from clipboard')
   .action((file, options) => {
@@ -29,17 +30,23 @@ program
 program
   .command('think')
   .description('Think about a query and answer the user')
-  .argument('<prompt>', 'The task you wish for the assistant to complete')
+  .argument('[prompt]', 'The task you wish for the assistant to complete')
   .argument('[file]')
-  .action(async (prompt, file, options) => {
+  .option('--speak')
+  .action(async (prompt, file, { speak, ...options }) => {
     const goblin = await Goblin.fromOptions({ ...program.opts(), ...options })
     // TODO: Handle file
-    const answer = await goblin.query(prompt)
-    console.log(answer)
+    const content = prompt || await collect(process.stdin)
+    const answer = await goblin.query(content)
+    if (speak) {
+      await speakTool({ message: answer })
+    } else {
+      console.log(answer)
+    }
   })
 
 program
-  .command('repl')
+  .command('chat')
   .description('Have a conversation via the TUI')
   .action(repl)
 
@@ -65,4 +72,15 @@ async function repl (options) {
       content: response
     })
   }
+}
+
+async function collect (stream) {
+  const chunks = []
+  for await (const chunk of stream) {
+    chunks.push(chunk)
+  }
+
+  const combined = Buffer.concat(chunks).toString('utf8')
+
+  return combined
 }

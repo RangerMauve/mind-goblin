@@ -7,8 +7,8 @@ export class Tools {
       tools.loadTool('get_current_time'),
       // tools.loadTool('log'),
       tools.loadTool('read_clipboard'),
-      tools.loadTool('calc'),
-      tools.loadTool('desktop_notification')
+      tools.loadTool('calc')
+      // tools.loadTool('desktop_notification')
     ])
     return tools
   }

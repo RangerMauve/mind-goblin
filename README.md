@@ -30,11 +30,11 @@ mind-goblin think --listen --speak
 mind-goblin think "text prompt"
 
 // run a repl
-mind-goblin repl
+mind-goblin chat
 > enter text here to get a response
 
 // Read in a file and rewrite it according to the prompt
-mind-goblin refactor "capitalize each sentance" ./example.txt
+mind-goblin transform "capitalize each sentance" ./example.txt
 
 // Get files injected into the context
 mind-goblin think "summarize this" ./example.txt
