@@ -60,17 +60,22 @@ async function repl (options) {
   const history = []
 
   while (true) {
-    const question = await rl.question('> ')
-    const response = await goblin.query(question, history)
-    console.log(response)
-    // TODO: Persist previous questions somewhere?
-    history.push({
-      role: USER,
-      content: question
-    }, {
-      role: ASSISTANT,
-      content: response
-    })
+    try {
+      const question = await rl.question('> ')
+      const response = await goblin.query(question, history)
+      console.log(response)
+      // TODO: Persist previous questions somewhere?
+      history.push({
+        role: USER,
+        content: question
+      }, {
+        role: ASSISTANT,
+        content: response
+      })
+    } catch (e) {
+      if (e.name === 'AbortError') return
+      throw e
+    }
   }
 }
 

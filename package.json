@@ -19,9 +19,13 @@
   "author": "RangerMauve",
   "license": "AGPL-3.0",
   "dependencies": {
+    "better-sqlite3": "^12.2.0",
     "clipboard-sys": "^1.2.1",
     "commander": "^12.1.0",
+    "debug": "^4.4.1",
+    "env-paths": "^3.0.0",
     "execa": "^9.1.0",
+    "fact-memory": "^1.0.0",
     "node-notifier": "^10.0.1",
     "striptags": "^3.2.0"
   },

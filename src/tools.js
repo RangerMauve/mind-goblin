@@ -7,7 +7,9 @@ export class Tools {
       tools.loadTool('get_current_time'),
       // tools.loadTool('log'),
       tools.loadTool('read_clipboard'),
-      tools.loadTool('calc')
+      tools.loadTool('calc'),
+      tools.loadTool('saveMemory'),
+      tools.loadTool('readMemory')
       // tools.loadTool('desktop_notification')
     ])
     return tools
@@ -47,9 +49,10 @@ export class Tools {
     return descriptions
   }
 
-  async call (name, parameters = {}) {
+  async call (name, parameters = {}, agent) {
+    if (agent.debug) console.info('🛠️', name, parameters)
     if (this.#tools.has(name)) {
-      const response = await this.#tools.get(name)(parameters)
+      const response = await this.#tools.get(name)(parameters, agent)
       return response
     } else {
       throw new Error(`Function "${name}" does not exist.
