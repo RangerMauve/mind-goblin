@@ -52,8 +52,10 @@ export class Goblin {
 
     // Add in system prompt if it isn't set
     if (!messages[0] || messages[0].role !== SYSTEM) {
+      const timePrompt = `\nThe current time is ${getCurrentTimeAndDate()}`
+      const content = DEFAULT_SYSTEM + this.#getMemoryInstructions() + timePrompt
       messages.unshift(
-        { role: SYSTEM, content: DEFAULT_SYSTEM + this.#getMemoryInstructions() }
+        { role: SYSTEM, content }
       )
     }
 
@@ -121,4 +123,18 @@ async function postOllama (path, body) {
     throw new Error(await response.text())
   }
   return await response.json()
+}
+
+function getCurrentTimeAndDate() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0'); // getMonth() is zero-indexed
+    const day = String(now.getDate()).padStart(2, '0');
+
+    const timeAndDate = `${hours}:${minutes}:${seconds} ${year}/${month}/${day}`;
+    return timeAndDate;
 }
