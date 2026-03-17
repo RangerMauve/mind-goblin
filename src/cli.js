@@ -47,17 +47,14 @@ program
 program
   .command('chat')
   .description('Have a conversation via the TUI')
-  .option('--progress')
   .action(repl)
 
 await program.parseAsync(process.argv)
 
 /**
- * @param {object} arguments
- * @param {boolean?} arguments.progress 
- * @returns 
+ * @param {object} options
  */
-async function repl ({progress, ...options}) {
+async function repl (options) {
   const goblin = await Goblin.fromOptions({ ...program.opts(), ...options })
 
   const rl = readline.createInterface({ input, output })
@@ -68,16 +65,16 @@ async function repl ({progress, ...options}) {
   const history = []
 
   /**
-   * @param {string} message 
+   * @param {string} message
    */
-  function onprogress(message) {
-    console.log(`**${message}**`)
+  function onprogress (message) {
+    console.log(message)
   }
 
   while (true) {
     try {
       const question = await rl.question('> ')
-      const response = await goblin.query(question, {history, onprogress})
+      const response = await goblin.query(question, { history, onprogress })
       console.log(response)
       // TODO: Persist previous questions somewhere?
       history.push({
@@ -94,6 +91,12 @@ async function repl ({progress, ...options}) {
   }
 }
 
+/**
+ * Collect all the data in a stream into a single blob of text.
+ * Use this to get all the text out of STDIN
+ * @param {AsyncIterable<Buffer>} stream
+ * @returns
+ */
 async function collect (stream) {
   const chunks = []
   for await (const chunk of stream) {
