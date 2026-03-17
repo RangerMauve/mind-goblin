@@ -16,7 +16,7 @@ export const parameters = {
  *
  * @param {object} parameters
  * @param {string} parameters.message
- * @returns {Promise<string>}
+ * @returns {Promise<{result:string}>}
  */
 export default async function notify ({ message }) {
   // TODO: Allow title/icon?
@@ -30,5 +30,5 @@ export default async function notify ({ message }) {
     })
   })
 
-  return 'Notification sent to desktop.'
+  return { result: 'Notification sent to desktop.' }
 }

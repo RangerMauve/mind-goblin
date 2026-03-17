@@ -24,18 +24,18 @@ export default async function editFile ({ path, old_text, new_text }) {
   try {
     // Read the file
     const contents = await fs.readFile(path, 'utf8')
-    
+
     // Check if old_text exists in the file
     if (!contents.includes(old_text)) {
       return { error: 'Old text not found in file. Use read_file to check the contents and try again.' }
     }
-    
+
     // Replace old_text with new_text
     const newContents = contents.replace(old_text, new_text)
-    
+
     // Write the file
     await fs.writeFile(path, newContents, 'utf8')
-    
+
     return { success: true, path }
   } catch (e) {
     return { error: e.message }

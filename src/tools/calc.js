@@ -14,10 +14,11 @@ export const parameters = {
 /**
  * @param {object} parameters
  * @param {string} parameters.expression
- * @returns {number}
+ * @returns {{result: number}}
  */
 export default function calc ({ expression }) {
   // TODO: make this more secure 😈
   const fn = new Function('return ' + expression)
-  return fn()
+  const result = fn()
+  return { result }
 }
