@@ -1,0 +1,21 @@
+import fs from 'node:fs/promises'
+
+export const name = 'write_file'
+export const description = 'Write content to a file given its path.'
+export const parameters = {
+  type: 'object',
+  required: ['path', 'content'],
+  properties: {
+    path: { type: 'string', description: 'The absolute or relative path to the file' },
+    content: { type: 'string', description: 'The content to write to the file' }
+  }
+}
+
+export default async function writeFile ({ path, content }) {
+  try {
+    await fs.writeFile(path, content, 'utf8')
+    return { success: true, path }
+  } catch (e) {
+    return { error: e.message }
+  }
+}

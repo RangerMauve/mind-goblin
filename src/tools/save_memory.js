@@ -1,4 +1,4 @@
-export const name = 'saveMemory'
+export const name = 'save_memory'
 export const description = 'Save facts to your memory to retrieve later. Use this when told to remember something for later.'
 export const parameters = {
   type: 'object',

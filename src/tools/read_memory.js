@@ -1,4 +1,4 @@
-export const name = 'readMemory'
+export const name = 'read_memory'
 export const description = 'Read facts from memory.'
 export const parameters = {
   type: 'object',
@@ -13,7 +13,11 @@ export const parameters = {
   }
 }
 
-export default async function speak ({ tags }, agent) {
+export default async function read_memory ({ tags }, agent) {
   const facts = await agent.memory.recall({ tags, limit: 8 })
-  return facts.map(({fact, tags, timestamp}) => ({fact, tags, timestamp: new Date(timestamp)}))
+  return facts.map(({ fact, tags, timestamp }) => ({
+    fact,
+    tags,
+    timestamp: new Date(timestamp)
+  }))
 }
