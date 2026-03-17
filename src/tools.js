@@ -32,9 +32,10 @@ export class Tools {
       tools.loadTool('read_memory'),
       tools.loadTool('read_file'),
       tools.loadTool('write_file'),
+      tools.loadTool('edit_file'),
       tools.loadTool('read_directory'),
       tools.loadTool('load_web_text'),
-      tools.loadTool('desktop_notification')
+      tools.loadTool('desktop_notification'),
     ])
     return tools
   }
