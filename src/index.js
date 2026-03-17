@@ -7,21 +7,26 @@ import { Tools } from './tools.js'
 const STORAGE_PATH = envPaths('mind-goblin').data
 
 const OLLAMA_SERVER = 'http://localhost:11434'
+const REQUEST_TIMEOUT = 60 * 1000
+
+// export const MODEL = 'huggingface.co/janhq/Jan-v1-edge-gguf:latest'
+// export const MODEL = 'qwen2.5-coder:7b'
+export const MODEL = 'qwen3.5:4b'
+
 const DEFAULT_SYSTEM = `You are Mind Goblin.
 An evil stooge that will do anything its master wants.
 You are talking to your master who is named ${process.env.USER}.
-When you get a tool call response, use it to answer the users question or call another tool.
 Before calling any tools, think step by step on how to solve the user's query.
+When you get a tool call response, use it to answer the users question or call another tool.
 Only use tools if you really need to. Otherwise respond directly.
 Be concise and direct in your responses. Respond without unnecessary explanation.
 `
-const PRE_REPLY = 'Of course master, '
+const PRE_REPLY = ''
 
 export const SYSTEM = 'system'
 export const USER = 'user'
 export const ASSISTANT = 'assistant'
 export const TOOL = 'tool'
-export const MODEL = 'qwen2.5-coder:7b'
 
 export class Goblin {
   static async fromOptions ({ storagePath = STORAGE_PATH, ...args }) {
@@ -52,8 +57,7 @@ export class Goblin {
 
     // Add in system prompt if it isn't set
     if (!messages[0] || messages[0].role !== SYSTEM) {
-      const timePrompt = `\nThe current time is ${getCurrentTimeAndDate()}`
-      const content = DEFAULT_SYSTEM + this.#getMemoryInstructions() + timePrompt
+      const content = DEFAULT_SYSTEM + this.#getMemoryInstructions()
       messages.unshift(
         { role: SYSTEM, content }
       )
@@ -106,7 +110,11 @@ async function chat ({ messages = {}, tools }) {
     think: false,
     tools,
     messages,
-    keep_alive: '30m'
+    keep_alive: '30m',
+    temperature: 0.6,
+    top_p: 0.95,
+    top_k: 20,
+    min_p: 0.0
   })
 
   return message
@@ -117,24 +125,11 @@ async function postOllama (path, body) {
 
   const response = await fetch(url, {
     method: 'POST',
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    timeout: REQUEST_TIMEOUT
   })
   if (!response.ok) {
     throw new Error(await response.text())
   }
   return await response.json()
-}
-
-function getCurrentTimeAndDate() {
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0'); // getMonth() is zero-indexed
-    const day = String(now.getDate()).padStart(2, '0');
-
-    const timeAndDate = `${hours}:${minutes}:${seconds} ${year}/${month}/${day}`;
-    return timeAndDate;
 }
