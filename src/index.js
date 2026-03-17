@@ -9,7 +9,7 @@ import { Tools } from './tools.js'
 
 /** @typedef {{role: 'user', content: string}} UserMessage */
 /** @typedef {{role: 'system', content: string}} SystemMessage */
-/** @typedef {{role: 'assistant', content: string, tool_calls?: FunctionCall[]}} AssistantMessage */
+/** @typedef {{role: 'assistant', content: string, thinking?: string, tool_calls?: FunctionCall[]}} AssistantMessage */
 /** @typedef {{role: 'tool', content: string, name: string, tool_call_id?: string}} ToolMessage */
 
 /**
@@ -19,7 +19,7 @@ import { Tools } from './tools.js'
 const STORAGE_PATH = envPaths('mind-goblin').data
 
 const OLLAMA_SERVER = 'http://localhost:11434'
-const REQUEST_TIMEOUT = 60 * 1000
+const REQUEST_TIMEOUT = 30 * 60 * 1000
 
 // export const MODEL = 'huggingface.co/janhq/Jan-v1-edge-gguf:latest'
 // export const MODEL = 'qwen2.5-coder:7b'
@@ -38,6 +38,8 @@ export const SYSTEM = 'system'
 export const USER = 'user'
 export const ASSISTANT = 'assistant'
 export const TOOL = 'tool'
+export const THINK_START = '<think>'
+export const THINK_END = '</think>'
 
 export class Goblin {
   static async fromOptions ({ storagePath = STORAGE_PATH, ...args }) {
@@ -66,10 +68,12 @@ export class Goblin {
   /**
    * Send a prompt to the agent and get a response. This triggers an agentic loop which can do tool calls.
    * @param {string} prompt
-   * @param {Message[]} [history] Optionally pass in an existing history to add the conversation to.
+   * @param {object} [options]
+   * @param {Message[]} [options.history] Optionally pass in an existing history to add the conversation to.
+   * @param {(message: string) => void} [options.onprogress] Optionally pass in a callback to call as there is progress on the task
    * @returns
    */
-  async query (prompt, history) {
+  async query (prompt, {history, onprogress} = {}) {
     // Use existing history or start a new one
     const messages = history ? history.slice() : []
 
@@ -91,6 +95,11 @@ export class Goblin {
     let result = await chat({ messages, tools })
 
     while (result.tool_calls?.length) {
+      if(onprogress) {
+        const {content} = result
+        const stripped = stripThinking(content)
+        if(stripped) onprogress(stripped)
+      }
       messages.push(result)
       for (const call of result.tool_calls) {
         try {
@@ -111,7 +120,7 @@ export class Goblin {
         }
       }
 
-      // console.log(messages)
+      console.log(messages)
       result = await chat({ messages, tools })
     }
 
@@ -129,7 +138,7 @@ async function chat ({ messages = [], tools }) {
   const { message } = await postOllama('/api/chat', {
     model: MODEL,
     stream: false,
-    think: false,
+    // think: false,
     tools,
     messages,
     keep_alive: '30m',
@@ -167,4 +176,19 @@ async function postOllama (path, body) {
     throw new Error(await response.text())
   }
   return await response.json()
+}
+
+/**
+ * Strip out think start and end blocks
+ * @param {string} content 
+ * @returns {string}
+ */
+export function stripThinking(content) {
+  if(content.includes(THINK_START)) {
+    const thinkEnd = content.indexOf(THINK_END)
+    if(thinkEnd > 0) {
+      return content.slice(thinkEnd + THINK_END.length)
+    }
+  }
+  return content.trim()
 }

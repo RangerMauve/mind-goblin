@@ -38,31 +38,46 @@ program
     // TODO: Handle file
     const content = prompt || await collect(process.stdin)
     const answer = await goblin.query(content)
+    console.log(answer)
     if (speak) {
       await speakTool({ message: answer })
-    } else {
-      console.log(answer)
     }
   })
 
 program
   .command('chat')
   .description('Have a conversation via the TUI')
+  .option('--progress')
   .action(repl)
 
 await program.parseAsync(process.argv)
 
-async function repl (options) {
+/**
+ * @param {object} arguments
+ * @param {boolean?} arguments.progress 
+ * @returns 
+ */
+async function repl ({progress, ...options}) {
   const goblin = await Goblin.fromOptions({ ...program.opts(), ...options })
 
   const rl = readline.createInterface({ input, output })
 
+  /**
+   * @type {import('./index.js').Message[]}
+   */
   const history = []
+
+  /**
+   * @param {string} message 
+   */
+  function onprogress(message) {
+    console.log(`**${message}**`)
+  }
 
   while (true) {
     try {
       const question = await rl.question('> ')
-      const response = await goblin.query(question, history)
+      const response = await goblin.query(question, {history, onprogress})
       console.log(response)
       // TODO: Persist previous questions somewhere?
       history.push({
