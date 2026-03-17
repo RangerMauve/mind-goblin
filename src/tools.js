@@ -10,6 +10,14 @@
  * @property {{name: string, description:string, parameters: object}} function
  */
 
+/**
+ * @typedef {object} FunctionCall
+ * @property {object} function
+ * @property {string} function.name
+ * @property {object} function.arguments
+ * @property {string} [id]
+ */
+
 export class Tools {
   static async default () {
     const tools = new Tools()
@@ -39,7 +47,7 @@ export class Tools {
 
   /**
    * Load a tool from the `./tools` folder
-   * @param {string} name 
+   * @param {string} name
    */
   async loadTool (name) {
     const module = await import(`./tools/${name}.js`)
@@ -74,10 +82,10 @@ export class Tools {
 
   /**
    * Call one of the tools with its parameters
-   * @param {string} name 
-   * @param {object} parameters 
-   * @param {Goblin} agent 
-   * @returns {Promise<object>}
+   * @param {string} name
+   * @param {object} parameters
+   * @param {Goblin} agent
+   * @returns {Promise<any>}
    */
   async call (name, parameters = {}, agent) {
     if (agent.debug) console.info('🛠️', name, parameters)

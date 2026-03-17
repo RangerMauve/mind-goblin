@@ -1,8 +1,20 @@
+import {Agent} from "undici"
 import envPaths from 'env-paths'
 import Database from 'better-sqlite3'
 import FactMemory from 'fact-memory'
 
 import { Tools } from './tools.js'
+
+/** @import {FunctionCall} from './tools.js' */
+
+/** @typedef {{role: 'user', content: string}} UserMessage */
+/** @typedef {{role: 'system', content: string}} SystemMessage */
+/** @typedef {{role: 'assistant', content: string, tool_calls?: FunctionCall[]}} AssistantMessage */
+/** @typedef {{role: 'tool', content: string, name: string, tool_call_id?: string}} ToolMessage */
+
+/**
+ * @typedef {SystemMessage|UserMessage|AssistantMessage|ToolMessage} Message
+ */
 
 const STORAGE_PATH = envPaths('mind-goblin').data
 
@@ -21,7 +33,6 @@ When you get a tool call response, use it to answer the users question or call a
 Only use tools if you really need to. Otherwise respond directly.
 Be concise and direct in your responses. Respond without unnecessary explanation.
 `
-const PRE_REPLY = ''
 
 export const SYSTEM = 'system'
 export const USER = 'user'
@@ -48,9 +59,16 @@ export class Goblin {
   }
 
   #getMemoryInstructions () {
+    // @ts-ignore
     return this.memory.recall({ tags: ['instructions'] }).map(({ fact }) => fact).join('\n')
   }
 
+  /**
+   * Send a prompt to the agent and get a response. This triggers an agentic loop which can do tool calls.
+   * @param {string} prompt
+   * @param {Message[]} [history] Optionally pass in an existing history to add the conversation to.
+   * @returns
+   */
   async query (prompt, history) {
     // Use existing history or start a new one
     const messages = history ? history.slice() : []
@@ -65,37 +83,35 @@ export class Goblin {
 
     // Fill in prompt and pre-reply
     messages.push(
-      { role: USER, content: prompt },
-      { role: ASSISTANT, content: PRE_REPLY }
+      { role: USER, content: prompt }
     )
 
     const tools = this.tools.genDescriptions()
 
     let result = await chat({ messages, tools })
 
-    // Remove the pre-reply text
-    messages.pop()
     while (result.tool_calls?.length) {
       messages.push(result)
       for (const call of result.tool_calls) {
         try {
-          const result = await this.tools.call(call.function.name, call.function.arguments, this)
+          const toolContent = await this.tools.call(call.function.name, call.function.arguments, this)
           messages.push({
             role: TOOL,
-            content: JSON.stringify(result),
+            content: JSON.stringify(toolContent),
             name: call.function.name,
             tool_call_id: call.id
           })
         } catch (e) {
           messages.push({
             role: TOOL,
-            content: `Unable to call tool ${call.name}: ${e.message}`,
-            name: call.function.name
+            content: `Unable to call tool ${call.function.name}: ${e.message}`,
+            name: call.function.name,
+            tool_call_id: call.id
           })
         }
       }
 
-      console.log(messages)
+      // console.log(messages)
       result = await chat({ messages, tools })
     }
 
@@ -103,7 +119,13 @@ export class Goblin {
   }
 }
 
-async function chat ({ messages = {}, tools }) {
+/**
+ * @param {object} options
+ * @param {Message[]} options.messages
+ * @param {import('./tools.js').ToolDescription[]} options.tools
+ * @returns {Promise<AssistantMessage>}
+ */
+async function chat ({ messages = [], tools }) {
   const { message } = await postOllama('/api/chat', {
     model: MODEL,
     stream: false,
@@ -120,13 +142,26 @@ async function chat ({ messages = {}, tools }) {
   return message
 }
 
+const agent = new Agent({
+  connect: { timeout: REQUEST_TIMEOUT },
+  headersTimeout: REQUEST_TIMEOUT,
+  bodyTimeout: REQUEST_TIMEOUT
+})
+
+/**
+ * Send data to ollama
+ * @param {string} path
+ * @param {object} body
+ * @returns
+ */
 async function postOllama (path, body) {
   const url = new URL(path, OLLAMA_SERVER).href
 
   const response = await fetch(url, {
     method: 'POST',
     body: JSON.stringify(body),
-    timeout: REQUEST_TIMEOUT
+    // @ts-ignore
+    dispatcher: agent
   })
   if (!response.ok) {
     throw new Error(await response.text())

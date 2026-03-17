@@ -2,6 +2,10 @@ export const name = 'get_current_time'
 export const description = 'Get the current time. Only use this if the user asks about time. This function has no additional arguments'
 export const parameters = { type: 'object' }
 
+/**
+ * Get the current time.
+ * @returns string
+ */
 export default function getCurrentTime () {
   return getCurrentTimeAndDate()
 }

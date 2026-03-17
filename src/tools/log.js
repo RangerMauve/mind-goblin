@@ -10,6 +10,11 @@ export const parameters = {
   required: ['message']
 }
 
+/**
+ * Output your final response to the user.
+ * @param {object} parameters
+ * @param {string} parameters.message
+ */
 export default function log ({ message }) {
   console.log('Assistant:', message)
 }

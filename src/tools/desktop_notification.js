@@ -12,6 +12,12 @@ export const parameters = {
   required: ['message']
 }
 
+/**
+ *
+ * @param {object} parameters
+ * @param {string} parameters.message
+ * @returns {Promise<string>}
+ */
 export default async function notify ({ message }) {
   // TODO: Allow title/icon?
   await new Promise((resolve, reject) => {

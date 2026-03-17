@@ -12,6 +12,12 @@ export const parameters = {
   }
 }
 
+/**
+ * Read the contents of a directory given its path.
+ * @param {object} parameters
+ * @param {string} parameters.path
+ * @returns {Promise<string[]|{error: string}>}
+ */
 export default async function readDirectory ({ path }) {
   try {
     const contents = await fs.readdir(path)

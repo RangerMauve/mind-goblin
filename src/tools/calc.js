@@ -11,6 +11,11 @@ export const parameters = {
   required: ['expression']
 }
 
+/**
+ * @param {object} parameters
+ * @param {string} parameters.expression
+ * @returns {number}
+ */
 export default function calc ({ expression }) {
   // TODO: make this more secure 😈
   const fn = new Function('return ' + expression)

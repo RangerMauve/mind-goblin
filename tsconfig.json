@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "target": "es2022",
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "checkJs": true,
+        "allowJs": true,
+        "noEmit": true,
+        "outDir": "dist",
+        "useUnknownInCatchVariables": false,
+        "lib": ["ES2024","DOM"]
+    },
+    "extends": "@tsconfig/node24/tsconfig.json",
+    "include": [
+        "./src/",
+    ]
+}

@@ -12,12 +12,17 @@ export const parameters = {
   }
 }
 
+/**
+ * Reads text content from a file given its path.
+ * @param {object} parameters
+ * @param {string} parameters.path - The absolute or relative path to the file
+ * @returns {Promise<string|{error: string}>} - The file contents
+ */
 export default async function readFile ({ path }) {
   try {
     const content = await fs.readFile(path, 'utf8')
     return content
   } catch (e) {
-    // If the file is lost to the void or corrupted
     return { error: e.message }
   }
 }

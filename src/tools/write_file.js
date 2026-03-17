@@ -11,6 +11,13 @@ export const parameters = {
   }
 }
 
+/**
+ * Write content to a file given its path.
+ * @param {object} parameters
+ * @param {string} parameters.path
+ * @param {string} parameters.content
+ * @returns {Promise<{success: true, path:string}|{error:string}>}
+ */
 export default async function writeFile ({ path, content }) {
   try {
     await fs.writeFile(path, content, 'utf8')

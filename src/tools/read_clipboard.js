@@ -7,12 +7,20 @@ export const parameters = { type: 'object' }
 
 const isWayland = process.env.XDG_SESSION_TYPE === 'wayland'
 
+/**
+ * Reads text directly from the system clipboard.
+ * @returns {Promise<{clipboardText: string}>}
+ */
 export default async function readClipboard () {
   return {
     clipboardText: await read()
   }
 }
 
+/**
+ *
+ * @returns {Promise<string>}
+ */
 async function read () {
   if (isWayland) {
     const { stdout } = await execa`wl-paste --no-newline`
