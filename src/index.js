@@ -1,9 +1,9 @@
-import {Agent} from "undici"
 import envPaths from 'env-paths'
 import Database from 'better-sqlite3'
 import FactMemory from 'fact-memory'
 
 import { Tools } from './tools.js'
+import { chat, stripThinking } from './utils.js'
 
 /** @import {FunctionCall} from './tools.js' */
 
@@ -18,13 +18,6 @@ import { Tools } from './tools.js'
 
 const STORAGE_PATH = envPaths('mind-goblin').data
 
-const OLLAMA_SERVER = 'http://localhost:11434'
-const REQUEST_TIMEOUT = 30 * 60 * 1000
-
-// export const MODEL = 'huggingface.co/janhq/Jan-v1-edge-gguf:latest'
-// export const MODEL = 'qwen2.5-coder:7b'
-export const MODEL = 'qwen3.5:4b'
-
 const DEFAULT_SYSTEM = `You are Mind Goblin.
 An evil stooge that will do anything its master wants.
 You are talking to your master who is named ${process.env.USER}.
@@ -38,8 +31,6 @@ export const SYSTEM = 'system'
 export const USER = 'user'
 export const ASSISTANT = 'assistant'
 export const TOOL = 'tool'
-export const THINK_START = '<think>'
-export const THINK_END = '</think>'
 
 export class Goblin {
   static async fromOptions ({ storagePath = STORAGE_PATH, ...args }) {
@@ -47,22 +38,58 @@ export class Goblin {
     return new Goblin({ tools, storagePath, ...args })
   }
 
+  /**
+   *
+   * @param {object} options
+   * @param {Tools} [options.tools]
+   * @param {FactMemory} [options.memory]
+   * @param {string} [options.storagePath]
+   * @param {number} [options.maxIterations] Maximum number of rounds before giving up on a task. Set to -1 to go on forever.
+   * @param {boolean} [options.debug] Whether to output debug text to the console during tool calls
+   * @param {number} [options.forkDepth]
+   */
   constructor ({
     tools = new Tools(),
     storagePath = STORAGE_PATH,
-    debug = true
+    maxIterations = -1,
+    debug = true,
+    forkDepth = 0,
+    memory = null
   }) {
     this.tools = tools
-    const db = new Database(storagePath)
-    const memory = new FactMemory(db)
-    this.db = db
-    this.memory = memory
+
+    if (memory) {
+      this.memory = memory
+    } else {
+      const db = new Database(storagePath)
+      this.memory = new FactMemory(db)
+    }
+    this.maxIterations = maxIterations
     this.debug = debug
+    this.forkDepth = forkDepth
   }
 
   #getMemoryInstructions () {
     // @ts-ignore
     return this.memory.recall({ tags: ['instructions'] }).map(({ fact }) => fact).join('\n')
+  }
+
+  /**
+   * Fork a sub-goblin with a limited set of tools
+   * @param {object} options
+   * @param {string[]} [options.tools] Names of tools that should be passed down
+   * @param {number} [options.maxIterations]
+   */
+  fork ({ tools, maxIterations = this.maxIterations }) {
+    const subTools = tools ? this.tools.subset(tools) : this.tools
+
+    return new Goblin({
+      debug: this.debug,
+      forkDepth: this.forkDepth + 1,
+      tools: subTools,
+      memory: this.memory,
+      maxIterations
+    })
   }
 
   /**
@@ -73,7 +100,7 @@ export class Goblin {
    * @param {(message: string) => void} [options.onprogress] Optionally pass in a callback to call as there is progress on the task
    * @returns
    */
-  async query (prompt, {history, onprogress} = {}) {
+  async query (prompt, { history, onprogress } = {}) {
     // Use existing history or start a new one
     const messages = history ? history.slice() : []
 
@@ -94,11 +121,17 @@ export class Goblin {
 
     let result = await chat({ messages, tools })
 
+    let iteration = 0
+
     while (result.tool_calls?.length) {
-      if(onprogress) {
-        const {content} = result
+      if (this.maxIterations >= 0 && (iteration > this.maxIterations)) {
+        throw new Error(`Reached max iterations at ${iteration}. Try again with more subagents or a more simple approach`)
+      }
+      iteration += 1
+      if (onprogress) {
+        const { content } = result
         const stripped = stripThinking(content)
-        if(stripped) onprogress(stripped)
+        if (stripped) onprogress(stripped)
       }
       messages.push(result)
       for (const call of result.tool_calls) {
@@ -120,75 +153,10 @@ export class Goblin {
         }
       }
 
-      console.log(messages)
+      // console.log(messages)
       result = await chat({ messages, tools })
     }
 
     return result.content
   }
-}
-
-/**
- * @param {object} options
- * @param {Message[]} options.messages
- * @param {import('./tools.js').ToolDescription[]} options.tools
- * @returns {Promise<AssistantMessage>}
- */
-async function chat ({ messages = [], tools }) {
-  const { message } = await postOllama('/api/chat', {
-    model: MODEL,
-    stream: false,
-    // think: false,
-    tools,
-    messages,
-    keep_alive: '30m',
-    temperature: 0.6,
-    top_p: 0.95,
-    top_k: 20,
-    min_p: 0.0
-  })
-
-  return message
-}
-
-const agent = new Agent({
-  connect: { timeout: REQUEST_TIMEOUT },
-  headersTimeout: REQUEST_TIMEOUT,
-  bodyTimeout: REQUEST_TIMEOUT
-})
-
-/**
- * Send data to ollama
- * @param {string} path
- * @param {object} body
- * @returns
- */
-async function postOllama (path, body) {
-  const url = new URL(path, OLLAMA_SERVER).href
-
-  const response = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify(body),
-    // @ts-ignore
-    dispatcher: agent
-  })
-  if (!response.ok) {
-    throw new Error(await response.text())
-  }
-  return await response.json()
-}
-
-/**
- * Strip out think start and end blocks
- * @param {string} content 
- * @returns {string}
- */
-export function stripThinking(content) {
-  if(content.includes(THINK_START)) {
-    const thinkEnd = content.indexOf(THINK_END)
-    if(thinkEnd > 0) {
-      return content.slice(thinkEnd + THINK_END.length)
-    }
-  }
-  return content.trim()
 }

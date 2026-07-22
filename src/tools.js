@@ -35,16 +35,23 @@ export class Tools {
       tools.loadTool('edit_file'),
       tools.loadTool('read_directory'),
       tools.loadTool('load_web_text'),
-      tools.loadTool('desktop_notification'),
+      tools.loadTool('search_web'),
+      tools.loadTool('sub_agent')
+      // tools.loadTool('desktop_notification')
     ])
     return tools
   }
 
   /** @type {Map<string, ToolFunction>} */
-  #tools = new Map()
+  #tools
 
   /** @type {Map<string, ToolDescription>} */
-  #descriptions = new Map()
+  #descriptions
+
+  constructor (tools = new Map(), descriptions = new Map()) {
+    this.#tools = tools
+    this.#descriptions = descriptions
+  }
 
   /**
    * Load a tool from the `./tools` folder
@@ -72,6 +79,21 @@ export class Tools {
   }
 
   /**
+   * Create a subset of tools based on an allow list
+   * @param {string[]} limitTools
+   */
+  subset (limitTools) {
+    const subTools = new Map()
+    const subDescriptions = new Map()
+    for (const name of limitTools) {
+      if (!this.#tools.has(name)) throw new Error(`Unknown tool ${name}. Try again without it.`)
+      subTools.set(name, this.#tools.get(name))
+      subDescriptions.set(name, this.#descriptions.get(name))
+    }
+    return new Tools(subTools, subDescriptions)
+  }
+
+  /**
    * Get descriptions of the currently loaded tools
    * @returns {ToolDescription[]}
    */
@@ -89,7 +111,10 @@ export class Tools {
    * @returns {Promise<any>}
    */
   async call (name, parameters = {}, agent) {
-    if (agent.debug) console.info('🛠️', name, parameters)
+    if (agent.debug) {
+      const depthTag = agent.forkDepth ? `(${agent.forkDepth})` : ''
+      console.info('🛠️', +depthTag, name, parameters)
+    }
     if (this.#tools.has(name)) {
       // @ts-ignore
       const response = await this.#tools.get(name)(parameters, agent)

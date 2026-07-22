@@ -18,8 +18,8 @@ export const parameters = {
 /**
  * Search for information on Wikipedia.
  * @param {object} parameters
- * @param {string} parameters.query 
- * @returns 
+ * @param {string} parameters.query
+ * @returns
  */
 export default async function searchWikipedia ({ query }) {
   const url = new URL('https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&limit=1')
