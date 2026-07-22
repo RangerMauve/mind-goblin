@@ -136,11 +136,13 @@ export class Goblin {
       messages.push(result)
       for (const call of result.tool_calls) {
         try {
-          const toolContent = await this.tools.call(call.function.name, call.function.arguments, this)
+          const {name, arguments: rawArgs} = call.function
+          const args = JSON.parse(rawArgs)
+          const toolContent = await this.tools.call(name, args, this)
           messages.push({
             role: TOOL,
             content: JSON.stringify(toolContent),
-            name: call.function.name,
+            name: name,
             tool_call_id: call.id
           })
         } catch (e) {
@@ -153,7 +155,7 @@ export class Goblin {
         }
       }
 
-      // console.log(messages)
+      // if(this.debug) console.log(messages)
       result = await chat({ messages, tools })
     }
 

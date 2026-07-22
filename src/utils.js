@@ -1,10 +1,11 @@
 import { Agent } from 'undici'
 import rc from 'rc'
 
-// Default config for using local ollama
+// Default config for OpenAI-compatible API (Ollama default)
 const DEFAULT_CONFIG = {
   model: 'qwen3.5:4b',
-  server: 'http://localhost:11434',
+  server: 'http://localhost:11434/v1/',
+  api_key: process.env.OPENAI_API_KEY || '',
 }
 
 // Load config from ~/.mindgoblinrc
@@ -13,6 +14,7 @@ const conf = rc('mindgoblin', DEFAULT_CONFIG)
 // Apply config to constants
 const MODEL = conf.model
 const SERVER = conf.server
+const API_KEY = conf.api_key
 const REQUEST_TIMEOUT = 30 * 60 * 1000
 
 export const THINK_START = '<think>'
@@ -31,43 +33,41 @@ const agent = new Agent({
  * @returns {Promise<import('./index.js').AssistantMessage>}
  */
 export async function chat ({ messages = [], tools }) {
-  const { message } = await postOllama('/api/chat', {
+  const body = {
     model: MODEL,
-    stream: false,
-    // think: false,
-    tools,
     messages,
-    keep_alive: '30m',
+    tools,
     temperature: 0.6,
     top_p: 0.95,
-    top_k: 20,
-    min_p: 0.0
-  })
+  }
 
-  return message
+  const result = await postOpenAI('chat/completions', body)
+
+  return result.choices[0].message
 }
 
 /**
- * Send data to ollama
+ * Send data to OpenAI-compatible API
  * @param {string} path
  * @param {object} data
  * @returns
  */
-async function postOllama (path, data) {
-  const url = new URL(path, SERVER).href
-
-  const body = JSON.stringify(data)
-
-  // console.log({path, body})
+async function postOpenAI (path, data) {
+  const url = (SERVER.endsWith('/') ? SERVER : SERVER + '/') + path
 
   const response = await fetch(url, {
     method: 'POST',
-    body,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + API_KEY,
+    },
+    body: JSON.stringify(data),
     // @ts-ignore
     dispatcher: agent
   })
+
   if (!response.ok) {
-    throw new Error(await response.text())
+    throw new Error(`OpenAI API error (${response.status}): ${await response.text()}`)
   }
   return await response.json()
 }
