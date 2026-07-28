@@ -5,7 +5,7 @@ import rc from 'rc'
 const DEFAULT_CONFIG = {
   model: 'qwen3.5:4b',
   server: 'http://localhost:11434/v1/',
-  api_key: process.env.OPENAI_API_KEY || '',
+  api_key: process.env.OPENAI_API_KEY || ''
 }
 
 // Load config from ~/.mindgoblinrc
@@ -38,7 +38,7 @@ export async function chat ({ messages = [], tools }) {
     messages,
     tools,
     temperature: 0.6,
-    top_p: 0.95,
+    top_p: 0.95
   }
 
   const result = await postOpenAI('chat/completions', body)
@@ -59,7 +59,7 @@ async function postOpenAI (path, data) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + API_KEY,
+      Authorization: 'Bearer ' + API_KEY
     },
     body: JSON.stringify(data),
     // @ts-ignore

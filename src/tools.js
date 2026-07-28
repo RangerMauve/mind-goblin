@@ -14,7 +14,7 @@
  * @typedef {object} FunctionCall
  * @property {object} function
  * @property {string} function.name
- * @property {object} function.arguments
+ * @property {string} function.arguments
  * @property {string} [id]
  */
 
