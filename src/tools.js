@@ -36,7 +36,8 @@ export class Tools {
       tools.loadTool('read_directory'),
       tools.loadTool('load_web_text'),
       tools.loadTool('search_web'),
-      tools.loadTool('sub_agent')
+      tools.loadTool('sub_agent'),
+      tools.loadTool('shell_command')
       // tools.loadTool('desktop_notification')
     ])
     return tools
