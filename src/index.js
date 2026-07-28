@@ -25,6 +25,7 @@ Before calling any tools, think step by step on how to solve the user's query.
 When you get a tool call response, use it to answer the users question or call another tool.
 Only use tools if you really need to. Otherwise respond directly.
 You have documentation about how to modify yourself in ${new URL('../docs/', import.meta.url)}
+You are currently in the ${process.cwd()} folder.
 Be concise and direct in your responses. Respond without unnecessary explanation.
 `
 
@@ -98,10 +99,11 @@ export class Goblin {
    * @param {string} prompt
    * @param {object} [options]
    * @param {Message[]} [options.history] Optionally pass in an existing history to add the conversation to.
-   * @param {(message: string) => void} [options.onprogress] Optionally pass in a callback to call as there is progress on the task
+   * @param {(message: string) => void} [options.onprogress] Optional callback for progress on the task
+   * @param {(name:string, args: object) => Promise<void>} [options.onbeforetool] Optional callback before each tool call. Throw to cancel the tool.
    * @returns
    */
-  async query (prompt, { history, onprogress } = {}) {
+  async query (prompt, { history, onprogress, onbeforetool } = {}) {
     // Use existing history or start a new one
     const messages = history ? history.slice() : []
 
@@ -137,13 +139,17 @@ export class Goblin {
       messages.push(result)
       for (const call of result.tool_calls) {
         try {
-          const {name, arguments: rawArgs} = call.function
+          const { name, arguments: rawArgs } = call.function
           const args = JSON.parse(rawArgs)
+          if (onbeforetool) {
+            // Check if it should be invoked
+            await onbeforetool(name, args)
+          }
           const toolContent = await this.tools.call(name, args, this)
           messages.push({
             role: TOOL,
             content: JSON.stringify(toolContent),
-            name: name,
+            name,
             tool_call_id: call.id
           })
         } catch (e) {

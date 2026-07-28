@@ -71,10 +71,36 @@ async function repl (options) {
     console.log(message)
   }
 
+  /**
+   * @param {string} prompt
+   */
+  async function confirm (prompt) {
+    const answer = await rl.question(`${prompt}\n> y/N `)
+    if (answer.trim().toLowerCase() !== 'y') {
+      throw new Error('Tool call cancelled by user. Ask for clarification.')
+    }
+  }
+
+  /**
+   * @param {string} name
+   * @param {object} args
+   */
+  async function onbeforetool (name, args) {
+    if (name === 'shell_command') {
+      await confirm(`Allow shell command?\n${args.command}`)
+    }
+    if (name === 'write_file') {
+      await confirm(`Allow write to ${args.path}?\nContent: ${args.content}`)
+    }
+    if (name === 'edit_file') {
+      await confirm(`Allow edit to ${args.path}?\nReplace: ${args.old_text}\nWith: ${args.new_text}`)
+    }
+  }
+
   while (true) {
     try {
       const question = await rl.question('> ')
-      const response = await goblin.query(question, { history, onprogress })
+      const response = await goblin.query(question, { history, onprogress, onbeforetool })
       console.log(response)
       // TODO: Persist previous questions somewhere?
       history.push({
