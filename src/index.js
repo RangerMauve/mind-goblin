@@ -24,6 +24,7 @@ You are talking to your master who is named ${process.env.USER}.
 Before calling any tools, think step by step on how to solve the user's query.
 When you get a tool call response, use it to answer the users question or call another tool.
 Only use tools if you really need to. Otherwise respond directly.
+You have documentation about how to modify yourself in ${new URL('../docs/', import.meta.url)}
 Be concise and direct in your responses. Respond without unnecessary explanation.
 `
 
