@@ -18,18 +18,20 @@ export async function repl ({ showThinking, session, ...options }) {
   const sessions = new Sessions(sessionFolder)
   const slug = sessions.slug(session)
 
+  /**
+   * @type {import('./index.js').Message[]}
+   */
+  const messages = session ? await sessions.load(slug) : []
+  const history = messages.filter(({ role }) => role === USER).map(({ content }) => content)
+
   const goblin = await Goblin.fromOptions({ ...program.opts(), ...options })
 
   const rl = readline.createInterface({
     input,
     output,
+    history,
     completer
   })
-
-  /**
-   * @type {import('./index.js').Message[]}
-   */
-  const history = session ? await sessions.load(slug) : []
 
   /**
    * @param {string} message
@@ -108,18 +110,18 @@ export async function repl ({ showThinking, session, ...options }) {
   while (true) {
     try {
       const question = await rl.question('> ')
-      const response = await goblin.query(question, { history, onprogress, onbeforetool, onthinking })
+      const response = await goblin.query(question, { history: messages, onprogress, onbeforetool, onthinking })
       console.log(response)
       process.stdout.write('\x07')
       // TODO: Persist previous questions somewhere?
-      history.push({
+      messages.push({
         role: USER,
         content: question
       }, {
         role: ASSISTANT,
         content: response
       })
-      await sessions.save(slug, history)
+      await sessions.save(slug, messages)
     } catch (e) {
       if (e.name === 'AbortError') return
       throw e
