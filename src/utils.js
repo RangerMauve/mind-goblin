@@ -17,9 +17,6 @@ const SERVER = conf.server
 const API_KEY = conf.api_key
 const REQUEST_TIMEOUT = 30 * 60 * 1000
 
-export const THINK_START = '<think>'
-export const THINK_END = '</think>'
-
 const agent = new Agent({
   connect: { timeout: REQUEST_TIMEOUT },
   headersTimeout: REQUEST_TIMEOUT,
@@ -70,19 +67,4 @@ async function postOpenAI (path, data) {
     throw new Error(`OpenAI API error (${response.status}): ${await response.text()}`)
   }
   return await response.json()
-}
-
-/**
- * Strip out think start and end blocks
- * @param {string} content
- * @returns {string}
- */
-export function stripThinking (content) {
-  if (content.includes(THINK_START)) {
-    const thinkEnd = content.indexOf(THINK_END)
-    if (thinkEnd > 0) {
-      return content.slice(thinkEnd + THINK_END.length)
-    }
-  }
-  return content.trim()
 }

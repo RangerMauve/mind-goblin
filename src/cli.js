@@ -49,14 +49,16 @@ program
 program
   .command('chat')
   .description('Have a conversation via the TUI')
+  .option('--show-thinking')
   .action(repl)
 
 await program.parseAsync(process.argv)
 
 /**
  * @param {object} options
+ * @param {boolean} [options.showThinking]
  */
-async function repl (options) {
+async function repl ({ showThinking, ...options }) {
   const goblin = await Goblin.fromOptions({ ...program.opts(), ...options })
 
   const rl = readline.createInterface({
@@ -74,7 +76,7 @@ async function repl (options) {
    * @param {string} message
    */
   function onprogress (message) {
-    console.log(message)
+    console.log('\x1b[90m%s\x1b[0m', message)
   }
 
   /**
@@ -142,12 +144,14 @@ async function repl (options) {
     }
   }
 
+  const onthinking = showThinking ? onprogress : undefined
+
   while (true) {
     try {
       const question = await rl.question('> ')
-      const response = await goblin.query(question, { history, onprogress, onbeforetool })
+      const response = await goblin.query(question, { history, onprogress, onbeforetool, onthinking })
       console.log(response)
-      process.stdout.write("\x07");
+      process.stdout.write('\x07')
       // TODO: Persist previous questions somewhere?
       history.push({
         role: USER,
