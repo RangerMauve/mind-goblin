@@ -54,7 +54,7 @@ export class Goblin {
     tools = new Tools(),
     storagePath = STORAGE_PATH,
     maxIterations = -1,
-    debug = true,
+    debug = false,
     forkDepth = 0,
     memory = null
   }) {
