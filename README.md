@@ -1,6 +1,19 @@
 # mind-goblin
 Your friendly internet enabled assistant. Swap minds with custom prompts and Ollama
 
+## Features
+
+- **Tool Use**: 17 built-in tools including web search, Wikipedia, file operations, shell commands, math calculations, clipboard access, and more
+- **Session Persistence**: Save and resume conversations across runs
+- **Tab Completion**: File path autocomplete in the REPL
+- **Safety Confirmations**: User confirmation required for shell commands and file modifications
+- **Thinking Display**: Optional display of reasoning steps during chat
+- **Readline History**: Command history populated when resuming sessions
+- **Audio Notifications**: Bell sound on response completion
+- **Sub-agents**: Fork specialized agents with limited tool access
+- **Long-term Memory**: SQLite-backed fact memory with tags
+- **Debug Mode**: Optional debug logging for tool calls
+
 ## What should it do?
 
 - get voice input or text input
