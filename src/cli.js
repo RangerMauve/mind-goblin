@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-import { stdin as input, stdout as output } from 'node:process'
-
 import { program } from 'commander'
 
 import { Goblin } from './index.js'
@@ -47,7 +45,8 @@ program
 program
   .command('chat')
   .description('Have a conversation via the TUI')
-  .option('--show-thinking')
+  .option('--show-thinking', 'Output thinking blocks to STDOUT')
+  .option('--session <name>', 'Resume or start a named session', 'default')
   .action(repl)
 
 await program.parseAsync(process.argv)

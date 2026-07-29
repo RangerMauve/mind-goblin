@@ -1,5 +1,9 @@
+import path from 'node:path'
 import { Agent } from 'undici'
 import rc from 'rc'
+import _xdg from 'xdg-portable'
+
+const xdg = /** @type {@import('xdg-portable').XDG} */(/** @type {unknown} */(_xdg))
 
 // Default config for OpenAI-compatible API (Ollama default)
 const DEFAULT_CONFIG = {
@@ -8,8 +12,13 @@ const DEFAULT_CONFIG = {
   api_key: process.env.OPENAI_API_KEY || ''
 }
 
+export const APPNAME = 'mindgoblin'
+
 // Load config from ~/.mindgoblinrc
-const conf = rc('mindgoblin', DEFAULT_CONFIG)
+const conf = rc(APPNAME, DEFAULT_CONFIG)
+export const configDir = path.join(xdg.config(), APPNAME)
+export const dataDir = path.join(xdg.data(), APPNAME)
+export const sessionFolder = path.join(dataDir, 'sessions')
 
 // Apply config to constants
 const MODEL = conf.model

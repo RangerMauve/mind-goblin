@@ -6,12 +6,18 @@ import { stdin as input, stdout as output } from 'node:process'
 import { program } from 'commander'
 
 import { USER, ASSISTANT, Goblin } from './index.js'
+import { sessionFolder } from './utils.js'
+import { Sessions } from './sessions.js'
 
 /**
  * @param {object} options
  * @param {boolean} [options.showThinking]
+ * @param {string} [options.session] Name of the session to resume/save
  */
-export async function repl ({ showThinking, ...options }) {
+export async function repl ({ showThinking, session, ...options }) {
+  const sessions = new Sessions(sessionFolder)
+  const slug = sessions.slug(session)
+
   const goblin = await Goblin.fromOptions({ ...program.opts(), ...options })
 
   const rl = readline.createInterface({
@@ -23,7 +29,7 @@ export async function repl ({ showThinking, ...options }) {
   /**
    * @type {import('./index.js').Message[]}
    */
-  const history = []
+  const history = session ? await sessions.load(slug) : []
 
   /**
    * @param {string} message
@@ -113,6 +119,7 @@ export async function repl ({ showThinking, ...options }) {
         role: ASSISTANT,
         content: response
       })
+      await sessions.save(slug, history)
     } catch (e) {
       if (e.name === 'AbortError') return
       throw e
