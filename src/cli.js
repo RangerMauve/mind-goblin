@@ -81,7 +81,7 @@ async function repl (options) {
    * @param {string} prompt
    */
   async function confirm (prompt) {
-    const answer = await rl.question(`${prompt}\n> y/N `)
+    const answer = await rl.question(`${prompt}\n> y/N\x07 `)
     if (answer.trim().toLowerCase() !== 'y') {
       throw new Error('Tool call cancelled by user. Ask for clarification.')
     }
@@ -147,6 +147,7 @@ async function repl (options) {
       const question = await rl.question('> ')
       const response = await goblin.query(question, { history, onprogress, onbeforetool })
       console.log(response)
+      process.stdout.write("\x07");
       // TODO: Persist previous questions somewhere?
       history.push({
         role: USER,
