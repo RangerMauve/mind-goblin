@@ -49,6 +49,7 @@ export class Goblin {
    * @param {number} [options.maxIterations] Maximum number of rounds before giving up on a task. Set to -1 to go on forever.
    * @param {boolean} [options.debug] Whether to output debug text to the console during tool calls
    * @param {number} [options.forkDepth]
+   * @param {boolean} [options.thinkingHistory]
    */
   constructor ({
     tools = new Tools(),
@@ -56,6 +57,7 @@ export class Goblin {
     maxIterations = -1,
     debug = false,
     forkDepth = 0,
+    thinkingHistory = false,
     memory = null
   }) {
     this.tools = tools
@@ -69,6 +71,7 @@ export class Goblin {
     this.maxIterations = maxIterations
     this.debug = debug
     this.forkDepth = forkDepth
+    this.thinkingHistory = thinkingHistory
   }
 
   #getMemoryInstructions () {
@@ -132,6 +135,12 @@ export class Goblin {
 
     let iteration = 0
 
+    /** @param {Message} message */
+    const addMessage = (message) => {
+      if (this.thinkingHistory) history.push(result)
+      messages.push(message)
+    }
+
     while (result.tool_calls?.length) {
       if (this.maxIterations >= 0 && (iteration > this.maxIterations)) {
         throw new Error(`Reached max iterations at ${iteration}. Try again with more subagents or a more simple approach`)
@@ -146,7 +155,7 @@ export class Goblin {
         const { content } = result
         if (content) onprogress(content)
       }
-      messages.push(result)
+      addMessage(result)
       for (const call of result.tool_calls) {
         try {
           const { name, arguments: rawArgs } = call.function
@@ -156,14 +165,14 @@ export class Goblin {
             await onbeforetool(name, args)
           }
           const toolContent = await this.tools.call(name, args, this)
-          messages.push({
+          addMessage({
             role: TOOL,
             content: JSON.stringify(toolContent),
             name,
             tool_call_id: call.id
           })
         } catch (e) {
-          messages.push({
+          addMessage({
             role: TOOL,
             content: `Unable to call tool ${call.function.name}: ${e.message}`,
             name: call.function.name,

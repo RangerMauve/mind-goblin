@@ -47,6 +47,7 @@ program
   .description('Have a conversation via the TUI')
   .option('--show-thinking', 'Output thinking blocks to STDOUT')
   .option('--session <name>', 'Resume or start a named session', 'default')
+  .option('--thinking-history', 'Preserve thinking history. Increases context size but speeds up inference from better caching')
   .action(repl)
 
 await program.parseAsync(process.argv)
