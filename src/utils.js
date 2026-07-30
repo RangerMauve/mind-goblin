@@ -15,7 +15,7 @@ const DEFAULT_CONFIG = {
 export const APPNAME = 'mindgoblin'
 
 // Load config from ~/.mindgoblinrc
-const conf = rc(APPNAME, DEFAULT_CONFIG)
+export const conf = rc(APPNAME, DEFAULT_CONFIG)
 export const configDir = path.join(xdg.config(), APPNAME)
 export const dataDir = path.join(xdg.data(), APPNAME)
 export const sessionFolder = path.join(dataDir, 'sessions')

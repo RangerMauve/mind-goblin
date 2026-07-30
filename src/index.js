@@ -99,17 +99,14 @@ export class Goblin {
 
   /**
    * Send a prompt to the agent and get a response. This triggers an agentic loop which can do tool calls.
-   * @param {string} prompt
+   * @param {Message[]} history Conversation history. Have the user query be the last item, intermediate history items will be added in.
    * @param {object} [options]
-   * @param {Message[]} [options.history] Optionally pass in an existing history to add the conversation to.
    * @param {(message: string) => void} [options.onprogress] Optional callback for progress on the task
    * @param {(name:string, args: object) => Promise<void>} [options.onbeforetool] Optional callback before each tool call. Throw to cancel the tool.
    * @param {(message: string) => void} [options.onthinking] Optional callback for intermediate thinking steps
-   * @returns
    */
-  async query (prompt, { history, onprogress, onbeforetool, onthinking } = {}) {
-    // Use existing history or start a new one
-    const messages = history ? history.slice() : []
+  async crank (history, { onprogress, onbeforetool, onthinking } = {}) {
+    const messages = this.thinkingHistory ? history : history.slice()
 
     // Add in system prompt if it isn't set
     if (!messages[0] || messages[0].role !== SYSTEM) {
@@ -118,11 +115,6 @@ export class Goblin {
         { role: SYSTEM, content }
       )
     }
-
-    // Fill in prompt and pre-reply
-    messages.push(
-      { role: USER, content: prompt }
-    )
 
     const tools = this.tools.genDescriptions()
 
@@ -137,7 +129,6 @@ export class Goblin {
 
     /** @param {Message} message */
     const addMessage = (message) => {
-      if (this.thinkingHistory) history.push(result)
       messages.push(message)
     }
 
@@ -186,6 +177,23 @@ export class Goblin {
       if (this.debug) console.log(result)
     }
 
-    return result.content
+    history.push(result)
+  }
+
+  /**
+   * Send a prompt to the agent and get a response. This triggers an agentic loop which can do tool calls.
+   * @param {string} prompt
+   * @param {object} [options]
+   * @param {(message: string) => void} [options.onprogress] Optional callback for progress on the task
+   * @param {(name:string, args: object) => Promise<void>} [options.onbeforetool] Optional callback before each tool call. Throw to cancel the tool.
+   * @param {(message: string) => void} [options.onthinking] Optional callback for intermediate thinking steps
+   * @returns  {Promise<string>
+   */
+  async query (prompt, options = {}) {
+    const messages = [
+      { role: USER, content: prompt }]
+
+    await this.crank(messages, options)
+    return messages.at(-1).content
   }
 }

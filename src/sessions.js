@@ -30,7 +30,7 @@ export class Sessions {
    */
   async save (slug, messages) {
     const sessionFile = this.#file(slug)
-    await fs.writeFile(sessionFile, JSON.stringify(messages))
+    await fs.writeFile(sessionFile, JSON.stringify(messages, null, '\t'))
   }
 
   /**

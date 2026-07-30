@@ -5,8 +5,8 @@ import { stdin as input, stdout as output } from 'node:process'
 
 import { program } from 'commander'
 
-import { USER, ASSISTANT, Goblin } from './index.js'
-import { sessionFolder } from './utils.js'
+import { USER, Goblin } from './index.js'
+import { sessionFolder, conf } from './utils.js'
 import { Sessions } from './sessions.js'
 
 /**
@@ -14,7 +14,8 @@ import { Sessions } from './sessions.js'
  * @param {boolean} [options.showThinking]
  * @param {string} [options.session] Name of the session to resume/save
  */
-export async function repl ({ showThinking, session, ...options }) {
+export async function repl (options) {
+  const { showThinking, session, ...goblinOpts } = { ...conf, ...options }
   const sessions = new Sessions(sessionFolder)
   const slug = sessions.slug(session)
 
@@ -24,7 +25,7 @@ export async function repl ({ showThinking, session, ...options }) {
   const messages = session ? await sessions.load(slug) : []
   const history = messages.filter(({ role }) => role === USER).map(({ content }) => content)
 
-  const goblin = await Goblin.fromOptions({ ...program.opts(), ...options })
+  const goblin = await Goblin.fromOptions({ ...program.opts(), ...goblinOpts })
 
   const rl = readline.createInterface({
     input,
@@ -109,18 +110,13 @@ export async function repl ({ showThinking, session, ...options }) {
 
   while (true) {
     try {
-      const question = await rl.question('> ')
-      const response = await goblin.query(question, { history: messages, onprogress, onbeforetool, onthinking })
-      console.log(response)
+      const content = await rl.question('> ')
+      messages.push({ role: USER, content })
+      await goblin.crank(messages, { history: messages, onprogress, onbeforetool, onthinking })
+      const response = messages.at(-1)
+      // TODO: render formatted as markdown
+      console.log(response.content)
       process.stdout.write('\x07')
-      // TODO: Persist previous questions somewhere?
-      messages.push({
-        role: USER,
-        content: question
-      }, {
-        role: ASSISTANT,
-        content: response
-      })
       await sessions.save(slug, messages)
     } catch (e) {
       if (e.name === 'AbortError') return
