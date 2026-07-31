@@ -31,7 +31,7 @@ export const TOOL = 'tool'
 export class Goblin {
   static async fromOptions ({ ...args }) {
     const tools = await Tools.default()
-    return new Goblin({ tools,...args })
+    return new Goblin({ tools, ...args })
   }
 
   /**
@@ -48,7 +48,7 @@ export class Goblin {
     maxIterations = -1,
     debug = false,
     forkDepth = 0,
-    thinkingHistory = false,
+    thinkingHistory = false
   }) {
     this.tools = tools
 

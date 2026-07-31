@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises'
+import { dirname } from 'node:path'
 
 export const name = 'write_file'
 export const description = 'Write content to a file given its path.'
@@ -20,6 +21,7 @@ export const parameters = {
  */
 export default async function writeFile ({ path, content }) {
   try {
+    await fs.mkdir(dirname(path), { recursive: true })
     await fs.writeFile(path, content, 'utf8')
     return { success: true, path }
   } catch (e) {
