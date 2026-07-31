@@ -23,13 +23,8 @@ export class Tools {
     const tools = new Tools()
 
     await Promise.all([
-      tools.loadTool('search_wikipedia'),
       tools.loadTool('get_current_time'),
-      // tools.loadTool('log'),
       tools.loadTool('read_clipboard'),
-      tools.loadTool('calc'),
-      tools.loadTool('save_memory'),
-      tools.loadTool('read_memory'),
       tools.loadTool('read_file'),
       tools.loadTool('write_file'),
       tools.loadTool('edit_file'),

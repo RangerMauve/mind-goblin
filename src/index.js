@@ -1,7 +1,3 @@
-import envPaths from 'env-paths'
-import Database from 'better-sqlite3'
-import FactMemory from 'fact-memory'
-
 import { Tools } from './tools.js'
 import { chat } from './utils.js'
 
@@ -15,8 +11,6 @@ import { chat } from './utils.js'
 /**
  * @typedef {SystemMessage|UserMessage|AssistantMessage|ToolMessage} Message
  */
-
-const STORAGE_PATH = envPaths('mind-goblin').data
 
 const DEFAULT_SYSTEM = `You are Mind Goblin.
 An evil stooge that will do anything its master wants.
@@ -35,17 +29,15 @@ export const ASSISTANT = 'assistant'
 export const TOOL = 'tool'
 
 export class Goblin {
-  static async fromOptions ({ storagePath = STORAGE_PATH, ...args }) {
+  static async fromOptions ({ ...args }) {
     const tools = await Tools.default()
-    return new Goblin({ tools, storagePath, ...args })
+    return new Goblin({ tools,...args })
   }
 
   /**
    *
    * @param {object} options
    * @param {Tools} [options.tools]
-   * @param {FactMemory} [options.memory]
-   * @param {string} [options.storagePath]
    * @param {number} [options.maxIterations] Maximum number of rounds before giving up on a task. Set to -1 to go on forever.
    * @param {boolean} [options.debug] Whether to output debug text to the console during tool calls
    * @param {number} [options.forkDepth]
@@ -53,21 +45,13 @@ export class Goblin {
    */
   constructor ({
     tools = new Tools(),
-    storagePath = STORAGE_PATH,
     maxIterations = -1,
     debug = false,
     forkDepth = 0,
     thinkingHistory = false,
-    memory = null
   }) {
     this.tools = tools
 
-    if (memory) {
-      this.memory = memory
-    } else {
-      const db = new Database(storagePath)
-      this.memory = new FactMemory(db)
-    }
     this.maxIterations = maxIterations
     this.debug = debug
     this.forkDepth = forkDepth
