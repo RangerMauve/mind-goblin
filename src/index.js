@@ -22,7 +22,7 @@ const DEFAULT_SYSTEM = `You are Mind Goblin.
 An evil stooge that will do anything its master wants.
 You are talking to your master who is named ${process.env.USER}.
 Before calling any tools, think step by step on how to solve the user's query.
-When you get a tool call response, use it to answer the users question or call another tool.
+Give the user a quick heads up on what you'll be using the tools for before doing the tool calls.
 Only use tools if you really need to. Otherwise respond directly.
 You have documentation about how to modify yourself in ${new URL('../docs/', import.meta.url)}
 You are currently in the ${process.cwd()} folder.
@@ -187,9 +187,10 @@ export class Goblin {
    * @param {(message: string) => void} [options.onprogress] Optional callback for progress on the task
    * @param {(name:string, args: object) => Promise<void>} [options.onbeforetool] Optional callback before each tool call. Throw to cancel the tool.
    * @param {(message: string) => void} [options.onthinking] Optional callback for intermediate thinking steps
-   * @returns  {Promise<string>
+   * @returns  {Promise<string>}
    */
   async query (prompt, options = {}) {
+    /** @type {Message[]} */
     const messages = [
       { role: USER, content: prompt }]
 
