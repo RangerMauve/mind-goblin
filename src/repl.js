@@ -14,16 +14,17 @@ import { Sessions } from './sessions.js'
  * @param {object} options
  * @param {boolean} [options.showThinking]
  * @param {string} [options.session] Name of the session to resume/save
+ * @param {boolean} [options.clear] Clear session before starting
  */
 export async function repl (options) {
-  const { showThinking, session, ...goblinOpts } = { ...conf, ...options }
+  const { showThinking, session, clear, ...goblinOpts } = { ...conf, ...options }
   const sessions = new Sessions(sessionFolder)
   const slug = sessions.slug(session)
 
   /**
    * @type {import('./index.js').Message[]}
    */
-  const messages = session ? await sessions.load(slug) : []
+  const messages = session && !clear ? await sessions.load(slug) : []
   const history = messages.filter(({ role }) => role === USER).map(({ content }) => content)
 
   const goblin = await Goblin.fromOptions({ ...program.opts(), ...goblinOpts })
