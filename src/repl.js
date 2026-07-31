@@ -1,4 +1,5 @@
 import readline from 'node:readline/promises'
+import { emitKeypressEvents } from 'node:readline'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { stdin as input, stdout as output } from 'node:process'
@@ -33,6 +34,7 @@ export async function repl (options) {
     history,
     completer
   })
+  emitKeypressEvents(input)
 
   /**
    * @param {string} message
@@ -45,9 +47,31 @@ export async function repl (options) {
    * @param {string} prompt
    */
   async function confirm (prompt) {
-    const answer = await rl.question(`${prompt}\n> y/N\x07 `)
-    if (answer.trim().toLowerCase() !== 'y') {
+    const controller = new AbortController()
+
+    /**
+     * @param {string} str
+     * @param {{ name: string }} key
+     */
+    const onKeypress = (str, key) => {
+      if (key && key.name === 'escape') {
+        controller.abort()
+      }
+    }
+
+    input.on('keypress', onKeypress)
+
+    try {
+      const answer = await rl.question(`${prompt}\n> Y/n (ESC to cancel)\x07 `, { signal: controller.signal })
+      if (answer.trim().toLowerCase() === 'n') {
+        console.log('Cancelling.')
+        throw new Error('Tool call cancelled by user. Ask for clarification.')
+      }
+    } catch (e) {
+      console.log('Cancelling')
       throw new Error('Tool call cancelled by user. Ask for clarification.')
+    } finally {
+      input.removeListener('keypress', onKeypress)
     }
   }
 
@@ -57,12 +81,15 @@ export async function repl (options) {
    */
   async function onbeforetool (name, args) {
     if (name === 'shell_command') {
+      // @ts-expect-error TODO cast args to expected shape
       await confirm(`Allow shell command?\n${args.command}`)
     }
     if (name === 'write_file') {
+      // @ts-expect-error TODO cast args to expected shape
       await confirm(`Allow write to ${args.path}?\nContent:\n${args.content}`)
     }
     if (name === 'edit_file') {
+      // @ts-expect-error TODO cast args to expected shape
       await confirm(`Allow edit to ${args.path}?\nReplace:\n${args.old_text}\nWith:\n${args.new_text}`)
     }
   }
