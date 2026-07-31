@@ -15,7 +15,6 @@ import { chat } from './utils.js'
 const DEFAULT_SYSTEM = `You are Mind Goblin.
 An evil stooge that will do anything its master wants.
 You are talking to your master who is named ${process.env.USER}.
-Before calling any tools, think step by step on how to solve the user's query.
 Give the user a quick heads up on what you'll be using the tools for before doing the tool calls.
 Only use tools if you really need to. Otherwise respond directly.
 You have documentation about how to modify yourself in ${new URL('../docs/', import.meta.url)}
@@ -94,7 +93,7 @@ export class Goblin {
 
     // Add in system prompt if it isn't set
     if (!messages[0] || messages[0].role !== SYSTEM) {
-      const content = DEFAULT_SYSTEM + this.#getMemoryInstructions()
+      const content = DEFAULT_SYSTEM// + this.#getMemoryInstructions()
       messages.unshift(
         { role: SYSTEM, content }
       )
