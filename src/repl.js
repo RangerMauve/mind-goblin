@@ -43,6 +43,8 @@ export async function repl (options) {
    */
   const messages = session && !clear ? await sessions.load(slug) : []
   const history = messages.filter(({ role }) => role === USER).map(({ content }) => content)
+  // Make most recent messages first
+  history.reverse()
 
   const goblin = await Goblin.fromOptions({ ...program.opts(), ...goblinOpts })
 
