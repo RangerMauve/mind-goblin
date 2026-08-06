@@ -56,6 +56,8 @@ export async function repl (options) {
   })
   emitKeypressEvents(input)
 
+  rl.once('close', () => process.exit(0))
+
   /**
    * @param {string} message
    */
@@ -100,6 +102,12 @@ export async function repl (options) {
    * @param {object} args
    */
   async function onbeforetool (name, args) {
+    if (name === 'read_file') {
+      console.log('\x1b[92mReading file: %s\x1b[0m', args.path)
+    }
+    if (name === 'read_directory') {
+      console.log('\x1b[92mReading directory: %s\x1b[0m', args.path)
+    }
     if (name === 'shell_command') {
       // @ts-expect-error TODO cast args to expected shape
       const command = args.command
