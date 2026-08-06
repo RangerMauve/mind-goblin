@@ -8,6 +8,7 @@ import { program } from 'commander'
 
 import { USER, Goblin } from './index.js'
 import { sessionFolder, conf } from './utils.js'
+import { makeCancelSignalResource } from './cancel.js'
 import { Sessions } from './sessions.js'
 
 const ALLOWED_COMMANDS = [
@@ -160,14 +161,19 @@ export async function repl (options) {
     try {
       const content = await rl.question('> ')
       messages.push({ role: USER, content })
-      await goblin.crank(messages, { onprogress, onbeforetool, onthinking })
+      await goblin.crank(messages, {
+      	onprogress,
+      	onbeforetool,
+      	onthinking,
+      	listenForCancel: () => makeCancelSignalResource(input)
+      })
       const response = messages.at(-1)
       // TODO: render formatted as markdown
       console.log(response.content)
       process.stdout.write('\x07')
       await sessions.save(slug, messages)
     } catch (e) {
-      if (e.name === 'AbortError') return
+      if (e.name === 'AbortError') continue
       throw e
     }
   }

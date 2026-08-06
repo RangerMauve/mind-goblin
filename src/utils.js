@@ -36,9 +36,10 @@ const agent = new Agent({
  * @param {object} options
  * @param {import('./index.js').Message[]} options.messages
  * @param {import('./tools.js').ToolDescription[]} options.tools
+ * @param {AbortSignal} [options.signal]
  * @returns {Promise<import('./index.js').AssistantMessage>}
  */
-export async function chat ({ messages = [], tools }) {
+export async function chat ({ messages = [], tools, signal }) {
   const body = {
     model: MODEL,
     messages,
@@ -47,7 +48,7 @@ export async function chat ({ messages = [], tools }) {
     top_p: 0.95
   }
 
-  const result = await postOpenAI('chat/completions', body)
+  const result = await postOpenAI('chat/completions', body, signal)
 
   return result.choices[0].message
 }
@@ -56,9 +57,10 @@ export async function chat ({ messages = [], tools }) {
  * Send data to OpenAI-compatible API
  * @param {string} path
  * @param {object} data
+ * @param {AbortSignal} [signal]
  * @returns
  */
-async function postOpenAI (path, data) {
+async function postOpenAI (path, data, signal) {
   const url = (SERVER.endsWith('/') ? SERVER : SERVER + '/') + path
 
   const response = await fetch(url, {
@@ -68,6 +70,7 @@ async function postOpenAI (path, data) {
       Authorization: 'Bearer ' + API_KEY
     },
     body: JSON.stringify(data),
+    signal,
     // @ts-ignore
     dispatcher: agent
   })

@@ -87,8 +87,9 @@ export class Goblin {
    * @param {(message: string) => void} [options.onprogress] Optional callback for progress on the task
    * @param {(name:string, args: object) => Promise<void>} [options.onbeforetool] Optional callback before each tool call. Throw to cancel the tool.
    * @param {(message: string) => void} [options.onthinking] Optional callback for intermediate thinking steps
+   * @param {() => Promise<CancelResource>} [options.listenForCancel] Optional function to listen on canellation during inference
    */
-  async crank (history, { onprogress, onbeforetool, onthinking } = {}) {
+  async crank (history, { onprogress, onbeforetool, onthinking, listenForCancel = ()=> null } = {}) {
     const messages = this.thinkingHistory ? history : history.slice()
 
     // Add in system prompt if it isn't set
@@ -101,7 +102,9 @@ export class Goblin {
 
     const tools = this.tools.genDescriptions()
 
-    let result = await chat({ messages, tools })
+    using cancel = listenForCancel()
+
+    let result = await chat({ messages, tools, signal: cancel?.signal })
     if (this.debug) console.log(result)
 
     if (result.reasoning_content && onthinking) {
@@ -131,6 +134,7 @@ export class Goblin {
       }
       addMessage(result)
       for (const call of result.tool_calls) {
+        using cancel = listenForCancel()
         try {
           const { name, arguments: rawArgs } = call.function
           const args = JSON.parse(rawArgs)
@@ -139,6 +143,7 @@ export class Goblin {
             await onbeforetool(name, args)
           }
           const toolContent = await this.tools.call(name, args, this)
+          cancel?.signal?.throwIfAborted()
           addMessage({
             role: TOOL,
             content: JSON.stringify(toolContent),
@@ -155,8 +160,10 @@ export class Goblin {
         }
       }
 
+      using cancel = listenForCancel()
+
       // if(this.debug) console.log(messages)
-      result = await chat({ messages, tools })
+      result = await chat({ messages, tools, signal: cancel?.signal })
       if (this.debug) console.log(result)
     }
 
@@ -170,6 +177,7 @@ export class Goblin {
    * @param {(message: string) => void} [options.onprogress] Optional callback for progress on the task
    * @param {(name:string, args: object) => Promise<void>} [options.onbeforetool] Optional callback before each tool call. Throw to cancel the tool.
    * @param {(message: string) => void} [options.onthinking] Optional callback for intermediate thinking steps
+   * @param {() => Promise<CancelResource>} [options.listenForCancel] Optional function to listen on canellation during inference
    * @returns  {Promise<string>}
    */
   async query (prompt, options = {}) {
