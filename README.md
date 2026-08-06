@@ -11,10 +11,8 @@ Your friendly internet enabled assistant. Swap minds with custom prompts and Oll
 - **Readline History**: Command history populated when resuming sessions
 - **Audio Notifications**: Bell sound on response completion
 - **Sub-agents**: Fork specialized agents with limited tool access
-- **Long-term Memory**: SQLite-backed fact memory with tags
-- **Debug Mode**: Optional debug logging for tool calls
 
-## What should it do?
+## What should it do? (TODO)
 
 - get voice input or text input
 - output either text or voice
@@ -33,28 +31,77 @@ Your friendly internet enabled assistant. Swap minds with custom prompts and Oll
     - neo4j
     - sqlite
 
-## Dream api:
+## Usage
 
+### Global Options
+
+- `-s, --system <type>`: Custom system prompt for the assistant (Default: "You are a local assistant named Mind Goblin.")
+- `--debug`: Output extra debug info to inspect the train of thought
+
+### Commands
+
+#### `mind-goblin think [prompt] [file]`
+Think about a query and answer the user.
+- `[prompt]`: The task you wish for the assistant to complete.
+- `[file]`: File to include in context.
+- `--speak`: Speak the answer aloud.
+
+#### `mind-goblin chat`
+Have a conversation via the TUI.
+- `--show-thinking`: Output thinking blocks to STDOUT.
+- `--session <name>`: Resume or start a named session (Default: 'default').
+- `--clear`: Clear the session before starting.
+- `--thinking-history`: Preserve thinking history. Increases context size but speeds up inference from better caching.
+
+#### `mind-goblin transform <prompt> [file]`
+Transform a file or the clipboard buffer.
+- `<prompt>`: The task you wish for the assistant to complete.
+- `[file]`: The file to refactor. Omit to pull from clipboard.
+
+## Configuration
+
+Mind Goblin uses `rc` for configuration. It looks for `~/.mindgoblinrc` or the `MINDGOBLIN_CONF` environment variable.
+
+**Default Configuration:**
+```json
+{
+  "model": "qwen3.5:4b",
+  "server": "http://localhost:11434/v1/",
+  "api_key": ""
+}
 ```
-// Listen for input and output speech
-mind-goblin think --listen --speak
 
-// execute task from the prompt and output to stdout
-mind-goblin think "text prompt"
+*   **Model**: The model name to use (e.g., `llama3`, `qwen3.5:4b`).
+*   **Server**: The URL of the OpenAI-compatible API (defaults to Ollama).
+*   **API Key**: Your API key (defaults to `OPENAI_API_KEY` env var).
 
-// run a repl
-mind-goblin chat
-> enter text here to get a response
+It also uses XDG directories for storing data:
+*   **Config**: `~/.config/mindgoblin`
+*   **Data/Sessions**: `~/.local/share/mindgoblin/sessions`
 
-// Read in a file and rewrite it according to the prompt
-mind-goblin transform "capitalize each sentance" ./example.txt
+## Examples
 
-// Get files injected into the context
-mind-goblin think "summarize this" ./example.txt
+**Start a chat with a custom persona:**
+```bash
+mind-goblin chat --system "You are a helpful python expert."
+```
 
-// It should use the webcam when possible
-mind-goblin think "What do you see?"
+**Ask a question and have the answer spoken aloud:**
+```bash
+mind-goblin think "How do I center a div in CSS?" --speak
+```
 
-// When getting an image file in the cli, use instead of camera
-mind-goblin think "What do you see?" ./screenshot.png
+**Resume a specific session:**
+```bash
+mind-goblin chat --session "project-alpha"
+```
+
+**Transform a file (e.g., fix typos):**
+```bash
+mind-goblin transform "Fix the typos" ./draft.txt
+```
+
+**Debug the assistant's thought process:**
+```bash
+mind-goblin chat --debug
 ```
