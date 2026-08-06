@@ -34,7 +34,6 @@
     "@tsconfig/node24": "^24.0.4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.5.0",
-    "@types/rc": "^1.2.4",
-    "standard": "^17.1.2"
+    "@types/rc": "^1.2.4"
   }
 }
