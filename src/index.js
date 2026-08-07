@@ -129,7 +129,8 @@ export class Goblin {
 
       if (onprogress) {
         const { content } = result;
-        if (content) onprogress(content);
+        const trimmed = content.trim()
+        if (trimmed) onprogress(trimmed);
       }
       addMessage(result);
       for (const call of result.tool_calls) {
