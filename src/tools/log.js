@@ -1,20 +1,20 @@
-export const name = 'log'
-export const description = 'Output your final response to the user.'
+export const name = "log";
+export const description = "Output your final response to the user.";
 export const parameters = {
-  type: 'object',
+  type: "object",
   properties: {
     message: {
-      type: 'string'
-    }
+      type: "string",
+    },
   },
-  required: ['message']
-}
+  required: ["message"],
+};
 
 /**
  * Output your final response to the user.
  * @param {object} parameters
  * @param {string} parameters.message
  */
-export default function log ({ message }) {
-  console.log('Assistant:', message)
+export default function log({ message }) {
+  console.log("Assistant:", message);
 }

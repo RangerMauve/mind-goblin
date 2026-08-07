@@ -1,16 +1,17 @@
-import notifier from 'node-notifier'
+import notifier from "node-notifier";
 
-export const name = 'desktop_notification'
-export const description = 'Show a notification message on the user\'s desktop. Use this only when the user asks for it.'
+export const name = "desktop_notification";
+export const description =
+  "Show a notification message on the user's desktop. Use this only when the user asks for it.";
 export const parameters = {
-  type: 'object',
+  type: "object",
   properties: {
     message: {
-      type: 'string'
-    }
+      type: "string",
+    },
   },
-  required: ['message']
-}
+  required: ["message"],
+};
 
 /**
  *
@@ -18,17 +19,20 @@ export const parameters = {
  * @param {string} parameters.message
  * @returns {Promise<{result:string}>}
  */
-export default async function notify ({ message }) {
+export default async function notify({ message }) {
   // TODO: Allow title/icon?
   await new Promise((resolve, reject) => {
-    notifier.notify({
-      title: 'Mind Goblin',
-      message
-    }, (err) => {
-      if (err) reject(err)
-      else resolve(null)
-    })
-  })
+    notifier.notify(
+      {
+        title: "Mind Goblin",
+        message,
+      },
+      (err) => {
+        if (err) reject(err);
+        else resolve(null);
+      },
+    );
+  });
 
-  return { result: 'Notification sent to desktop.' }
+  return { result: "Notification sent to desktop." };
 }

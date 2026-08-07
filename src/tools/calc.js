@@ -1,24 +1,26 @@
-export const name = 'calc'
-export const description = 'Run a calculation. Always use this for math like multiplication or currency conversion.'
+export const name = "calc";
+export const description =
+  "Run a calculation. Always use this for math like multiplication or currency conversion.";
 export const parameters = {
-  type: 'object',
+  type: "object",
   properties: {
     expression: {
-      type: 'string',
-      description: 'A math expression to evaluate. For example "4 * 4". Only usethis for math.'
-    }
+      type: "string",
+      description:
+        'A math expression to evaluate. For example "4 * 4". Only usethis for math.',
+    },
   },
-  required: ['expression']
-}
+  required: ["expression"],
+};
 
 /**
  * @param {object} parameters
  * @param {string} parameters.expression
  * @returns {{result: number}}
  */
-export default function calc ({ expression }) {
+export default function calc({ expression }) {
   // TODO: make this more secure 😈
-  const fn = new Function('return ' + expression)
-  const result = fn()
-  return { result }
+  const fn = new Function("return " + expression);
+  const result = fn();
+  return { result };
 }

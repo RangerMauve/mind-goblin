@@ -7,7 +7,8 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "standard --fix"
+    "lint": "eslint . --fix && tsc --noEmit",
+    "format": "prettier --write ."
   },
   "keywords": [
     "ai",
@@ -31,9 +32,16 @@
     "xdg-portable": "^10.6.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@tsconfig/node24": "^24.0.4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.5.0",
-    "@types/rc": "^1.2.4"
+    "@types/node-notifier": "^8.0.5",
+    "@types/rc": "^1.2.4",
+    "@types/turndown": "^5.0.6",
+    "eslint": "^10.8.0",
+    "globals": "^17.9.0",
+    "prettier": "^3.9.6",
+    "typescript-eslint": "^8.66.0"
   }
 }
