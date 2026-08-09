@@ -221,11 +221,12 @@ export async function repl(options) {
       // TODO: render formatted as markdown
       console.log(response?.content);
       process.stdout.write("\x07");
-      await sessions.save(slug, messages);
     } catch (e) {
       if (e.name === "AbortError") continue;
       throw e;
     }
+    await sessions.save(slug, messages);
+
   }
 }
 
