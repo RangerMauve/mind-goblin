@@ -38,6 +38,55 @@ const ALLOWED_COMMANDS = [
   "printenv",
   "wc ",
   "which ",
+  "sed -n ",
+  // version checks
+  "go version",
+  "node --version",
+  "npx node --version",
+  "python --version",
+  "ruby --version",
+  "cargo --version",
+  "pnpm --version",
+  "yarn --version",
+  // git
+  "git diff ",
+  "git status",
+  "git log ",
+  "git show ",
+  "git branch ",
+  "git remote -v",
+  // node / js
+  "node --test",
+  "npx node --test",
+  "npx tsc ",
+  "npx prettier ",
+  "npx eslint ",
+  "npm test",
+  "npm run test",
+  "npm run format",
+  "npm run lint",
+  "npm ls",
+  "npm show ",
+  "npm search ",
+  // go
+  "go mod verify",
+  "go list ",
+  "go list -m -mod=mod ",
+  "go mod graph",
+  // rust
+  "cargo check ",
+  "cargo metadata",
+  "cargo tree ",
+  // python / venv
+  "pip list ",
+  "pip show ",
+  "poetry show ",
+  "uv pip list ",
+  "uv pip show ",
+  // gradle
+  "gradle dependencies",
+  "gradle projects",
+  "gradle tasks",
 ];
 
 const DANGEROUS_PATTERNS = ["&", "${", "|"];
