@@ -172,7 +172,11 @@ export async function repl(options) {
     const trailingSpace = parts.length > 1 ? " " : "";
     const firstPart = parts.slice(0, -1).join(" ") + trailingSpace;
 
-    if (!lastPart.startsWith("./") && !lastPart.startsWith("/")) {
+    if (
+      !lastPart.startsWith("../") &&
+      !lastPart.startsWith("./") &&
+      !lastPart.startsWith("/")
+    ) {
       return [[], line];
     }
 
@@ -226,7 +230,6 @@ export async function repl(options) {
       throw e;
     }
     await sessions.save(slug, messages);
-
   }
 }
 
