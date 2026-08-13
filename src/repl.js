@@ -142,7 +142,11 @@ export async function repl(options) {
     }
     if (name === "shell_command") {
       // @ts-expect-error TODO cast args to expected shape
-      const command = args.command;
+      let command = args.command;
+      const cdPrefix = `cd ${process.cwd()} && `;
+      if (command.startsWith(cdPrefix)) {
+        command = command.slice(cdPrefix.length);
+      }
       if (shouldConfirm(command)) {
         await confirm(`Allow shell command?\n${command}`);
       }
