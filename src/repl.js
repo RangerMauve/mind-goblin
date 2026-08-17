@@ -3,6 +3,10 @@ import { emitKeypressEvents } from "node:readline";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
+
+const execAsync = promisify(exec);
 
 import { program } from "commander";
 
@@ -91,7 +95,7 @@ const ALLOWED_COMMANDS = [
 
 const DANGEROUS_PATTERNS = ["&", "${", "|"];
 
-const SHELL_JOINERS = /\s*(?:&&|\|\||&|\|)\s*/;
+const SHELL_JOINERS = /\s*(?:&&|\|\||&|\|)\s*/g;
 
 /**
  * @param {object} options
@@ -224,6 +228,28 @@ export async function repl(options) {
     // Else we should leave the first part blank
     const trailingSpace = parts.length > 1 ? " " : "";
     const firstPart = parts.slice(0, -1).join(" ") + trailingSpace;
+
+    // Check for shell command prefix
+    if (line.startsWith("!")) {
+      const shellPart = line.slice(1);
+      const commands = shellPart.split(SHELL_JOINERS);
+      const lastCommand = commands[commands.length - 1];
+
+      // Find the prefix including the last joiner
+      const joinerMatches = [...shellPart.matchAll(SHELL_JOINERS)];
+      const lastJoiner = joinerMatches[joinerMatches.length - 1];
+      const prefix = lastJoiner 
+        ? "!" + shellPart.slice(0, lastJoiner.index + lastJoiner[0].length)
+        : "!";
+
+      try {
+        const { stdout } = await execAsync(`compgen -acf "${lastCommand}"`);
+        const completions = stdout.split("\n").filter(Boolean);
+        return [completions.map(c => prefix + c), line];
+      } catch (e) {
+        // Ignore errors
+      }
+    }
 
     if (
       !lastPart.startsWith("../") &&
