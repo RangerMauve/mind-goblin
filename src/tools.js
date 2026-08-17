@@ -12,6 +12,7 @@
 
 /**
  * @typedef {object} FunctionCall
+ * @property {'function'} type
  * @property {object} function
  * @property {string} function.name
  * @property {string} function.arguments

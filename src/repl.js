@@ -5,12 +5,14 @@ import fs from "node:fs/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
+import { randomUUID } from "node:crypto";
 
 const execAsync = promisify(exec);
 
 import { program } from "commander";
 
-import { USER, Goblin } from "./index.js";
+import shellCommand from "./tools/shell_command.js";
+import { USER, ASSISTANT, TOOL, Goblin } from "./index.js";
 import { sessionFolder, conf } from "./utils.js";
 import { makeCancelSignalResource } from "./cancel.js";
 import { Sessions } from "./sessions.js";
@@ -238,15 +240,15 @@ export async function repl(options) {
       // Find the prefix including the last joiner
       const joinerMatches = [...shellPart.matchAll(SHELL_JOINERS)];
       const lastJoiner = joinerMatches[joinerMatches.length - 1];
-      const prefix = lastJoiner 
+      const prefix = lastJoiner
         ? "!" + shellPart.slice(0, lastJoiner.index + lastJoiner[0].length)
         : "!";
 
       try {
         const { stdout } = await execAsync(`compgen -acf "${lastCommand}"`);
         const completions = stdout.split("\n").filter(Boolean);
-        return [completions.map(c => prefix + c), line];
-      } catch (e) {
+        return [completions.map((c) => prefix + c), line];
+      } catch {
         // Ignore errors
       }
     }
@@ -293,6 +295,57 @@ export async function repl(options) {
   while (true) {
     try {
       const content = await rl.question("> ");
+      // Run shell commands directly, recording them as a tool call in the history
+      if (content.startsWith("!")) {
+        const command = content.slice(1);
+        console.log(`\x1b[90m$ ${command}\x1b[0m`);
+        let output;
+        try {
+          const { stdout, stderr } = await shellCommand({ command });
+          if (stdout)
+            process.stdout.write(
+              stdout.endsWith("\n") ? stdout : stdout + "\n",
+            );
+          if (stderr) process.stderr.write(stderr);
+          output = stdout + stderr;
+        } catch (e) {
+          const stdout = e.stdout ?? "";
+          const stderr = e.stderr ?? e.message;
+          if (stdout) process.stdout.write(stdout);
+          if (stderr)
+            process.stderr.write(
+              stderr.endsWith("\n") ? stderr : stderr + "\n",
+            );
+          output = stdout + stderr;
+        }
+        const toolCallId = `call_${randomUUID()}`;
+        messages.push(
+          { role: USER, content },
+          {
+            role: ASSISTANT,
+            content: "",
+            tool_calls: [
+              {
+                id: toolCallId,
+                type: "function",
+                function: {
+                  name: "shell_command",
+                  arguments: JSON.stringify({ command }),
+                },
+              },
+            ],
+          },
+          {
+            role: TOOL,
+            content: output || "(no output)",
+            name: "shell_command",
+            tool_call_id: toolCallId,
+          },
+        );
+        process.stdout.write("\x07");
+        await sessions.save(slug, messages);
+        continue;
+      }
       messages.push({ role: USER, content });
       await goblin.crank(messages, {
         onprogress,

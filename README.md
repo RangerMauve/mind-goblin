@@ -7,6 +7,7 @@ Your friendly internet enabled assistant. Swap minds with custom prompts and Oll
 - **Tool Use**: 17 built-in tools including web search, Wikipedia, file operations, shell commands, math calculations, clipboard access, and more
 - **Session Persistence**: Save and resume conversations across runs
 - **Tab Completion**: File path autocomplete in the REPL
+- **Shell Passthrough**: Run shell commands directly from the REPL with a `!` prefix, recording them in the conversation as a tool call
 - **Safety Confirmations**: User confirmation required for shell commands and file modifications
 - **Thinking Display**: Optional display of reasoning steps during chat
 - **Readline History**: Command history populated when resuming sessions
@@ -57,6 +58,10 @@ Have a conversation via the TUI.
 - `--session <name>`: Resume or start a named session (Default: 'default').
 - `--clear`: Clear the session before starting.
 - `--thinking-history`: Preserve thinking history. Increases context size but speeds up inference from better caching.
+
+**Shell passthrough:**
+
+Prefix a line with `!` to run a shell command directly without asking the goblin, e.g. `!git status`. The command's output is shown in the terminal and the exchange is recorded in the message history as a `shell_command` tool call (your input as a user message, a synthetic assistant tool call, and the output as a tool response), so the goblin has the result in context for the next turn. Tab completion works for `!` commands too.
 
 #### `mind-goblin transform <prompt> [file]`
 
