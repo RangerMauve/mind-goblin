@@ -1,11 +1,12 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import readFile from "../src/tools/read_file.js";
 
 const testDir = join(tmpdir(), "mind-goblin-test-files");
+mkdirSync(testDir, { recursive: true });
 
 test("read_file reads a valid file", async () => {
   const testFile = join(testDir, "test_read.txt");
@@ -33,7 +34,7 @@ test("read_file handles empty file", async () => {
 
   const result = await readFile({ path: testFile });
 
-  assert.ok(result.content);
+  assert.ok("content" in result);
   assert.strictEqual(result.content, "");
 });
 
