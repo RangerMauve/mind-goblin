@@ -7,7 +7,28 @@ const xdg = /** @type {import('xdg-portable').XDG} */ (
   /** @type {unknown} */ (_xdg)
 );
 
-// Default config for OpenAI-compatible API (Ollama default)
+/**
+ * Mindgoblin config, loaded from ~/.mindgoblinrc over the defaults below.
+ *
+ * Sampling params are optional: when unset they are not sent, so the
+ * provider's own defaults apply.
+ *
+ * @typedef {Object} Config
+ * @property {string} model - Model name to request.
+ * @property {string} server - Base URL of the OpenAI-compatible API.
+ * @property {string} api_key - Bearer token sent with each request.
+ * @property {number} [temperature] - Sampling temperature.
+ * @property {number} [top_p] - Nucleus sampling threshold.
+ * @property {number} [top_k] - Candidates to keep per step (Ollama).
+ * @property {number} [max_tokens] - Max tokens to generate.
+ * @property {number} [frequency_penalty] - Penalty on tokens by existing frequency.
+ * @property {number} [presence_penalty] - Penalty on tokens that already appear.
+ * @property {string | string[]} [stop] - Sequences that stop generation.
+ * @property {number} [seed] - Seed for reproducible sampling.
+ */
+
+// Default config for OpenAI-compatible API (Ollama default).
+// Sampling params are intentionally unset so the provider's defaults apply.
 const DEFAULT_CONFIG = {
   model: "qwen3.5:4b",
   server: "http://localhost:11434/v1/",
@@ -17,7 +38,7 @@ const DEFAULT_CONFIG = {
 export const APPNAME = "mindgoblin";
 
 // Load config from ~/.mindgoblinrc
-export const conf = rc(APPNAME, DEFAULT_CONFIG);
+export const conf = /** @type {Config} */ (rc(APPNAME, DEFAULT_CONFIG));
 export const configDir = path.join(xdg.config(), APPNAME);
 export const dataDir = path.join(xdg.data(), APPNAME);
 export const sessionFolder = path.join(dataDir, "sessions");
@@ -34,6 +55,19 @@ const agent = new Agent({
   bodyTimeout: REQUEST_TIMEOUT,
 });
 
+// Sampling params pulled from config; undefined values are dropped by JSON.stringify
+/** @type {(keyof Config)[]} */
+const SAMPLING_PARAMS = [
+  "temperature",
+  "top_p",
+  "top_k",
+  "max_tokens",
+  "frequency_penalty",
+  "presence_penalty",
+  "stop",
+  "seed",
+];
+
 /**
  * @param {object} options
  * @param {import('./index.js').Message[]} options.messages
@@ -42,13 +76,9 @@ const agent = new Agent({
  * @returns {Promise<import('./index.js').AssistantMessage>}
  */
 export async function chat({ messages = [], tools, signal }) {
-  const body = {
-    model: MODEL,
-    messages,
-    tools,
-    temperature: 0.6,
-    top_p: 0.95,
-  };
+  /** @type {Record<string, unknown>} */
+  const body = { model: MODEL, messages, tools };
+  for (const key of SAMPLING_PARAMS) body[key] = conf[key];
 
   const result = await postOpenAI("chat/completions", body, signal);
 
