@@ -17,6 +17,7 @@ const ALLOWED_COMMANDS = [
   "tail ",
   "grep ",
   "find ",
+  "sort",
   "stat ",
   "df ",
   "ps ",
