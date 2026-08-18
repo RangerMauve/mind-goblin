@@ -77,13 +77,20 @@ const ALLOWED_COMMANDS = [
   "gradle tasks",
 ];
 
-const DANGEROUS_PATTERNS = ["&", "${", "|"];
+// Shell metacharacters that join multiple commands or expand
+// variables. Any of these turn the input into a compound expression
+// whose parts are each checked against the allowlist.
+const DANGEROUS_PATTERNS = ["&", ";", "${", "|"];
 
 // Shell metacharacters that can smuggle file writes/reads or extra
 // execution past the command allowlist. Any of these force confirmation.
-const REDIRECT_OR_SUBSTITUTION = [">", "<", "$("];
+const REDIRECT_OR_SUBSTITUTION = [">", "<", "$(", "`"];
 
-const SHELL_JOINERS = /\s*(?:&&|\|\||&|\|)\s*/g;
+// find(1) is allowlisted for read-only queries, but these action
+// expressions can delete files or run arbitrary commands.
+const FIND_ACTIONS = ["-delete", "-exec", "-execdir", "-ok", "-okdir"];
+
+const SHELL_JOINERS = /\s*(?:&&|\|\||&|;|\|)\s*/g;
 
 /**
  * Check if a command matches an allowed command.
@@ -108,9 +115,10 @@ export function hasDangerousPatterns(command) {
 }
 
 /**
- * Detect shell redirection (>, <, >>) and command substitution ($( ... )).
- * These can smuggle file writes/reads or extra execution past the command
- * allowlist, so their presence always forces confirmation.
+ * Detect shell redirection (>, <, >>) and command substitution
+ * ($( ... ) and backtick ` ... `). These can smuggle file
+ * writes/reads or extra execution past the command allowlist, so
+ * their presence always forces confirmation.
  * @param {string} command
  * @returns {boolean}
  */
@@ -119,38 +127,128 @@ export function hasRedirectionOrSubstitution(command) {
 }
 
 /**
+ * Detect find(1) action expressions (-delete, -exec, -execdir, -ok,
+ * -okdir). The base `find` command is allowlisted, but these
+ * expressions can destroy data or run arbitrary commands.
+ * @param {string} command
+ * @returns {boolean}
+ */
+export function hasFindAction(command) {
+  if (!/^\s*find(?:\s|$)/.test(command)) return false;
+  return FIND_ACTIONS.some(
+    (action) => new RegExp(`(?:^|\\s)${action}(?:\\s|$)`).test(command),
+  );
+}
+
+/**
+ * Walk the command and remove quoted argument spans (single- and
+ * double-quoted) so that shell metacharacters inside quotes are
+ * treated as literal data rather than operators. Returns the command
+ * with every quoted span replaced by a space, plus the raw contents of
+ * each double-quoted span. Double quotes still expand command
+ * substitution, so their contents are returned for a separate check;
+ * single quotes are fully literal and need none.
+ * Returns { stripped: null } when a quote is unterminated, which the
+ * caller treats as unsafe.
+ * @param {string} command
+ * @returns {{ stripped: string | null, doubleQuoted: string[] }}
+ */
+export function stripQuotedArgs(command) {
+  let stripped = "";
+  const doubleQuoted = [];
+  let i = 0;
+  while (i < command.length) {
+    const ch = command[i];
+    if (ch === "'") {
+      const end = command.indexOf("'", i + 1);
+      if (end === -1) return { stripped: null, doubleQuoted };
+      stripped += " ";
+      i = end + 1;
+    } else if (ch === '"') {
+      let j = i + 1;
+      let content = "";
+      while (j < command.length && command[j] !== '"') {
+        if (command[j] === "\\" && j + 1 < command.length) {
+          content += command[j + 1];
+          j += 2;
+          continue;
+        }
+        content += command[j];
+        j += 1;
+      }
+      if (j >= command.length) return { stripped: null, doubleQuoted };
+      doubleQuoted.push(content);
+      stripped += " ";
+      i = j + 1;
+    } else {
+      stripped += ch;
+      i += 1;
+    }
+  }
+  return { stripped, doubleQuoted };
+}
+
+/**
+ * Detect command substitution ($(...) or backticks) inside a
+ * double-quoted string. Unlike single quotes, double quotes still
+ * expand substitutions, so these would execute arbitrary commands.
+ * @param {string} content
+ * @returns {boolean}
+ */
+export function hasQuotedCommandSubstitution(content) {
+  return content.includes("$(") || content.includes("`");
+}
+
+/**
  * Decide whether a shell command needs user confirmation.
- * Compound expressions (joined with &&, ||, &, |) are allowed
- * only if every subcommand is allowed.
+ * Quoted argument spans are stripped first so metacharacters inside
+ * them count as literal data; command substitution inside double
+ * quotes still forces confirmation. Compound expressions (joined with
+ * &&, ||, &, | or ;) are allowed only if every subcommand is allowed
+ * and no find carries an action expression.
  * @param {string} command
  * @returns {boolean}
  */
 export function shouldConfirm(command) {
-  if (command.includes("\n")) return true;
+  // Newlines and carriage returns are shell command separators.
+  if (/\r|\n/.test(command)) return true;
 
-  // Strip out common patterns
-  const stripped = command
-    .trim()
+  // Strip quoted spans so their metacharacters are treated as data.
+  const { stripped, doubleQuoted } = stripQuotedArgs(command.trim());
+  // Unterminated quoting can't be parsed safely.
+  if (stripped === null) return true;
+
+  // Command substitution inside double quotes still executes.
+  if (doubleQuoted.some(hasQuotedCommandSubstitution)) return true;
+
+  // Strip out common patterns and collapse the spaces left by quoting.
+  const cleaned = stripped
     .replaceAll("2>&1", "")
-    .replaceAll("2>/dev/null", "");
+    .replaceAll("2>/dev/null", "")
+    .replace(/\s+/g, " ")
+    .trim();
 
   // Redirection and command substitution always need confirmation
-  if (hasRedirectionOrSubstitution(stripped)) {
+  if (hasRedirectionOrSubstitution(cleaned)) {
     return true;
   }
 
-  // Check subcommands if it's a compound expression
-  if (hasDangerousPatterns(stripped)) {
-    return !stripped
-      .split(SHELL_JOINERS)
-      .every((subcommand) => isAllowed(subcommand.trim()));
-  }
-  return !isAllowed(stripped);
+  // Split into subcommands if it's a compound expression, otherwise
+  // treat the whole command as a single subcommand.
+  const subcommands = hasDangerousPatterns(cleaned)
+    ? cleaned.split(SHELL_JOINERS).map((part) => part.trim())
+    : [cleaned.trim()];
+
+  // Every part must be allowed, and find must not carry an action.
+  return !subcommands.every(
+    (subcommand) => isAllowed(subcommand) && !hasFindAction(subcommand),
+  );
 }
 
 export {
   ALLOWED_COMMANDS,
   DANGEROUS_PATTERNS,
   REDIRECT_OR_SUBSTITUTION,
+  FIND_ACTIONS,
   SHELL_JOINERS,
 };

