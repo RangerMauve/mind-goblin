@@ -63,12 +63,12 @@ Have a conversation via the TUI.
 
 Prefix a line with `!` to run a shell command directly without asking the goblin, e.g. `!git status`. The command's output is shown in the terminal and the exchange is recorded in the message history as a `shell_command` tool call (your input as a user message, a synthetic assistant tool call, and the output as a tool response), so the goblin has the result in context for the next turn. Tab completion works for `!` commands too.
 
-#### `mind-goblin transform <prompt> [file]`
+#### `mind-goblin transform <prompt> <file>`
 
-Transform a file or the clipboard buffer.
+Transform a file in place.
 
 - `<prompt>`: The task you wish for the assistant to complete.
-- `[file]`: The file to refactor. Omit to pull from clipboard.
+- `<file>`: The file to refactor. Must exist; the goblin is forked with only `write_file`/`edit_file` and is blocked from touching any other file.
 
 ## Configuration
 
