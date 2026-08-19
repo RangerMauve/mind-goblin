@@ -66,24 +66,11 @@ export async function repl(options) {
    * @param {string} prompt
    */
   async function confirm(prompt) {
-    const controller = new AbortController();
-
-    /**
-     * @param {string} str
-     * @param {{ name: string }} key
-     */
-    const onKeypress = (str, key) => {
-      if (key && key.name === "escape") {
-        controller.abort();
-      }
-    };
-
-    input.on("keypress", onKeypress);
-
+    using cancel = makeCancelSignalResource(input);
     try {
       const answer = await rl.question(
         `${prompt}\n> ${INFO}Y${RESET}/${WARN}n${RESET} (${WARN}ESC${RESET} to cancel)${BELL} `,
-        { signal: controller.signal },
+        { signal: cancel.signal },
       );
       if (answer.trim().toLowerCase() === "n") {
         console.log("Cancelling.");
@@ -97,8 +84,6 @@ export async function repl(options) {
         "Tool call cancelled by user. Stop what youre doing and ask for clarification.",
         { cause },
       );
-    } finally {
-      input.removeListener("keypress", onKeypress);
     }
   }
 
