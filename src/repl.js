@@ -17,6 +17,7 @@ import { sessionFolder, conf } from "./utils.js";
 import { makeCancelSignalResource } from "./cancel.js";
 import { Sessions } from "./sessions.js";
 import { shouldConfirm, SHELL_JOINERS } from "./command_check.js";
+import { INFO, WARN, QUIET, ALERT, RESET, BELL, playBell } from "./ansi.js";
 
 /**
  * @param {object} options
@@ -58,7 +59,7 @@ export async function repl(options) {
    * @param {string} message
    */
   function onprogress(message) {
-    console.log("\x1b[90m%s\x1b[0m", message);
+    console.log(`${QUIET}%s${RESET}`, message);
   }
 
   /**
@@ -81,7 +82,7 @@ export async function repl(options) {
 
     try {
       const answer = await rl.question(
-        `${prompt}\n> Y/n (ESC to cancel)\x07 `,
+        `${prompt}\n> ${INFO}Y${RESET}/${WARN}n${RESET} (${WARN}ESC${RESET} to cancel)${BELL} `,
         { signal: controller.signal },
       );
       if (answer.trim().toLowerCase() === "n") {
@@ -108,11 +109,11 @@ export async function repl(options) {
   async function onbeforetool(name, args) {
     if (name === "read_file") {
       // @ts-expect-error TODO cast args to expected shape
-      console.log("\x1b[92mReading file: %s\x1b[0m", args.path);
+      console.log(`${INFO}Reading file: %s${RESET}`, args.path);
     }
     if (name === "read_directory") {
       // @ts-expect-error TODO cast args to expected shape
-      console.log("\x1b[92mReading directory: %s\x1b[0m", args.path);
+      console.log(`${INFO}Reading directory: %s${RESET}`, args.path);
     }
     if (name === "shell_command") {
       // @ts-expect-error TODO cast args to expected shape
@@ -121,10 +122,12 @@ export async function repl(options) {
       if (command.startsWith(cdPrefix)) {
         command = command.slice(cdPrefix.length);
       }
-      if (shouldConfirm(command)) {
-        await confirm(`Allow shell command?\n${command}`);
-      }
       // Allow some commands through without confirming
+      if (shouldConfirm(command)) {
+        await confirm(`${ALERT}Allow shell command?${RESET}\n${command}`);
+      } else {
+	      console.log(`${INFO}!%s${RESET}`, command);
+      }
     }
     if (name === "write_file") {
       // @ts-expect-error TODO cast args to expected shape
@@ -217,7 +220,7 @@ export async function repl(options) {
       // Run shell commands directly, recording them as a tool call in the history
       if (content.startsWith("!")) {
         const command = content.slice(1);
-        console.log(`\x1b[90m$ ${command}\x1b[0m`);
+        console.log(`${QUIET}$ ${command}${RESET}`);
         let output;
         try {
           const { stdout, stderr } = await shellCommand({ command });
@@ -261,7 +264,7 @@ export async function repl(options) {
             tool_call_id: toolCallId,
           },
         );
-        process.stdout.write("\x07");
+        playBell();
         await sessions.save(slug, messages);
         continue;
       }
@@ -275,7 +278,7 @@ export async function repl(options) {
       const response = messages.at(-1);
       // TODO: render formatted as markdown
       console.log(response?.content);
-      process.stdout.write("\x07");
+      playBell();
     } catch (e) {
       if (e.name === "AbortError") continue;
       throw e;
