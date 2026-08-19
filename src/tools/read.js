@@ -21,12 +21,12 @@ export const parameters = {
  * @returns {Promise<{content:string}|{contents:string[]}>} - The file contents or directory listing
  */
 export default async function read({ path }) {
-    const stats = await fs.stat(path);
-    if (stats.isDirectory()) {
-      const contents = await fs.readdir(path);
-      return { contents };
-    } else {
-      const content = await fs.readFile(path, "utf8");
-      return { content };
-    }
+  const stats = await fs.stat(path);
+  if (stats.isDirectory()) {
+    const contents = await fs.readdir(path);
+    return { contents };
+  } else {
+    const content = await fs.readFile(path, "utf8");
+    return { content };
+  }
 }

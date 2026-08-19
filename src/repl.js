@@ -15,9 +15,10 @@ import shellCommand from "./tools/shell_command.js";
 import { USER, ASSISTANT, TOOL, Goblin } from "./index.js";
 import { sessionFolder, conf } from "./utils.js";
 import { makeCancelSignalResource } from "./cancel.js";
+import { makeConfirm } from "./confirm.js";
 import { Sessions } from "./sessions.js";
 import { shouldConfirm, SHELL_JOINERS } from "./command_check.js";
-import { INFO, WARN, QUIET, ALERT, RESET, BELL, playBell } from "./ansi.js";
+import { INFO, QUIET, ALERT, RESET, playBell } from "./ansi.js";
 
 /**
  * @param {object} options
@@ -62,30 +63,7 @@ export async function repl(options) {
     console.log(`${QUIET}%s${RESET}`, message);
   }
 
-  /**
-   * @param {string} prompt
-   */
-  async function confirm(prompt) {
-    using cancel = makeCancelSignalResource(input);
-    try {
-      const answer = await rl.question(
-        `${prompt}\n> ${INFO}Y${RESET}/${WARN}n${RESET} (${WARN}ESC${RESET} to cancel)${BELL} `,
-        { signal: cancel.signal },
-      );
-      if (answer.trim().toLowerCase() === "n") {
-        console.log("Cancelling.");
-        throw new Error(
-          "Tool call cancelled by user. Stop what youre doing and ask for clarification.",
-        );
-      }
-    } catch (cause) {
-      console.log("Cancelling");
-      throw new Error(
-        "Tool call cancelled by user. Stop what youre doing and ask for clarification.",
-        { cause },
-      );
-    }
-  }
+  const confirm = makeConfirm(rl, input);
 
   /**
    * @param {string} name
@@ -115,7 +93,7 @@ export async function repl(options) {
       if (shouldConfirm(command)) {
         await confirm(`${ALERT}Allow shell command?${RESET}\n${command}`);
       } else {
-	      console.log(`${INFO}!%s${RESET}`, command);
+        console.log(`${INFO}!%s${RESET}`, command);
       }
     }
     if (name === "write_file") {

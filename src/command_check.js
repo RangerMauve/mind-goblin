@@ -135,8 +135,8 @@ export function hasRedirectionOrSubstitution(command) {
  */
 export function hasFindAction(command) {
   if (!/^\s*find(?:\s|$)/.test(command)) return false;
-  return FIND_ACTIONS.some(
-    (action) => new RegExp(`(?:^|\\s)${action}(?:\\s|$)`).test(command),
+  return FIND_ACTIONS.some((action) =>
+    new RegExp(`(?:^|\\s)${action}(?:\\s|$)`).test(command),
   );
 }
 

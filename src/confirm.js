@@ -4,9 +4,9 @@ import { INFO, WARN, RESET, BELL } from "./ansi.js";
 /**
  * @param {import("node:readline/promises").Interface} rl
  * @param {import("node:process").stdin} input
- * @param {{ log?: (...args: unknown[]) => void, error?: (...args: unknown[]) => void }} [logger]
+ * @param {(...args: unknown[]) => void} [log]
  */
-export function makeConfirm(rl, input, { log = console.log, error = console.error } = {}) {
+export function makeConfirm(rl, input, log = console.log) {
   /**
    * @param {string} prompt
    */
@@ -24,7 +24,7 @@ export function makeConfirm(rl, input, { log = console.log, error = console.erro
         );
       }
     } catch (cause) {
-      error("Cancelling");
+      log("Cancelling");
       throw new Error(
         "Tool call cancelled by user. Stop what youre doing and ask for clarification.",
         { cause },

@@ -172,9 +172,12 @@ test("shouldConfirm rejects carriage-return-separated commands", () => {
 });
 
 test("stripQuotedArgs removes single- and double-quoted spans", () => {
-  const r = stripQuotedArgs('find . -name "*.js" && echo \'hi; there\'');
+  const r = stripQuotedArgs("find . -name \"*.js\" && echo 'hi; there'");
   assert.ok(r.stripped !== null);
-  assert.deepEqual(r.stripped.replace(/\s+/g, " ").trim(), "find . -name && echo");
+  assert.deepEqual(
+    r.stripped.replace(/\s+/g, " ").trim(),
+    "find . -name && echo",
+  );
   assert.deepEqual(r.doubleQuoted, ["*.js"]);
 });
 
@@ -199,7 +202,7 @@ test("shouldConfirm allows metacharacters inside quoted strings", () => {
   // Semicolon and > inside quotes are literal data, not operators.
   assert.equal(shouldConfirm('grep "a;b" file'), false);
   assert.equal(shouldConfirm('echo "a > b"'), false);
-  assert.equal(shouldConfirm("find . -name \"*.txt\""), false);
+  assert.equal(shouldConfirm('find . -name "*.txt"'), false);
   assert.equal(shouldConfirm('git diff "file with space"'), false);
 });
 

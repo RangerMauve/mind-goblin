@@ -29,38 +29,41 @@ program
      * @param {object} options Parsed commander options
      */
     async (prompt, file, options) => {
-    // Read the file up front; error if it doesn't exist.
-    let content;
-    try {
-      content = await fs.readFile(file, "utf8");
-    } catch (cause) {
-      throw new Error(`Cannot read file "${file}"`, {cause});
-    }
-    const targetPath = path.resolve(file);
-
-    // Fork a goblin that can only write/edit, so it can't wander off.
-    const goblin = await Goblin.fromOptions({ ...program.opts(), ...options });
-    const writer = goblin.fork({ tools: ["write_file", "edit_file"] });
-
-    // Track whether a write/edit actually happened, and keep edits on-target.
-    let toolUsed = false;
-
-    /** @type {(name: string, args: object) => Promise<void>} */
-    const onbeforetool = async (name, args) => {
-      if (name === "write_file" || name === "edit_file") {
-        // @ts-expect-error There should be a path, trust me
-        const p = path.resolve(args.path);
-        if (p !== targetPath) {
-          throw new Error(
-            // @ts-expect-error There should be a path, trust me
-            `Refusing to modify "${args.path}"; only "${file}" may be changed.`,
-          );
-        }
+      // Read the file up front; error if it doesn't exist.
+      let content;
+      try {
+        content = await fs.readFile(file, "utf8");
+      } catch (cause) {
+        throw new Error(`Cannot read file "${file}"`, { cause });
       }
-      toolUsed = true;
-    };
+      const targetPath = path.resolve(file);
 
-    const instruction = `You are transforming the file "${file}".
+      // Fork a goblin that can only write/edit, so it can't wander off.
+      const goblin = await Goblin.fromOptions({
+        ...program.opts(),
+        ...options,
+      });
+      const writer = goblin.fork({ tools: ["write_file", "edit_file"] });
+
+      // Track whether a write/edit actually happened, and keep edits on-target.
+      let toolUsed = false;
+
+      /** @type {(name: string, args: object) => Promise<void>} */
+      const onbeforetool = async (name, args) => {
+        if (name === "write_file" || name === "edit_file") {
+          // @ts-expect-error There should be a path, trust me
+          const p = path.resolve(args.path);
+          if (p !== targetPath) {
+            throw new Error(
+              // @ts-expect-error There should be a path, trust me
+              `Refusing to modify "${args.path}"; only "${file}" may be changed.`,
+            );
+          }
+        }
+        toolUsed = true;
+      };
+
+      const instruction = `You are transforming the file "${file}".
 
 Current contents of "${file}":
 <${file}>
@@ -71,16 +74,17 @@ Task: ${prompt}
 
 Apply the requested transformation and save the result back to "${file}" using the write_file tool (preferred for a full rewrite) or the edit_file tool (for targeted replacements). Only modify "${file}" — do not touch any other file. After saving, reply with a one-line summary of the changes you made.`;
 
-    const answer = await writer.query(instruction, { onbeforetool });
+      const answer = await writer.query(instruction, { onbeforetool });
 
-    if (!toolUsed) {
-      throw new Error(
-        "The assistant did not use the write/edit tools, so the file was not modified.",
-      );
-    }
+      if (!toolUsed) {
+        throw new Error(
+          "The assistant did not use the write/edit tools, so the file was not modified.",
+        );
+      }
 
-    console.log(answer);
-  });
+      console.log(answer);
+    },
+  );
 
 program
   .command("think")
