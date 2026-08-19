@@ -26,10 +26,9 @@ export class Tools {
     await Promise.all([
       tools.loadTool("get_current_time"),
       tools.loadTool("read_clipboard"),
-      tools.loadTool("read_file"),
+      tools.loadTool("read"),
       tools.loadTool("write_file"),
       tools.loadTool("edit_file"),
-      tools.loadTool("read_directory"),
       tools.loadTool("load_web_text"),
       tools.loadTool("search_web"),
       tools.loadTool("sub_agent"),

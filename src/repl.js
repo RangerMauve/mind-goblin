@@ -107,6 +107,10 @@ export async function repl(options) {
    * @param {object} args
    */
   async function onbeforetool(name, args) {
+    if (name === "read") {
+      // @ts-expect-error TODO cast args to expected shape
+      console.log(`${INFO}Reading: %s${RESET}`, args.path);
+    }
     if (name === "read_file") {
       // @ts-expect-error TODO cast args to expected shape
       console.log(`${INFO}Reading file: %s${RESET}`, args.path);
