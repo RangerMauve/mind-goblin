@@ -56,9 +56,7 @@ export async function completer(line) {
       firstPart + (isFolder ? lastPart : lastPart.slice(0, -base.length));
 
     const files = await fs.readdir(dir, { withFileTypes: true });
-    const matches = files.filter((f) =>
-      f.name.toLowerCase().startsWith(base),
-    );
+    const matches = files.filter((f) => f.name.toLowerCase().startsWith(base));
 
     const completed = matches.map(
       (m) => prefix + m.name + (m.isDirectory() ? "/" : ""),

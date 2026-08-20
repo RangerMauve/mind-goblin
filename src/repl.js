@@ -60,47 +60,44 @@ export async function repl(options) {
 
   const confirm = makeConfirm(rl, input);
 
-  /**
-   * @param {string} name
-   * @param {object} args
-   */
-  async function onbeforetool(name, args) {
-    if (name === "read") {
-      // @ts-expect-error TODO cast args to expected shape
+  /** @type {Record<string, any>} */
+  const beforeToolHandlers = {
+    /** @param {{path: string}} args */
+    read: (args) => {
       console.log(`${INFO}Reading: %s${RESET}`, args.path);
-    }
-    if (name === "read_file") {
-      // @ts-expect-error TODO cast args to expected shape
-      console.log(`${INFO}Reading file: %s${RESET}`, args.path);
-    }
-    if (name === "read_directory") {
-      // @ts-expect-error TODO cast args to expected shape
-      console.log(`${INFO}Reading directory: %s${RESET}`, args.path);
-    }
-    if (name === "shell_command") {
-      // @ts-expect-error TODO cast args to expected shape
+    },
+    /** @param {{command: string}} args */
+    async shell_command(args) {
       let command = args.command;
       const cdPrefix = `cd ${process.cwd()} && `;
       if (command.startsWith(cdPrefix)) {
         command = command.slice(cdPrefix.length);
       }
-      // Allow some commands through without confirming
       if (shouldConfirm(command)) {
         await confirm(`${ALERT}Allow shell command?${RESET}\n${command}`);
       } else {
         console.log(`${INFO}!%s${RESET}`, command);
       }
-    }
-    if (name === "write_file") {
-      // @ts-expect-error TODO cast args to expected shape
+    },
+    /** @param {{path: string, content: string}} args */
+    async write_file(args) {
       await confirm(`Allow write to ${args.path}?\nContent:\n${args.content}`);
-    }
-    if (name === "edit_file") {
+    },
+    /** @param {{path: string, old_text: string, new_text: string}} args */
+    async edit_file(args) {
       await confirm(
-        // @ts-expect-error TODO cast args to expected shape
         `Allow edit to ${args.path}?\nReplace:\n${args.old_text}\nWith:\n${args.new_text}`,
       );
-    }
+    },
+  };
+
+  /**
+   * @param {string} name
+   * @param {object} args
+   */
+  async function onbeforetool(name, args) {
+    const handler = beforeToolHandlers[name];
+    if (handler) await handler(args);
   }
 
   const onthinking = showThinking ? onprogress : undefined;
