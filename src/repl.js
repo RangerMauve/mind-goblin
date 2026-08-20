@@ -98,6 +98,7 @@ export async function repl(options) {
   async function onbeforetool(name, args) {
     const handler = beforeToolHandlers[name];
     if (handler) await handler(args);
+    else console.log(`${INFO}Using tool: %s${RESET}`, name);
   }
 
   const onthinking = showThinking ? onprogress : undefined;
