@@ -7,6 +7,15 @@ export const RESET = "\x1b[0m";
 export const BELL = "\x07";
 
 /**
+ * Wrap text in the given ANSI color code and RESET.
+ * @param {string} code
+ * @param {string} text
+ */
+export function color(code, text) {
+  return `${code}${text}${RESET}`;
+}
+
+/**
  * Ring the terminal bell.
  */
 export function playBell() {

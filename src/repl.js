@@ -13,7 +13,7 @@ import { makeConfirm } from "./confirm.js";
 import { Sessions } from "./sessions.js";
 import { shouldConfirm } from "./command_check.js";
 import { completer } from "./completer.js";
-import { INFO, QUIET, ALERT, RESET, playBell } from "./ansi.js";
+import { INFO, QUIET, ALERT, color, playBell } from "./ansi.js";
 
 /**
  * @param {object} options
@@ -55,7 +55,7 @@ export async function repl(options) {
    * @param {string} message
    */
   function onprogress(message) {
-    console.log(`${QUIET}%s${RESET}`, message);
+    console.log(color(QUIET, message));
   }
 
   const confirm = makeConfirm(rl, input);
@@ -64,7 +64,7 @@ export async function repl(options) {
   const beforeToolHandlers = {
     /** @param {{path: string}} args */
     read: (args) => {
-      console.log(`${INFO}Reading: %s${RESET}`, args.path);
+      console.log(color(INFO, `Reading: ${args.path}`));
     },
     /** @param {{command: string}} args */
     async shell_command(args) {
@@ -74,9 +74,9 @@ export async function repl(options) {
         command = command.slice(cdPrefix.length);
       }
       if (shouldConfirm(command)) {
-        await confirm(`${ALERT}Allow shell command?${RESET}\n${command}`);
+        await confirm(`${color(ALERT, "Allow shell command?")}\n${command}`);
       } else {
-        console.log(`${INFO}!%s${RESET}`, command);
+        console.log(color(INFO, `!${command}`));
       }
     },
     /** @param {{path: string, content: string}} args */
@@ -98,7 +98,7 @@ export async function repl(options) {
   async function onbeforetool(name, args) {
     const handler = beforeToolHandlers[name];
     if (handler) await handler(args);
-    else console.log(`${INFO}Using tool: %s${RESET}`, name);
+    else console.log(color(INFO, `Using tool: ${name}`));
   }
 
   const onthinking = showThinking ? onprogress : undefined;
@@ -109,7 +109,7 @@ export async function repl(options) {
       // Run shell commands directly, recording them as a tool call in the history
       if (content.startsWith("!")) {
         const command = content.slice(1);
-        console.log(`${QUIET}$ ${command}${RESET}`);
+        console.log(color(QUIET, `$ ${command}`));
         let output;
         try {
           const { stdout, stderr } = await shellCommand({ command });
