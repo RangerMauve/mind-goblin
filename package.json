@@ -23,6 +23,7 @@
     "clipboard-sys": "^1.2.1",
     "commander": "^12.1.0",
     "debug": "^4.4.1",
+    "diff": "^9.0.0",
     "execa": "^9.1.0",
     "node-notifier": "^10.0.1",
     "rc": "^1.2.8",

@@ -4,6 +4,7 @@ import { stdin as input, stdout as output } from "node:process";
 import { randomUUID } from "node:crypto";
 
 import { program } from "commander";
+import { diffLines } from "diff";
 
 import shellCommand from "./tools/shell_command.js";
 import { USER, ASSISTANT, TOOL, Goblin } from "./index.js";
@@ -13,7 +14,7 @@ import { makeConfirm } from "./confirm.js";
 import { Sessions } from "./sessions.js";
 import { shouldConfirm } from "./command_check.js";
 import { completer } from "./completer.js";
-import { INFO, QUIET, ALERT, color, playBell } from "./ansi.js";
+import { INFO, QUIET, ALERT, WARN, color, playBell } from "./ansi.js";
 
 /**
  * @param {object} options
@@ -60,6 +61,25 @@ export async function repl(options) {
 
   const confirm = makeConfirm(rl, input);
 
+  /**
+   * Render a line diff with color-coded prefixes.
+   * @param {string} oldText
+   * @param {string} newText
+   */
+  function renderDiff(oldText, newText) {
+    const changes = diffLines(oldText, newText);
+    const lines = [];
+    for (const change of changes) {
+      const parts = change.value.replace(/\n$/, "").split("\n");
+      for (const line of parts) {
+        if (change.removed) lines.push(color(WARN, `- ${line}`));
+        else if (change.added) lines.push(color(INFO, `+ ${line}`));
+        else lines.push(color(QUIET, `  ${line}`));
+      }
+    }
+    return lines.join("\n");
+  }
+
   /** @type {Record<string, any>} */
   const beforeToolHandlers = {
     /** @param {{path: string}} args */
@@ -86,7 +106,7 @@ export async function repl(options) {
     /** @param {{path: string, old_text: string, new_text: string}} args */
     async edit_file(args) {
       await confirm(
-        `Allow edit to ${args.path}?\nReplace:\n${args.old_text}\nWith:\n${args.new_text}`,
+        `Allow edit to ${args.path}?\n${renderDiff(args.old_text, args.new_text)}`,
       );
     },
   };

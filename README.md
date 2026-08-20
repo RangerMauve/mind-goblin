@@ -8,7 +8,7 @@ Your friendly internet enabled assistant. Swap minds with custom prompts and Oll
 - **Session Persistence**: Save and resume conversations across runs
 - **Tab Completion**: File path autocomplete in the REPL
 - **Shell Passthrough**: Run shell commands directly from the REPL with a `!` prefix, recording them in the conversation as a tool call
-- **Safety Confirmations**: User confirmation required for shell commands and file modifications
+- **Safety Confirmations**: User confirmation required for shell commands and file modifications, with a rendered line diff for `edit_file`
 - **Thinking Display**: Optional display of reasoning steps during chat
 - **Readline History**: Command history populated when resuming sessions
 - **Audio Notifications**: Bell sound on response completion
