@@ -37,7 +37,6 @@ Your friendly internet enabled assistant. Swap minds with custom prompts and Oll
 
 ### Global Options
 
-- `-s, --system <type>`: Custom system prompt for the assistant (Default: "You are a local assistant named Mind Goblin.")
 - `--debug`: Output extra debug info to inspect the train of thought
 
 ### Commands
@@ -94,12 +93,6 @@ It also uses XDG directories for storing data:
 - **Data/Sessions**: `~/.local/share/mindgoblin/sessions`
 
 ## Examples
-
-**Start a chat with a custom persona:**
-
-```bash
-mind-goblin chat --system "You are a helpful python expert."
-```
 
 **Ask a question and have the answer spoken aloud:**
 

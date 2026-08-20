@@ -10,11 +10,6 @@ import speakTool from "./tools/speak.js";
 program
   .name("mind-goblin")
   .description("Your local ai assistant.")
-  .option(
-    "-s, --system <type>",
-    "Custom system prompt for the assistant",
-    "You are a local assistant named Mind Goblin.",
-  )
   .option("--debug", "output extra debug info to inspect the train of thought");
 
 program
