@@ -21,10 +21,17 @@ export const parameters = {
  * Executes a shell command.
  * @param {object} parameters
  * @param {string} parameters.command The shell command to execute
- * @returns {Promise<{stdout: string, stderr: string}>}
+ * @returns {Promise<{stdout: string, stderr?: string}>}
  */
 export default async function (parameters) {
   const { command } = parameters;
-  const { stdout, stderr } = await execAsync(command);
-  return { stdout, stderr };
+  try {
+    const { stdout } = await execAsync(command);
+    return { stdout };
+  } catch (err) {
+    if (err.stderr || err.stdout) {
+      return { stderr: err.stderr ?? "", stdout: err.stdout ?? "" };
+    }
+    throw err;
+  }
 }
