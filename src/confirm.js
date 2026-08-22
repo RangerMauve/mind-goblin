@@ -12,8 +12,8 @@ export function makeConfirm(rl, input, log = console.log) {
    */
   return async function confirm(prompt) {
     using cancel = makeCancelSignalResource(input);
-    log(prompt)
-    playBell()
+    log(prompt);
+    playBell();
     try {
       const answer = await rl.question(
         `> ${INFO}Y${RESET}/${WARN}n${RESET} (${WARN}ESC${RESET} to cancel) `,
