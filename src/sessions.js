@@ -3,6 +3,41 @@ import fs from "node:fs/promises";
 
 const SESSION_SEP = "__";
 
+export class Session {
+  #parent;
+  #slug;
+
+  /**
+   * @param {Sessions} parent
+   * @param {string} slug
+   */
+  constructor(parent, slug) {
+    this.#parent = parent;
+    this.#slug = slug;
+  }
+
+  /** @returns {string} */
+  get slug() {
+    return this.#slug;
+  }
+
+  /**
+   * @param {import('./index.js').Message[]} messages
+   */
+  async save(messages) {
+    return this.#parent.save(this.#slug, messages);
+  }
+
+  /** @returns {Promise<import('./index.js').Message[]>} */
+  async load() {
+    return this.#parent.load(this.#slug);
+  }
+
+  async forget() {
+    return this.#parent.forget(this.#slug);
+  }
+}
+
 export class Sessions {
   #sessionFolder;
   /**
@@ -19,6 +54,15 @@ export class Sessions {
     return (
       process.cwd().replaceAll(path.sep, SESSION_SEP) + SESSION_SEP + session
     );
+  }
+
+  /**
+   * @param {string} [session]
+   * @returns {Session}
+   */
+  make(session = "default") {
+    const slug = this.slug(session);
+    return new Session(this, slug);
   }
 
   /** @param {string} slug */

@@ -16,12 +16,10 @@ import { shouldConfirm } from "./shell_check.js";
 import { completer } from "./completer.js";
 import { INFO, QUIET, ALERT, WARN, color, playBell } from "./ansi.js";
 
-/** @import {Message} from "./index.js"*/
-
-export class REPLContext {
+/** @import { Message } from "./index.js" */
+/** @import { Session } from "./sessions.js" */ export class REPLContext {
   #goblin;
-  #sessions;
-  #slug;
+  #session;
 
   /**
    * @type {Message[]}
@@ -30,13 +28,11 @@ export class REPLContext {
 
   /**
    * @param {Goblin} goblin
-   * @param {string} slug
-   * @param {Sessions} sessions
+   * @param {Session} session
    */
-  constructor(goblin, slug, sessions) {
+  constructor(goblin, session) {
     this.#goblin = goblin;
-    this.#sessions = sessions;
-    this.#slug = slug;
+    this.#session = session;
   }
 
   get goblin() {
@@ -57,11 +53,11 @@ export class REPLContext {
     return history;
   }
   async save() {
-    await this.#sessions.save(this.#slug, this.#messages);
+    await this.#session.save(this.#messages);
   }
 
   async load() {
-    this.#messages = await this.#sessions.load(this.#slug);
+    this.#messages = await this.#session.load();
   }
 
   /** @param {Message[]} messages */
@@ -82,11 +78,10 @@ export async function repl(options) {
     ...options,
   };
   const sessions = new Sessions(sessionFolder);
-  const slug = sessions.slug(session);
 
   const goblin = await Goblin.fromOptions({ ...program.opts(), ...goblinOpts });
 
-  const context = new REPLContext(goblin, slug, sessions);
+  const context = new REPLContext(goblin, sessions.make(session));
   if (session && !clear) {
     await context.load();
   }
