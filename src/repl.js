@@ -1,23 +1,24 @@
 import readline from "node:readline/promises";
 import { emitKeypressEvents } from "node:readline";
 import { stdin as input, stdout as output } from "node:process";
-import { randomUUID } from "node:crypto";
 
 import { program } from "commander";
 import { diffLines } from "diff";
 
-import shellCommand from "./tools/shell_command.js";
-import { USER, ASSISTANT, TOOL, Goblin } from "./index.js";
+import { USER, Goblin } from "./index.js";
 import { sessionFolder, conf } from "./utils.js";
 import { makeCancelSignalResource } from "./cancel.js";
 import { makeConfirm } from "./confirm.js";
 import { Sessions } from "./sessions.js";
 import { shouldConfirm } from "./shell_check.js";
-import { completer } from "./completer.js";
+import { makeCompleter } from "./completer.js";
+import { Commands } from "./commands.js";
 import { INFO, QUIET, ALERT, WARN, color, playBell } from "./ansi.js";
 
 /** @import { Message } from "./index.js" */
-/** @import { Session } from "./sessions.js" */ export class REPLContext {
+/** @import { Session } from "./sessions.js" */
+
+export class REPLContext {
   #goblin;
   #session;
 
@@ -78,6 +79,7 @@ export async function repl(options) {
     ...options,
   };
   const sessions = new Sessions(sessionFolder);
+  const commands = await Commands.default();
 
   const goblin = await Goblin.fromOptions({ ...program.opts(), ...goblinOpts });
 
@@ -85,6 +87,8 @@ export async function repl(options) {
   if (session && !clear) {
     await context.load();
   }
+
+  const completer = makeCompleter(commands, context);
 
   const rl = readline.createInterface({
     input,
@@ -152,8 +156,8 @@ export async function repl(options) {
     try {
       const content = await rl.question("> ");
       // Run shell commands directly, recording them as a tool call in the history
-      if (content.startsWith("!")) {
-        await runShellCommand(content, context);
+      if (commands.has(content)) {
+        await commands.run(content, context);
       } else {
         context.messages.push({ role: USER, content });
         await goblin.crank(context.messages, {
@@ -192,49 +196,4 @@ function renderDiff(oldText, newText) {
     }
   }
   return lines.join("\n");
-}
-
-/**
- * @param {string} content
- * @param {REPLContext} context
- */
-async function runShellCommand(content, context) {
-  const command = content.slice(1);
-  console.log(color(QUIET, `$ ${command}`));
-  let output;
-  try {
-    const { stdout, stderr } = await shellCommand({ command });
-    if (stdout)
-      process.stdout.write(stdout.endsWith("\n") ? stdout : stdout + "\n");
-    if (stderr) process.stderr.write(stderr);
-    output = stdout + stderr;
-  } catch (e) {
-    console.error(e.message);
-    return;
-  }
-  const toolCallId = `call_${randomUUID()}`;
-  context.push(
-    { role: USER, content },
-    {
-      role: ASSISTANT,
-      content: "",
-      tool_calls: [
-        {
-          id: toolCallId,
-          type: "function",
-          function: {
-            name: "shell_command",
-            arguments: JSON.stringify({ command }),
-          },
-        },
-      ],
-    },
-    {
-      role: TOOL,
-      content: output || "(no output)",
-      name: "shell_command",
-      tool_call_id: toolCallId,
-    },
-  );
-  playBell();
 }

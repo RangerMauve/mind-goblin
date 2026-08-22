@@ -4,6 +4,12 @@
 /** @typedef {(prefix: string, context: REPLContext)=> Promise<string[]> | string[]} CompleteCommand*/
 
 export class Commands {
+  static async default() {
+    const commands = new Commands();
+    await commands.load("shell");
+    return commands;
+  }
+
   /** @type {Map<String, CommandDef>} */
   #commands = new Map();
 
@@ -14,6 +20,13 @@ export class Commands {
    */
   register(name, run, complete = DEFAULT_COMPLETE) {
     this.#commands.set(name, new CommandDef(name, run, complete));
+  }
+
+  /** @param {string} name */
+  async load(name) {
+    const module = await import(`./commands/${name}.js`);
+    const { name: commandName, run, complete } = module;
+    this.register(commandName, run, complete);
   }
 
   /**
@@ -35,8 +48,13 @@ export class Commands {
   async complete(prefix, context) {
     const command = this.#commandFor(prefix);
     if (!command) return [];
-    const args = prefix.slice(command.name.length);
-    return command.complete(args, context);
+    try {
+      const args = prefix.slice(command.name.length);
+      return command.complete(args, context);
+    } catch (e) {
+      console.error("Error running completions", e.message);
+      return [];
+    }
   }
 
   /**
@@ -84,7 +102,8 @@ export class CommandDef {
    * @param {REPLContext} context
    */
   async complete(prefix, context) {
-    return this.#complete(prefix, context);
+    const completions = await this.#complete(prefix, context);
+    return completions.map((text) => this.name + text);
   }
 
   /**
