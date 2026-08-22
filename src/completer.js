@@ -2,7 +2,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import { SHELL_JOINERS } from "./command_check.js";
+import { SHELL_JOINERS } from "./shell_check.js";
 
 const execAsync = promisify(exec);
 

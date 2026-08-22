@@ -12,7 +12,7 @@ import { sessionFolder, conf } from "./utils.js";
 import { makeCancelSignalResource } from "./cancel.js";
 import { makeConfirm } from "./confirm.js";
 import { Sessions } from "./sessions.js";
-import { shouldConfirm } from "./command_check.js";
+import { shouldConfirm } from "./shell_check.js";
 import { completer } from "./completer.js";
 import { INFO, QUIET, ALERT, WARN, color, playBell } from "./ansi.js";
 
