@@ -16,6 +16,60 @@ import { shouldConfirm } from "./shell_check.js";
 import { completer } from "./completer.js";
 import { INFO, QUIET, ALERT, WARN, color, playBell } from "./ansi.js";
 
+/** @import {Message} from "./index.js"*/
+
+export class REPLContext {
+  #goblin;
+  #sessions;
+  #slug;
+
+  /**
+   * @type {Message[]}
+   */
+  #messages = [];
+
+  /**
+   * @param {Goblin} goblin
+   * @param {string} slug
+   * @param {Sessions} sessions
+   */
+  constructor(goblin, slug, sessions) {
+    this.#goblin = goblin;
+    this.#sessions = sessions;
+    this.#slug = slug;
+  }
+
+  get goblin() {
+    return this.#goblin;
+  }
+
+  get messages() {
+    return this.#messages;
+  }
+
+  get history() {
+    const history = this.#messages
+      .filter(({ role }) => role === USER)
+      .map(({ content }) => content);
+    // Make most recent messages first
+    history.reverse();
+
+    return history;
+  }
+  async save() {
+    await this.#sessions.save(this.#slug, this.#messages);
+  }
+
+  async load() {
+    this.#messages = await this.#sessions.load(this.#slug);
+  }
+
+  /** @param {Message[]} messages */
+  push(...messages) {
+    this.#messages.push(...messages);
+  }
+}
+
 /**
  * @param {object} options
  * @param {boolean} [options.showThinking]
@@ -30,22 +84,17 @@ export async function repl(options) {
   const sessions = new Sessions(sessionFolder);
   const slug = sessions.slug(session);
 
-  /**
-   * @type {import('./index.js').Message[]}
-   */
-  const messages = session && !clear ? await sessions.load(slug) : [];
-  const history = messages
-    .filter(({ role }) => role === USER)
-    .map(({ content }) => content);
-  // Make most recent messages first
-  history.reverse();
-
   const goblin = await Goblin.fromOptions({ ...program.opts(), ...goblinOpts });
+
+  const context = new REPLContext(goblin, slug, sessions);
+  if (session && !clear) {
+    await context.load();
+  }
 
   const rl = readline.createInterface({
     input,
     output,
-    history,
+    history: context.history,
     completer,
   });
   emitKeypressEvents(input);
@@ -60,25 +109,6 @@ export async function repl(options) {
   }
 
   const confirm = makeConfirm(rl, input);
-
-  /**
-   * Render a line diff with color-coded prefixes.
-   * @param {string} oldText
-   * @param {string} newText
-   */
-  function renderDiff(oldText, newText) {
-    const changes = diffLines(oldText, newText);
-    const lines = [];
-    for (const change of changes) {
-      const parts = change.value.replace(/\n$/, "").split("\n");
-      for (const line of parts) {
-        if (change.removed) lines.push(color(WARN, `- ${line}`));
-        else if (change.added) lines.push(color(INFO, `+ ${line}`));
-        else lines.push(color(QUIET, `  ${line}`));
-      }
-    }
-    return lines.join("\n");
-  }
 
   /** @type {Record<string, any>} */
   const beforeToolHandlers = {
@@ -128,70 +158,88 @@ export async function repl(options) {
       const content = await rl.question("> ");
       // Run shell commands directly, recording them as a tool call in the history
       if (content.startsWith("!")) {
-        const command = content.slice(1);
-        console.log(color(QUIET, `$ ${command}`));
-        let output;
-        try {
-          const { stdout, stderr } = await shellCommand({ command });
-          if (stdout)
-            process.stdout.write(
-              stdout.endsWith("\n") ? stdout : stdout + "\n",
-            );
-          if (stderr) process.stderr.write(stderr);
-          output = stdout + stderr;
-        } catch (e) {
-          const stdout = e.stdout ?? "";
-          const stderr = e.stderr ?? e.message;
-          if (stdout) process.stdout.write(stdout);
-          if (stderr)
-            process.stderr.write(
-              stderr.endsWith("\n") ? stderr : stderr + "\n",
-            );
-          output = stdout + stderr;
-        }
-        const toolCallId = `call_${randomUUID()}`;
-        messages.push(
-          { role: USER, content },
-          {
-            role: ASSISTANT,
-            content: "",
-            tool_calls: [
-              {
-                id: toolCallId,
-                type: "function",
-                function: {
-                  name: "shell_command",
-                  arguments: JSON.stringify({ command }),
-                },
-              },
-            ],
-          },
-          {
-            role: TOOL,
-            content: output || "(no output)",
-            name: "shell_command",
-            tool_call_id: toolCallId,
-          },
-        );
+        await runShellCommand(content, context);
+      } else {
+        context.messages.push({ role: USER, content });
+        await goblin.crank(context.messages, {
+          onprogress,
+          onbeforetool,
+          onthinking,
+          listenForCancel: () => makeCancelSignalResource(input),
+        });
+        const response = context.messages.at(-1);
+        // TODO: render formatted as markdown
+        console.log(response?.content);
         playBell();
-        await sessions.save(slug, messages);
-        continue;
       }
-      messages.push({ role: USER, content });
-      await goblin.crank(messages, {
-        onprogress,
-        onbeforetool,
-        onthinking,
-        listenForCancel: () => makeCancelSignalResource(input),
-      });
-      const response = messages.at(-1);
-      // TODO: render formatted as markdown
-      console.log(response?.content);
-      playBell();
     } catch (e) {
       if (e.name === "AbortError") continue;
       throw e;
     }
-    await sessions.save(slug, messages);
+    await context.save();
   }
+}
+
+/**
+ * Render a line diff with color-coded prefixes.
+ * @param {string} oldText
+ * @param {string} newText
+ */
+function renderDiff(oldText, newText) {
+  const changes = diffLines(oldText, newText);
+  const lines = [];
+  for (const change of changes) {
+    const parts = change.value.replace(/\n$/, "").split("\n");
+    for (const line of parts) {
+      if (change.removed) lines.push(color(WARN, `- ${line}`));
+      else if (change.added) lines.push(color(INFO, `+ ${line}`));
+      else lines.push(color(QUIET, `  ${line}`));
+    }
+  }
+  return lines.join("\n");
+}
+
+/**
+ * @param {string} content
+ * @param {REPLContext} context
+ */
+async function runShellCommand(content, context) {
+  const command = content.slice(1);
+  console.log(color(QUIET, `$ ${command}`));
+  let output;
+  try {
+    const { stdout, stderr } = await shellCommand({ command });
+    if (stdout)
+      process.stdout.write(stdout.endsWith("\n") ? stdout : stdout + "\n");
+    if (stderr) process.stderr.write(stderr);
+    output = stdout + stderr;
+  } catch (e) {
+    console.error(e.message);
+    return;
+  }
+  const toolCallId = `call_${randomUUID()}`;
+  context.push(
+    { role: USER, content },
+    {
+      role: ASSISTANT,
+      content: "",
+      tool_calls: [
+        {
+          id: toolCallId,
+          type: "function",
+          function: {
+            name: "shell_command",
+            arguments: JSON.stringify({ command }),
+          },
+        },
+      ],
+    },
+    {
+      role: TOOL,
+      content: output || "(no output)",
+      name: "shell_command",
+      tool_call_id: toolCallId,
+    },
+  );
+  playBell();
 }
