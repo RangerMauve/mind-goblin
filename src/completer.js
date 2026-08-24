@@ -1,13 +1,9 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import { exec } from "node:child_process";
-import { promisify } from "node:util";
-import { SHELL_JOINERS } from "./shell_check.js";
+
 
 /** @import { Commands } from "./commands.js" */
 /** @import { REPLContext } from "./repl.js" */
-
-const execAsync = promisify(exec);
 
 /**
  * @param {Commands} commands
