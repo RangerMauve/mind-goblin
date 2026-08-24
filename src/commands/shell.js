@@ -45,8 +45,11 @@ export async function complete(line) {
 export async function run(command, context) {
   let output;
   try {
-    const { stdout, stderr } = await shellCommand({ command });
-    output = stdout + stderr;
+    const escaped = command.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    const { stdout: rawStdout, stderr: rawStderr } = await shellCommand({ command: `script -qec "${escaped}" /dev/null` });
+    const stdout = rawStdout.replace(/\r/g, "");
+    const stderr = rawStderr ? rawStderr.replace(/\r/g, "") : undefined;
+    output = stdout + (stderr ?? "");
     console.log(stdout);
     if (stderr) console.log(color(WARN, stderr));
   } catch (e) {
