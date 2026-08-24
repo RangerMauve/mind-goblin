@@ -1,7 +1,7 @@
 /** @import { Goblin } from './index.js' */
 
 /**
- * @typedef {(parameters: object, agent: Goblin) => object} ToolFunction
+ * @typedef {(parameters: object, agent: Goblin, signal?: AbortSignal) => object} ToolFunction
  */
 
 /**
@@ -105,16 +105,17 @@ export class Tools {
    * @param {string} name
    * @param {object} parameters
    * @param {Goblin} agent
+   * @param {AbortSignal} [signal]
    * @returns {Promise<any>}
    */
-  async call(name, parameters = {}, agent) {
+  async call(name, parameters = {}, agent, signal) {
     if (agent.debug) {
       const depthTag = agent.forkDepth ? `(${agent.forkDepth})` : "";
       console.info("🛠️", +depthTag, name, parameters);
     }
     if (this.#tools.has(name)) {
       // @ts-expect-error Assume we have this tool
-      const response = await this.#tools.get(name)(parameters, agent);
+      const response = await this.#tools.get(name)(parameters, agent, signal);
       return response;
     } else {
       throw new Error(`Function "${name}" does not exist.

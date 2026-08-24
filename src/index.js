@@ -142,7 +142,12 @@ export class Goblin {
             // Check if it should be invoked
             await onbeforetool(name, args);
           }
-          const toolContent = await this.tools.call(name, args, this);
+          const toolContent = await this.tools.call(
+            name,
+            args,
+            this,
+            cancel?.signal,
+          );
           cancel?.signal?.throwIfAborted();
           addMessage({
             role: TOOL,

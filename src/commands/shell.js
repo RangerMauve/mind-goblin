@@ -46,7 +46,9 @@ export async function run(command, context) {
   let output;
   try {
     const escaped = command.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    const { stdout: rawStdout, stderr: rawStderr } = await shellCommand({ command: `script -qec "${escaped}" /dev/null` });
+    const { stdout: rawStdout, stderr: rawStderr } = await shellCommand({
+      command: `script -qec "${escaped}" /dev/null`,
+    });
     const stdout = rawStdout.replace(/\r/g, "");
     const stderr = rawStderr ? rawStderr.replace(/\r/g, "") : undefined;
     output = stdout + (stderr ?? "");

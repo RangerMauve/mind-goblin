@@ -21,12 +21,13 @@ export const parameters = {
  * Executes a shell command.
  * @param {object} parameters
  * @param {string} parameters.command The shell command to execute
+ * @param {AbortSignal} [signal] Cancellation signal
  * @returns {Promise<{stdout: string, stderr?: string}>}
  */
-export default async function (parameters) {
+export default async function (parameters, _agent, signal) {
   const { command } = parameters;
   try {
-    const { stdout } = await execAsync(command);
+    const { stdout } = await execAsync(command, { signal });
     return { stdout };
   } catch (err) {
     if (err.stderr || err.stdout) {
