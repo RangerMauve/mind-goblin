@@ -26,10 +26,13 @@ export const parameters = {
   required: ["command"],
 };
 
+/** @import { Goblin } from '../index.js' */
+
 /**
  * Executes a shell command.
  * @param {object} parameters
  * @param {string} parameters.command The shell command to execute
+ * @param {Goblin} [_agent] Agent (unused)
  * @param {AbortSignal} [signal] Cancellation signal
  * @returns {Promise<{stdout: string, stderr?: string}>}
  */
