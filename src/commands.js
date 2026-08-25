@@ -59,6 +59,13 @@ export class Commands {
   }
 
   /**
+   * @returns {string[]}
+   */
+  names() {
+    return [...this.#commands.keys()];
+  }
+
+  /**
    * @param {string} line
    * @returns {boolean}
    */

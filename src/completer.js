@@ -24,6 +24,12 @@ export function makeCompleter(commands, context) {
       if (complete.length) return [complete, line];
     }
 
+    // Command name completion
+    if (line.startsWith("/")) {
+      const matches = commands.names().filter((n) => n.startsWith(line));
+      if (matches.length) return [matches, line];
+    }
+
     // File path completion
     if (
       !lastPart.startsWith("../") &&
