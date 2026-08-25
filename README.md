@@ -1,10 +1,10 @@
 # mind-goblin
 
-Your friendly internet enabled assistant. Swap minds with custom prompts and Ollama
+Your friendly internet enabled assistant.
 
 ## Features
 
-- **Tool Use**: 17 built-in tools including web search, Wikipedia, file operations, shell commands, math calculations, clipboard access, and more
+- **Tool Use**: 9 built-in tools: `get_current_time`, `read_clipboard`, `read`, `write_file`, `edit_file`, `load_web_text`, `search_web`, `sub_agent`, `shell_command`
 - **Session Persistence**: Save and resume conversations across runs
 - **Tab Completion**: File path autocomplete in the REPL
 - **Shell Passthrough**: Run shell commands directly from the REPL with a `!` prefix, recording them in the conversation as a tool call
@@ -14,19 +14,24 @@ Your friendly internet enabled assistant. Swap minds with custom prompts and Oll
 - **Audio Notifications**: Bell sound on response completion
 - **Sub-agents**: Fork specialized agents with limited tool access
 
+## Built-in Commands
+
+REPL commands available in `mind-goblin chat`:
+
+### `! <command>`
+
+Run a shell command directly without asking the goblin. The command's output is shown in the terminal and the exchange is recorded in the message history as a `shell_command` tool call (your input as a user message, a synthetic assistant tool call, and the output as a tool response), so the goblin has the result in context for the next turn. Tab completion works for `!` commands.
+
+### `/compact`
+
+Summarize and compact the conversation history. First asks the goblin for a short summary of what was discussed, decisions made, and tasks completed. Then strips all tool calls, tool responses, reasoning blocks, and empty messages from the history, replacing them with just the summary. Reports how many of each were removed.
+
 ## What should it do? (TODO)
 
 - get voice input or text input
-- output either text or voice
-- output as notifications
 - answer questions you'd ask an llm
 - look through either the camera, the screen, or a static image
   - using mplayer on linux
-- reach out to external data sources when it is unsure
-  - wikipedia
-  - npmjs
-  - rust crates
-- do basic math
 - refactor text from the fs or the clipboard
 - query databases
   - postgres
@@ -58,9 +63,7 @@ Have a conversation via the TUI.
 - `--clear`: Clear the session before starting.
 - `--thinking-history`: Preserve thinking history. Increases context size but speeds up inference from better caching.
 
-**Shell passthrough:**
-
-Prefix a line with `!` to run a shell command directly without asking the goblin, e.g. `!git status`. The command's output is shown in the terminal and the exchange is recorded in the message history as a `shell_command` tool call (your input as a user message, a synthetic assistant tool call, and the output as a tool response), so the goblin has the result in context for the next turn. Tab completion works for `!` commands too.
+See [Built-in Commands](#built-in-commands) for REPL commands like `!` and `/compact`.
 
 #### `mind-goblin transform <prompt> <file>`
 
@@ -86,6 +89,19 @@ Mind Goblin uses `rc` for configuration. It looks for `~/.mindgoblinrc` or the `
 - **Model**: The model name to use (e.g., `llama3`, `qwen3.5:4b`).
 - **Server**: The URL of the OpenAI-compatible API (defaults to Ollama).
 - **API Key**: Your API key (defaults to `OPENAI_API_KEY` env var).
+
+**Optional Sampling Parameters:**
+
+These are passed through to the API as-is. Omit them to use the server's defaults.
+
+- `temperature`: Sampling temperature (e.g., `0.7`).
+- `top_p`: Nucleus sampling threshold (e.g., `0.9`).
+- `top_k`: Number of highest-probability tokens to sample from (e.g., `40`).
+- `max_tokens`: Maximum number of tokens to generate.
+- `frequency_penalty`: Penalty for repeated tokens (e.g., `0.5`).
+- `presence_penalty`: Penalty for tokens that already appear in the prompt (e.g., `0.3`).
+- `stop`: Array of strings that stop generation when encountered (e.g., `["\n"]`).
+- `seed`: Fixed seed for reproducible output (e.g., `42`).
 
 It also uses XDG directories for storing data:
 
