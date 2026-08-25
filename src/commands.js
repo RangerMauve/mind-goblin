@@ -7,6 +7,7 @@ export class Commands {
   static async default() {
     const commands = new Commands();
     await commands.load("shell");
+    await commands.load("compact");
     return commands;
   }
 
