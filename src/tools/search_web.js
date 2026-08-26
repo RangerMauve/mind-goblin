@@ -1,5 +1,6 @@
 /** @type {string} */
 export const name = "search_web";
+export const readonly = true;
 
 /** @type {string} */
 export const description = "Search the web using SearXNG.";

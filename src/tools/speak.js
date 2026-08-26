@@ -1,5 +1,6 @@
 import { execa } from "execa";
 
+export const readonly = false;
 export const name = "speak";
 export const description = "Speak a message out loud through the speaker.";
 export const parameters = {

@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import { dirname } from "node:path";
 
 export const name = "write_file";
+export const readonly = false;
 export const description = "Write content to a file given its path.";
 export const parameters = {
   type: "object",

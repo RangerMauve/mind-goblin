@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 
 export const name = "read";
+export const readonly = true;
 export const description =
   "Read the contents of a file or directory given its path. Automatically detects whether the path is a file or directory.";
 export const parameters = {

@@ -1,6 +1,7 @@
 import striptags from "striptags";
 
 export const name = "search_wikipedia";
+export const readonly = true;
 export const description = "Search for information on Wikipedia.";
 export const parameters = {
   type: "object",

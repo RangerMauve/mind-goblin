@@ -78,7 +78,19 @@ export default function (parameters) {
 }
 ```
 
-### 5. Register the Tool
+### 5. Set the Readonly Flag
+
+Export a `readonly` boolean to indicate whether this tool is safe in readonly mode. Defaults to `false` if omitted.
+
+```javascript
+export const readonly = false; // this tool has side effects
+```
+
+Set to `true` for tools that only read state (e.g., `read`, `search_web`, `get_current_time`). Tools with side effects (writes, notifications, speech) should keep `readonly = false`. In readonly mode, tools with `readonly = false` are stripped from the agent's toolset entirely.
+
+Note: `shell_command` is marked `readonly = true` but self-restricts internally — in readonly mode it only allows a safe command allowlist.
+
+### 6. Register the Tool
 
 Edit `src/tools.js` to ensure this new tool is loaded. Add the filename (without the `.js` extension) to the list of tools that `loadTool` registers.
 
@@ -91,6 +103,7 @@ const newTool = tools.loadTool("my_new_tool");
 
 - [ ] File is in `src/tools/`
 - [ ] `name` is exported as a string (required, snake_case, matches filename)
+- [ ] `readonly` is exported as a boolean (required, `true` for read-only tools)
 - [ ] `description` is exported as a string
 - [ ] `parameters` is exported as an object (use `{ type: 'object' }` for tools with no params)
 - [ ] `default` function is exported (async for I/O, sync for simple logic)

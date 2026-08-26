@@ -2,6 +2,7 @@ import { clipboard } from "clipboard-sys";
 import { execa } from "execa";
 
 export const name = "read_clipboard";
+export const readonly = true;
 export const description =
   "Reads text directly from the system clipboard. Also use this if the user is asking about some text but hasn't provided any. This function has no additional arguments";
 export const parameters = { type: "object" };

@@ -9,8 +9,10 @@ export const name = "/compact";
 /**
  * @param {string} _
  * @param {REPLContext} context
+ * @param {import("../index.js").Goblin} _agent
+ * @param {AbortSignal} [signal]
  */
-export async function run(_, context) {
+export async function run(_, context, _agent, signal) {
   // Summarize before compacting
   /** @type {Message[]} */
   const summaryMessages = [
@@ -21,7 +23,10 @@ export async function run(_, context) {
         "Summarize the conversation above in a few bullet points. Focus on what was discussed, decisions made, and tasks completed. List the most relevant files that have been worked on.",
     },
   ];
-  await context.goblin.crank(summaryMessages, {});
+  await context.goblin.crank(summaryMessages, {
+    listenForCancel: () =>
+      signal ? { signal, [Symbol.dispose]: () => {} } : null,
+  });
   const summaryMessage = /** @type {Message} */ (summaryMessages.at(-1));
 
   /** @type {Message[]} */

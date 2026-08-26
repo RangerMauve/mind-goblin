@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 
 export const name = "edit_file";
+export const readonly = false;
 export const description = "Replaces text in a file at the specified path.";
 export const parameters = {
   type: "object",

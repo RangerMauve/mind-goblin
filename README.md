@@ -43,6 +43,7 @@ Summarize and compact the conversation history. First asks the goblin for a shor
 ### Global Options
 
 - `--debug`: Output extra debug info to inspect the train of thought
+- `--readonly`: Run with only read-only tools. Write tools (`write_file`, `edit_file`) and side-effect tools (`desktop_notification`, `speak`) are stripped. Shell commands are restricted to a safe allowlist. Sub-agents inherit readonly mode and can only further restrict tool access.
 
 ### Commands
 

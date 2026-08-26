@@ -1,4 +1,5 @@
 export const name = "calc";
+export const readonly = true;
 export const description =
   "Run a calculation. Always use this for math like multiplication or currency conversion.";
 export const parameters = {

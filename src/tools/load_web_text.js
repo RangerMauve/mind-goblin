@@ -1,6 +1,7 @@
 import TurndownService from "turndown";
 
 export const name = "load_web_text";
+export const readonly = true;
 
 export const description = "Fetches text content from a provided URL.";
 

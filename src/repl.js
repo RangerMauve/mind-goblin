@@ -10,7 +10,7 @@ import { sessionFolder, conf } from "./utils.js";
 import { makeCancelSignalResource } from "./cancel.js";
 import { makeConfirm } from "./confirm.js";
 import { Sessions } from "./sessions.js";
-import { shouldConfirm } from "./shell_check.js";
+import { check } from "./tools/shell_command.js";
 import { makeCompleter } from "./completer.js";
 import { Commands } from "./commands.js";
 import { INFO, QUIET, ALERT, WARN, color, playBell } from "./ansi.js";
@@ -122,7 +122,7 @@ export async function repl(options) {
       if (command.startsWith(cdPrefix)) {
         command = command.slice(cdPrefix.length);
       }
-      if (shouldConfirm(command)) {
+      if (check(command)) {
         await confirm(`${color(ALERT, "Allow shell command?")}\n${command}`);
       } else {
         console.log(color(INFO, `!${command}`));
@@ -157,7 +157,8 @@ export async function repl(options) {
       const content = await rl.question("> ");
       // Run shell commands directly, recording them as a tool call in the history
       if (commands.has(content)) {
-        await commands.run(content, context);
+        using cancel = makeCancelSignalResource(input);
+        await commands.run(content, context, goblin, cancel.signal);
       } else {
         context.messages.push({ role: USER, content });
         await goblin.crank(context.messages, {

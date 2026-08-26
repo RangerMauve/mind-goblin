@@ -1,6 +1,7 @@
 /** @import { Goblin } from "../index.js" */
 
 export const name = "sub_agent";
+export const readonly = true;
 export const description =
   "Spawn a sub-agent with more limited tools. Use this to process larger amounts of context to keep the top level memory clean";
 
@@ -24,6 +25,11 @@ export const parameters = {
       },
       description: "Which tools to limit the agent to",
     },
+    readonly: {
+      type: "boolean",
+      description: "Whether the sub-agent can use write and edit tools",
+      default: true,
+    },
   },
   required: ["prompt"],
 };
@@ -34,15 +40,16 @@ export const parameters = {
  * @param {string} parameters.prompt,
  * @param {number} [parameters.maxIterations],
  * @param {string[]} [parameters.tools],
+ * @param {boolean} [parameters.readonly],
  * @param {Goblin} agent
  * @returns {Promise<{content: string}|{error: string}>}
  */
 export default async function subAgent(
-  { prompt, maxIterations, tools },
+  { prompt, maxIterations, tools, readonly = true },
   agent,
 ) {
   try {
-    const sub = agent.fork({ maxIterations, tools });
+    const sub = agent.fork({ maxIterations, tools, readonly });
 
     const content = await sub.query(prompt);
 

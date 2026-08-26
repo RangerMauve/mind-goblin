@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 
-import { SHELL_JOINERS } from "../shell_check.js";
+import { SHELL_JOINERS } from "../tools/shell_command.js";
 import shellCommand from "../tools/shell_command.js";
 import { USER, ASSISTANT, TOOL } from "../index.js";
 import { WARN, color, playBell } from "../ansi.js";
@@ -41,14 +41,18 @@ export async function complete(line) {
 /**
  * @param {string} command
  * @param {REPLContext} context
+ * @param {import("../index.js").Goblin} agent
+ * @param {AbortSignal} [signal]
  */
-export async function run(command, context) {
+export async function run(command, context, agent, signal) {
   let output;
   try {
     const escaped = command.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    const { stdout: rawStdout, stderr: rawStderr } = await shellCommand({
-      command: `script -qec "${escaped}" /dev/null`,
-    });
+    const { stdout: rawStdout, stderr: rawStderr } = await shellCommand(
+      { command: `script -qec "${escaped}" /dev/null` },
+      agent,
+      signal,
+    );
     const stdout = rawStdout.replace(/\r/g, "");
     const stderr = rawStderr ? rawStderr.replace(/\r/g, "") : undefined;
     output = stdout + (stderr ?? "");

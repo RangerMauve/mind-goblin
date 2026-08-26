@@ -1,5 +1,6 @@
 import notifier from "node-notifier";
 
+export const readonly = false;
 export const name = "desktop_notification";
 export const description =
   "Show a notification message on the user's desktop. Use this only when the user asks for it.";

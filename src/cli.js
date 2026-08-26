@@ -6,11 +6,13 @@ import { program } from "commander";
 import { Goblin } from "./index.js";
 import { repl } from "./repl.js";
 import speakTool from "./tools/speak.js";
+import { conf } from "./utils.js";
 
 program
   .name("mind-goblin")
   .description("Your local ai assistant.")
-  .option("--debug", "output extra debug info to inspect the train of thought");
+  .option("--debug", "output extra debug info to inspect the train of thought")
+  .option("--readonly", "refuse to use write or edit tools", conf.readonly);
 
 program
   .command("transform")

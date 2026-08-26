@@ -25,6 +25,7 @@ const xdg = /** @type {import('xdg-portable').XDG} */ (
  * @property {number} [presence_penalty] - Penalty on tokens that already appear.
  * @property {string | string[]} [stop] - Sequences that stop generation.
  * @property {number} [seed] - Seed for reproducible sampling.
+ * @property {boolean} [readonly] - When true, the goblin will not use write or edit tools.
  */
 
 // Default config for OpenAI-compatible API (Ollama default).
@@ -33,6 +34,7 @@ const DEFAULT_CONFIG = {
   model: "qwen3.5:4b",
   server: "http://localhost:11434/v1/",
   api_key: process.env.OPENAI_API_KEY || "",
+  readonly: false,
 };
 
 export const APPNAME = "mindgoblin";

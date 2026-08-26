@@ -43,6 +43,7 @@ export class Goblin {
    * @param {boolean} [options.debug] Whether to output debug text to the console during tool calls
    * @param {number} [options.forkDepth]
    * @param {boolean} [options.thinkingHistory]
+   * @param {boolean} [options.readonly] When true, write and edit tools are stripped.
    */
   constructor({
     tools = new Tools(),
@@ -50,13 +51,19 @@ export class Goblin {
     debug = false,
     forkDepth = 0,
     thinkingHistory = false,
+    readonly = false,
   }) {
+    if (readonly) {
+      tools = tools.readonly();
+    }
+
     this.tools = tools;
 
     this.maxIterations = maxIterations;
     this.debug = debug;
     this.forkDepth = forkDepth;
     this.thinkingHistory = thinkingHistory;
+    this.readonly = readonly;
   }
 
   /**
@@ -64,8 +71,9 @@ export class Goblin {
    * @param {object} options
    * @param {string[]} [options.tools] Names of tools that should be passed down
    * @param {number} [options.maxIterations]
+   * @param {boolean} [options.readonly] Override readonly for the sub-agent
    */
-  fork({ tools, maxIterations = this.maxIterations }) {
+  fork({ tools, maxIterations = this.maxIterations, readonly }) {
     const subTools = tools ? this.tools.subset(tools) : this.tools;
 
     return new Goblin({
@@ -73,6 +81,7 @@ export class Goblin {
       forkDepth: this.forkDepth + 1,
       tools: subTools,
       maxIterations,
+      readonly: readonly ?? this.readonly,
     });
   }
 

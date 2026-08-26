@@ -11,6 +11,13 @@
  */
 
 /**
+ * @typedef {object} ToolEntry
+ * @property {string} name
+ * @property {ToolFunction} fn
+ * @property {boolean} readonly
+ */
+
+/**
  * @typedef {object} FunctionCall
  * @property {'function'} type
  * @property {object} function
@@ -38,7 +45,7 @@ export class Tools {
     return tools;
   }
 
-  /** @type {Map<string, ToolFunction>} */
+  /** @type {Map<string, ToolEntry>} */
   #tools;
 
   /** @type {Map<string, ToolDescription>} */
@@ -56,14 +63,14 @@ export class Tools {
   async loadTool(name) {
     const module = await import(`./tools/${name}.js`);
 
-    this.#tools.set(name, module.default);
+    const { name: toolName, readonly, description, parameters } = module;
 
-    const { description, parameters } = module;
+    this.#tools.set(toolName, { name: toolName, readonly, fn: module.default });
 
-    this.#descriptions.set(name, {
+    this.#descriptions.set(toolName, {
       type: "function",
       function: {
-        name,
+        name: toolName,
         description,
         parameters,
       },
@@ -72,6 +79,11 @@ export class Tools {
 
   get length() {
     return this.#tools.size;
+  }
+
+  /** @returns {string[]} */
+  get names() {
+    return [...this.#tools.keys()];
   }
 
   /**
@@ -86,6 +98,22 @@ export class Tools {
         throw new Error(`Unknown tool ${name}. Try again without it.`);
       subTools.set(name, this.#tools.get(name));
       subDescriptions.set(name, this.#descriptions.get(name));
+    }
+    return new Tools(subTools, subDescriptions);
+  }
+
+  /**
+   * Return a new Tools instance containing only readonly-safe tools.
+   * @returns {Tools}
+   */
+  readonly() {
+    const subTools = new Map();
+    const subDescriptions = new Map();
+    for (const [name, entry] of this.#tools) {
+      if (entry.readonly) {
+        subTools.set(name, entry);
+        subDescriptions.set(name, this.#descriptions.get(name));
+      }
     }
     return new Tools(subTools, subDescriptions);
   }
@@ -115,7 +143,8 @@ export class Tools {
     }
     if (this.#tools.has(name)) {
       // @ts-expect-error Assume we have this tool
-      const response = await this.#tools.get(name)(parameters, agent, signal);
+      const { fn } = this.#tools.get(name);
+      const response = await fn(parameters, agent, signal);
       return response;
     } else {
       throw new Error(`Function "${name}" does not exist.
