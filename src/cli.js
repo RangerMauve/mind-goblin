@@ -5,6 +5,7 @@ import { program } from "commander";
 
 import { Goblin } from "./index.js";
 import { repl } from "./repl.js";
+import { listen } from "./listen.js";
 import speakTool from "./tools/speak.js";
 import { conf } from "./utils.js";
 
@@ -111,6 +112,14 @@ program
     "Preserve thinking history. Increases context size but speeds up inference from better caching",
   )
   .action(repl);
+
+program
+  .command("listen")
+  .description("Listen for voice commands and respond aloud")
+  .option("--session <name>", "Resume or start a named session", "default")
+  .option("--clear", "Clear the session before starting")
+  .option("--no-speak", "Don't speak responses, only log")
+  .action(listen);
 
 await program.parseAsync(process.argv);
 

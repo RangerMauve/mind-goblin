@@ -11,5 +11,5 @@
     "lib": ["ES2024", "DOM"]
   },
   "extends": "@tsconfig/node24/tsconfig.json",
-  "include": ["./src/"]
+  "include": ["./src/", "./types/"]
 }

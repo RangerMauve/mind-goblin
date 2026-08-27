@@ -13,6 +13,7 @@ Your friendly internet enabled assistant.
 - **Readline History**: Command history populated when resuming sessions
 - **Audio Notifications**: Bell sound on response completion
 - **Sub-agents**: Fork specialized agents with limited tool access
+- **Voice Input**: Speak to the goblin hands-free via microphone. Uses Silero VAD + Moonshine Tiny (int8) for offline speech-to-text
 
 ## Built-in Commands
 
@@ -28,11 +29,8 @@ Summarize and compact the conversation history. First asks the goblin for a shor
 
 ## What should it do? (TODO)
 
-- get voice input or text input
-- answer questions you'd ask an llm
 - look through either the camera, the screen, or a static image
   - using mplayer on linux
-- refactor text from the fs or the clipboard
 - query databases
   - postgres
   - neo4j
@@ -72,6 +70,16 @@ Transform a file in place.
 
 - `<prompt>`: The task you wish for the assistant to complete.
 - `<file>`: The file to refactor. Must exist; the goblin is forked with only `write_file`/`edit_file` and is blocked from touching any other file.
+
+#### `mind-goblin listen`
+
+Listen for voice commands via microphone and respond aloud.
+
+- `--session <name>`: Resume or start a named session (Default: 'default').
+- `--clear`: Clear the session before starting.
+- `--no-speak`: Don't speak responses, only log them to the terminal.
+
+On first run, it downloads the Silero VAD and Moonshine Tiny English (int8) speech-to-text models into `~/.local/share/mindgoblin/models/`. Audio from the default input device is resampled to 16 kHz, segmented by VAD, transcribed, and sent to the goblin as a user message. New speech interrupts any in-progress response. Press Ctrl+C to stop.
 
 ## Configuration
 
@@ -127,6 +135,18 @@ mind-goblin chat --session "project-alpha"
 
 ```bash
 mind-goblin transform "Fix the typos" ./draft.txt
+```
+
+**Talk to the goblin hands-free:**
+
+```bash
+mind-goblin listen
+```
+
+**Talk in a specific session without audio output:**
+
+```bash
+mind-goblin listen --session "kitchen-talk" --no-speak
 ```
 
 **Debug the assistant's thought process:**
