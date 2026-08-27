@@ -24,8 +24,7 @@ export async function run(_, context, _agent, signal) {
     },
   ];
   await context.goblin.crank(summaryMessages, {
-    listenForCancel: () =>
-      signal ? { signal, [Symbol.dispose]: () => {} } : null,
+    signal,
   });
   const summaryMessage = /** @type {Message} */ (summaryMessages.at(-1));
 
