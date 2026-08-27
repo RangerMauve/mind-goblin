@@ -89,9 +89,9 @@ export class Goblin {
    * Send a prompt to the agent and get a response. This triggers an agentic loop which can do tool calls.
    * @param {Message[]} history Conversation history. Have the user query be the last item, intermediate history items will be added in.
    * @param {object} [options]
-   * @param {(message: string) => void} [options.onprogress] Optional callback for progress on the task
-   * @param {(name:string, args: object) => Promise<void>} [options.onbeforetool] Optional callback before each tool call. Throw to cancel the tool.
-   * @param {(message: string) => void} [options.onthinking] Optional callback for intermediate thinking steps
+   * @param {(message: string) => void|Promise<void>} [options.onprogress] Optional callback for progress on the task
+   * @param {(name:string, args: object) => void|Promise<void>} [options.onbeforetool] Optional callback before each tool call. Throw to cancel the tool.
+   * @param {(message: string) => void|Promise<void>} [options.onthinking] Optional callback for intermediate thinking steps
    * @param {() => CancelResource?} [options.listenForCancel] Optional function to listen on canellation during inference
    * @param {AbortSignal} [options.signal] Fallback signal if listenForCancel is not provided
    */
@@ -125,7 +125,7 @@ export class Goblin {
     if (this.debug) console.log(result);
 
     if (result.reasoning_content && onthinking) {
-      onthinking(result.reasoning_content);
+      await onthinking(result.reasoning_content);
     }
 
     let iteration = 0;
@@ -142,7 +142,7 @@ export class Goblin {
         );
       }
       if (iteration && result.reasoning_content && onthinking) {
-        onthinking(result.reasoning_content);
+        await onthinking(result.reasoning_content);
       }
 
       iteration += 1;
@@ -150,7 +150,7 @@ export class Goblin {
       if (onprogress) {
         const { content } = result;
         const trimmed = content.trim();
-        if (trimmed) onprogress(trimmed);
+        if (trimmed) await onprogress(trimmed);
       }
       addMessage(result);
       for (const call of result.tool_calls) {

@@ -81,18 +81,18 @@ export async function listen(options) {
 
   /**
    * Log a progress message: print to console and speak aloud.
-   * @param {string} msg
+   * @param {string} message
    */
-  function speakLog(msg) {
-    console.log(msg);
+  async function speakLog(message) {
+    console.log(color(QUIET, message));
     if (!doSpeak) return;
-    const plain = msg.replace(/<[^>]*>/g, ""); // strip ANSI
-    speakTool({ message: plain }, goblin, controller.signal).catch(() => {});
+    await speakTool({ message }, goblin, controller.signal);
   }
 
   const { onprogress, onbeforetool, onthinking } = makeProgressLogging({
     showThinking,
     log: speakLog,
+    useColor: false,
   });
 
   /** @param {AbortSignal} signal */
@@ -104,7 +104,7 @@ export async function listen(options) {
         onbeforetool,
         onthinking,
       });
-      if (controller.signal.aborted || signal.aborted) return;
+      if (signal.aborted) return;
 
       logOutgoing(response.content);
 
@@ -120,7 +120,7 @@ export async function listen(options) {
         color(ALERT, `Goblin error: ${/** @type {Error} */ (e).message}`),
       );
     }
-    if (controller.signal.aborted || signal.aborted) return;
+    if (signal.aborted) return;
 
     await session_.save(messages);
   }
@@ -133,7 +133,8 @@ export async function listen(options) {
     // interrupt whatever it was doing to focus on the new message
     abortLast.abort();
     abortLast = new AbortController();
-    crank(abortLast.signal);
+    const signal = AbortSignal.any([abortLast.signal, controller.signal]);
+    crank(signal);
   }
 
   session_.save(messages);
@@ -337,11 +338,11 @@ async function download(url, dest) {
 /** @param {string} text */
 function logIncoming(text) {
   const ts = new Date().toLocaleTimeString();
-  console.log(color(INFO, `[${ts}] 🎤 USER: ${text}`));
+  console.log(color(QUIET, `[${ts}] 🎤 USER: ${text}`));
 }
 
 /** @param {string} text */
 function logOutgoing(text) {
   const ts = new Date().toLocaleTimeString();
-  console.log(color(QUIET, `[${ts}] 👺 GOBLIN: ${text}`));
+  console.log(color(INFO, `[${ts}] 👺 GOBLIN: ${text}`));
 }
