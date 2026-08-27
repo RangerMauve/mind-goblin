@@ -67,6 +67,7 @@ const ALLOWED_COMMANDS = [
   "npm run test",
   "npm run format",
   "npm run lint",
+  "npm run build",
   "npm ls",
   "npm show ",
   "npm search ",
