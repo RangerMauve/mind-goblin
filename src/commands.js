@@ -1,7 +1,7 @@
 /** @import {REPLContext} from "./repl.js"*/
 /** @import {Goblin} from "./index.js"*/
 
-/** @typedef {(line: string, context: REPLContext, agent: Goblin, signal?: AbortSignal)=> Promise<void> | void} RunCommand*/
+/** @typedef {(line: string, context: REPLContext, signal?: AbortSignal)=> Promise<void> | void} RunCommand*/
 /** @typedef {(prefix: string, context: REPLContext)=> Promise<string[]> | string[]} CompleteCommand*/
 
 export class Commands {
@@ -9,6 +9,7 @@ export class Commands {
     const commands = new Commands();
     await commands.load("shell");
     await commands.load("compact");
+    await commands.load("clear");
     return commands;
   }
 
@@ -34,14 +35,13 @@ export class Commands {
   /**
    * @param {string} line
    * @param {REPLContext} context
-   * @param {Goblin} agent
    * @param {AbortSignal} [signal]
    */
-  async run(line, context, agent, signal) {
+  async run(line, context, signal) {
     const command = this.#commandFor(line);
     if (!command) throw new Error(`Unknown command: ${line}`);
     const args = line.slice(command.name.length);
-    await command.run(args, context, agent, signal);
+    await command.run(args, context, signal);
   }
 
   /**
