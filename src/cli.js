@@ -119,6 +119,7 @@ program
   .option("--session <name>", "Resume or start a named session", "default")
   .option("--clear", "Clear the session before starting")
   .option("--no-speak", "Don't speak responses, only log")
+  .option("--show-thinking", "Speak thinking blocks")
   .action(listen);
 
 await program.parseAsync(process.argv);

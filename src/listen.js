@@ -9,6 +9,7 @@ import { Sessions } from "./sessions.js";
 import { sessionFolder, dataDir, conf } from "./utils.js";
 import speakTool from "./tools/speak.js";
 import { INFO, QUIET, ALERT, color } from "./ansi.js";
+import { makeProgressLogging } from "./progress-logging.js";
 
 /** @import {Message} from "./index.js" */
 /** @typedef {import("sherpa-onnx-node").Vad} VadType */
@@ -28,12 +29,14 @@ export const ASR_MODEL_URL = `${MODELS_BASE}/sherpa-onnx-moonshine-tiny-en-int8.
  * @param {string} [options.session] Session name
  * @param {boolean} [options.clear] Clear session before starting
  * @param {boolean} [options.speak] Speak responses aloud
+ * @param {boolean} [options.showThinking] Speak thinking blocks
  */
 export async function listen(options) {
   const {
     session,
     clear,
     speak: doSpeak = true,
+    showThinking,
     ...goblinOpts
   } = {
     ...conf,
@@ -76,11 +79,30 @@ export async function listen(options) {
 
   let abortLast = new AbortController();
 
+  /**
+   * Log a progress message: print to console and speak aloud.
+   * @param {string} msg
+   */
+  function speakLog(msg) {
+    console.log(msg);
+    if (!doSpeak) return;
+    const plain = msg.replace(/<[^>]*>/g, ""); // strip ANSI
+    speakTool({ message: plain }, goblin, controller.signal).catch(() => {});
+  }
+
+  const { onprogress, onbeforetool, onthinking } = makeProgressLogging({
+    showThinking,
+    log: speakLog,
+  });
+
   /** @param {AbortSignal} signal */
   async function crank(signal) {
     try {
       const response = await goblin.crank(messages, {
         signal,
+        onprogress,
+        onbeforetool,
+        onthinking,
       });
       if (controller.signal.aborted || signal.aborted) return;
 
