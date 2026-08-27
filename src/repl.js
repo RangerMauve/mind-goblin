@@ -158,7 +158,7 @@ export async function repl(options) {
       // Run shell commands directly, recording them as a tool call in the history
       if (commands.has(content)) {
         using cancel = makeCancelSignalResource(input);
-        await commands.run(content, context, goblin, cancel.signal);
+        await commands.run(content, context, cancel.signal);
       } else {
         context.messages.push({ role: USER, content });
         await goblin.crank(context.messages, {

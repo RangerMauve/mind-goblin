@@ -41,16 +41,15 @@ export async function complete(line) {
 /**
  * @param {string} command
  * @param {REPLContext} context
- * @param {import("../index.js").Goblin} agent
  * @param {AbortSignal} [signal]
  */
-export async function run(command, context, agent, signal) {
+export async function run(command, context, signal) {
   let output;
   try {
     const escaped = command.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     const { stdout: rawStdout, stderr: rawStderr } = await shellCommand(
       { command: `script -qec "${escaped}" /dev/null` },
-      agent,
+      context.goblin,
       signal,
     );
     const stdout = rawStdout.replace(/\r/g, "");

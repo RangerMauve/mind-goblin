@@ -1,5 +1,4 @@
 /** @import {REPLContext} from "./repl.js"*/
-/** @import {Goblin} from "./index.js"*/
 
 /** @typedef {(line: string, context: REPLContext, signal?: AbortSignal)=> Promise<void> | void} RunCommand*/
 /** @typedef {(prefix: string, context: REPLContext)=> Promise<string[]> | string[]} CompleteCommand*/
@@ -120,11 +119,10 @@ export class CommandDef {
   /**
    * @param {string} line
    * @param {REPLContext} context
-   * @param {Goblin} agent
    * @param {AbortSignal} [signal]
    */
-  async run(line, context, agent, signal) {
-    await this.#run(line, context, agent, signal);
+  async run(line, context, signal) {
+    await this.#run(line, context, signal);
   }
 }
 

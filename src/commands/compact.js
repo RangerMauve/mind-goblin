@@ -9,10 +9,9 @@ export const name = "/compact";
 /**
  * @param {string} _
  * @param {REPLContext} context
- * @param {import("../index.js").Goblin} _agent
  * @param {AbortSignal} [signal]
  */
-export async function run(_, context, _agent, signal) {
+export async function run(_, context, signal) {
   // Summarize before compacting
   /** @type {Message[]} */
   const summaryMessages = [
