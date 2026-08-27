@@ -21,5 +21,7 @@ export const parameters = {
  * @param {AbortSignal} [cancelSignal]
  */
 export default async function speak({ message }, _goblin, cancelSignal) {
-  await execa({ cancelSignal })`spd-say --stop --wait ${message.replaceAll("\n", " ")}`;
+  await execa({
+    cancelSignal,
+  })`spd-say --stop --wait ${message.replaceAll("\n", " ")}`;
 }
