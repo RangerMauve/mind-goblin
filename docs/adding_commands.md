@@ -13,16 +13,16 @@ src/commands/<name>.js
 
 A command module must export **three** things:
 
-| Export     | Type                          | Purpose                              |
-|------------|-------------------------------|--------------------------------------|
-| `name`     | `string`                      | The trigger prefix (e.g. `/compact`, `!`) |
-| `run`      | `(line, context, signal) => void \| Promise<void>` | Executes the command |
-| `complete` | `(prefix, context) => string[] \| Promise<string[]>` | Tab-completion (optional) |
+| Export     | Type                                                 | Purpose                                   |
+| ---------- | ---------------------------------------------------- | ----------------------------------------- |
+| `name`     | `string`                                             | The trigger prefix (e.g. `/compact`, `!`) |
+| `run`      | `(line, context, signal) => void \| Promise<void>`   | Executes the command                      |
+| `complete` | `(prefix, context) => string[] \| Promise<string[]>` | Tab-completion (optional)                 |
 
-- `line` is the raw text *after* the command name.
+- `line` is the raw text _after_ the command name.
 - `context` is the `REPLContext`. Access the agent via `context.goblin` when needed.
 - `signal` is an `AbortSignal` for cancellation.
-- `complete` receives the text typed *after* the command name and returns an array of full-suffix completions (the `name` prefix is re-prepended by the framework).
+- `complete` receives the text typed _after_ the command name and returns an array of full-suffix completions (the `name` prefix is re-prepended by the framework).
 
 ## Minimal example
 
