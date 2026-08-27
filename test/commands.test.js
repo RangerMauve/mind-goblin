@@ -36,10 +36,7 @@ test("Commands.run forwards the agent and signal to the command", async () => {
 
 test("Commands.run throws when no command matches", async () => {
   const { commands, calls } = makeRecordingCommands();
-  await assert.rejects(
-    () => commands.run("ls", {}),
-    /Unknown command: ls/,
-  );
+  await assert.rejects(() => commands.run("ls", {}), /Unknown command: ls/);
   assert.equal(calls.length, 0);
 });
 
@@ -59,14 +56,22 @@ test("Commands.has and names reflect registered commands", () => {
 
 test("Commands.complete delegates to the command's complete", async () => {
   const commands = new Commands();
-  commands.register("!", () => {}, () => ["ls", "pwd"]);
+  commands.register(
+    "!",
+    () => {},
+    () => ["ls", "pwd"],
+  );
   const completions = await commands.complete("!", {});
   assert.deepEqual(completions, ["!ls", "!pwd"]);
 });
 
 test("Commands.complete returns [] when no command matches", async () => {
   const commands = new Commands();
-  commands.register("!", () => {}, () => ["ls"]);
+  commands.register(
+    "!",
+    () => {},
+    () => ["ls"],
+  );
   assert.deepEqual(await commands.complete("x", {}), []);
 });
 
@@ -74,7 +79,8 @@ test("CommandDef.run forwards args, agent, and signal", async () => {
   const calls = [];
   const def = new CommandDef(
     "x",
-    (line, context, agent, signal) => calls.push({ line, context, agent, signal }),
+    (line, context, agent, signal) =>
+      calls.push({ line, context, agent, signal }),
     DEFAULT_COMPLETE,
   );
   const context = {};
@@ -87,6 +93,10 @@ test("CommandDef.run forwards args, agent, and signal", async () => {
 });
 
 test("CommandDef.complete prefixes completions with the command name", async () => {
-  const def = new CommandDef("x", () => {}, () => ["ls", "pwd"]);
+  const def = new CommandDef(
+    "x",
+    () => {},
+    () => ["ls", "pwd"],
+  );
   assert.deepEqual(await def.complete("", {}), ["xls", "xpwd"]);
 });
