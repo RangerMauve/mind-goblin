@@ -295,7 +295,7 @@ export async function initModels(storageDir = path.join(dataDir, "models")) {
     numThreads: 1,
   };
   /** @type {VadType} */
-  const vad = new sherpa.Vad(vadConfig, 60);
+  const vad = new sherpa.Vad(vadConfig, 120);
 
   // Build OfflineRecognizer (Moonshine)
   const recognizerConfig = {
