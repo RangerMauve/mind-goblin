@@ -6,11 +6,14 @@ import { USER, ASSISTANT, TOOL } from "../src/index.js";
 /** @typedef {import("../src/repl.js").REPLContext} REPLContext */
 
 /**
- * Build a minimal fake context that records pushed messages.
+ * Build a minimal fake context that records pushed messages. The goblin
+ * (agent) is exposed on the context, matching the real REPLContext.
+ * @param {object} [goblin]
  */
-function makeFakeContext() {
+function makeFakeContext(goblin) {
   const pushed = [];
   return {
+    goblin,
     pushed,
     /** @param {object[]} msgs */
     push(...msgs) {
@@ -37,10 +40,9 @@ function makeStubAgent() {
 
 test("shell command: run executes a command and records messages", async () => {
   const commands = await makeShellCommands();
-  const context = makeFakeContext();
-  const agent = makeStubAgent();
+  const context = makeFakeContext(makeStubAgent());
 
-  await commands.run("!echo hello", context, agent);
+  await commands.run("!echo hello", context);
 
   assert.equal(context.pushed.length, 3);
   assert.deepEqual(context.pushed[0], {
@@ -61,13 +63,12 @@ test("shell command: run executes a command and records messages", async () => {
   assert.match(toolMsg.content, /hello/);
 });
 
-test("shell command: run forwards agent and signal", async () => {
+test("shell command: run forwards goblin and signal", async () => {
   const commands = await makeShellCommands();
-  const context = makeFakeContext();
-  const agent = makeStubAgent();
+  const context = makeFakeContext(makeStubAgent());
   const controller = new AbortController();
 
-  await commands.run("!echo test", context, agent, controller.signal);
+  await commands.run("!echo test", context, controller.signal);
 
   // If it got here without throwing, the agent and signal were accepted.
   assert.equal(context.pushed.length, 3);
@@ -75,10 +76,9 @@ test("shell command: run forwards agent and signal", async () => {
 
 test("shell command: run handles stderr output", async () => {
   const commands = await makeShellCommands();
-  const context = makeFakeContext();
-  const agent = makeStubAgent();
+  const context = makeFakeContext(makeStubAgent());
 
-  await commands.run("!echo oops 2>&1", context, agent);
+  await commands.run("!echo oops 2>&1", context);
 
   assert.equal(context.pushed.length, 3);
   assert.match(context.pushed[2].content, /oops/);
@@ -86,10 +86,9 @@ test("shell command: run handles stderr output", async () => {
 
 test("shell command: run with no output records placeholder", async () => {
   const commands = await makeShellCommands();
-  const context = makeFakeContext();
-  const agent = makeStubAgent();
+  const context = makeFakeContext(makeStubAgent());
 
-  await commands.run("!:", context, agent);
+  await commands.run("!:", context);
 
   assert.equal(context.pushed.length, 3);
   assert.equal(context.pushed[2].content, "(no output)");
@@ -97,10 +96,9 @@ test("shell command: run with no output records placeholder", async () => {
 
 test("shell command: tool_call_id is consistent across messages", async () => {
   const commands = await makeShellCommands();
-  const context = makeFakeContext();
-  const agent = makeStubAgent();
+  const context = makeFakeContext(makeStubAgent());
 
-  await commands.run("!true", context, agent);
+  await commands.run("!true", context);
 
   const assistantMsg = context.pushed[1];
   const toolMsg = context.pushed[2];
@@ -109,13 +107,9 @@ test("shell command: tool_call_id is consistent across messages", async () => {
 
 test("Commands.run throws for unknown command", async () => {
   const commands = await makeShellCommands();
-  const context = makeFakeContext();
-  const agent = makeStubAgent();
+  const context = makeFakeContext(makeStubAgent());
 
-  await assert.rejects(
-    () => commands.run("ls", context, agent),
-    /Unknown command/,
-  );
+  await assert.rejects(() => commands.run("ls", context), /Unknown command/);
 });
 
 test("shell command: complete returns suggestions", async () => {

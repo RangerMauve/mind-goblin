@@ -9,8 +9,8 @@ import { Commands, CommandDef, DEFAULT_COMPLETE } from "../src/commands.js";
 function makeRecordingCommands() {
   const commands = new Commands();
   const calls = [];
-  commands.register("!", (line, context, agent, signal) => {
-    calls.push({ line, context, agent, signal });
+  commands.register("!", (line, context, signal) => {
+    calls.push({ line, context, signal });
   });
   return { commands, calls };
 }
@@ -24,14 +24,14 @@ test("Commands.run dispatches to the matching command", async () => {
   assert.equal(calls[0].context, context);
 });
 
-test("Commands.run forwards the agent and signal to the command", async () => {
+test("Commands.run forwards the signal to the command", async () => {
   const { commands, calls } = makeRecordingCommands();
-  const context = {};
-  const agent = { id: "goblin" };
+  const goblin = { id: "goblin" };
+  const context = { goblin };
   const controller = new AbortController();
-  await commands.run("!ls", context, agent, controller.signal);
-  assert.equal(calls[0].agent, agent);
+  await commands.run("!ls", context, controller.signal);
   assert.equal(calls[0].signal, controller.signal);
+  assert.equal(calls[0].context.goblin, goblin);
 });
 
 test("Commands.run throws when no command matches", async () => {
@@ -40,10 +40,9 @@ test("Commands.run throws when no command matches", async () => {
   assert.equal(calls.length, 0);
 });
 
-test("Commands.run omits agent and signal when not provided", async () => {
+test("Commands.run omits signal when not provided", async () => {
   const { commands, calls } = makeRecordingCommands();
   await commands.run("!ls", {});
-  assert.equal(calls[0].agent, undefined);
   assert.equal(calls[0].signal, undefined);
 });
 
@@ -75,20 +74,18 @@ test("Commands.complete returns [] when no command matches", async () => {
   assert.deepEqual(await commands.complete("x", {}), []);
 });
 
-test("CommandDef.run forwards args, agent, and signal", async () => {
+test("CommandDef.run forwards args, context, and signal", async () => {
   const calls = [];
   const def = new CommandDef(
     "x",
-    (line, context, agent, signal) =>
-      calls.push({ line, context, agent, signal }),
+    (line, context, signal) => calls.push({ line, context, signal }),
     DEFAULT_COMPLETE,
   );
-  const context = {};
-  const agent = { id: "g" };
+  const context = { goblin: { id: "g" } };
   const controller = new AbortController();
-  await def.run("foo", context, agent, controller.signal);
+  await def.run("foo", context, controller.signal);
   assert.deepEqual(calls, [
-    { line: "foo", context, agent, signal: controller.signal },
+    { line: "foo", context, signal: controller.signal },
   ]);
 });
 
