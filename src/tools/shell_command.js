@@ -12,7 +12,7 @@ const noInteractive = {
   GIT_TERMINAL_PROMPT: "0",
 };
 
-const ALLOWED_COMMANDS = [
+const ALLOWED_COMMANDS_LIST = [
   // Common utilities for controling the machine
   "bluetoothctl",
   "upower",
@@ -123,6 +123,21 @@ const ALLOWED_COMMANDS = [
   "gradle tasks",
 ];
 
+// Map from command name (first word) to a Set of allowed entries.
+// Lets isAllowed() do an O(1) lookup by command instead of scanning
+// every entry.
+const ALLOWED_COMMANDS = new Map();
+for (const entry of ALLOWED_COMMANDS_LIST) {
+  const idx = entry.indexOf(" ");
+  const key = idx === -1 ? entry : entry.slice(0, idx);
+  let set = ALLOWED_COMMANDS.get(key);
+  if (!set) {
+    set = new Set();
+    ALLOWED_COMMANDS.set(key, set);
+  }
+  set.add(entry);
+}
+
 // Shell metacharacters that join multiple commands or expand
 // variables. Any of these turn the input into a compound expression
 // whose parts are each checked against the allowlist.
@@ -146,10 +161,15 @@ const SHELL_JOINERS = /\s*(?:&&|\|\||&|;|\|)\s*/g;
  * @returns {boolean}
  */
 export function isAllowed(command) {
-  return ALLOWED_COMMANDS.some((cmd) => {
+  const idx = command.indexOf(" ");
+  const key = idx === -1 ? command : command.slice(0, idx);
+  const entries = ALLOWED_COMMANDS.get(key);
+  if (!entries) return false;
+  for (const cmd of entries) {
     const base = cmd.replace(/\s+$/, "");
-    return command === base || command.startsWith(base + " ");
-  });
+    if (command === base || command.startsWith(base + " ")) return true;
+  }
+  return false;
 }
 
 /**
