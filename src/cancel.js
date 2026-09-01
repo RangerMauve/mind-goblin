@@ -6,7 +6,7 @@
  * Creates a resource that provides an AbortSignal which aborts when the Escape key is pressed.
  * The listener is automatically removed when the resource is disposed.
  *
- * @param {typeof process['stdin']} input - The input stream to listen for keypresses on.
+ * @param {import("node:events").EventEmitter} input - The input stream to listen for keypresses on.
  * @returns {CancelResource}
  */
 export function makeCancelSignalResource(input) {

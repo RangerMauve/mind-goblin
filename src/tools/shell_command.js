@@ -335,7 +335,7 @@ export { SHELL_JOINERS };
  * pass {@link check}; anything else is rejected.
  * @param {object} parameters
  * @param {string} parameters.command The shell command to execute
- * @param {Goblin} agent The agent invoking the tool
+ * @param {Goblin | undefined} agent The agent invoking the tool
  * @param {AbortSignal} [signal] Cancellation signal
  * @returns {Promise<{stdout: string, stderr?: string}>}
  */

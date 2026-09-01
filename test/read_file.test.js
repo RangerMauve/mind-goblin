@@ -8,15 +8,34 @@ import read from "../src/tools/read.js";
 const testDir = join(tmpdir(), "mind-goblin-test-files");
 mkdirSync(testDir, { recursive: true });
 
+/** @typedef {Awaited<ReturnType<typeof read>>} ReadResult */
+
+/**
+ * @param {ReadResult} r
+ * @returns {string}
+ */
+function fileContent(r) {
+  assert.ok("content" in r, "expected file result, got directory listing");
+  return r.content;
+}
+
+/**
+ * @param {ReadResult} r
+ * @returns {string[]}
+ */
+function dirContents(r) {
+  assert.ok("contents" in r, "expected directory result, got file content");
+  return r.contents;
+}
+
 test("read reads a valid file", async () => {
   const testFile = join(testDir, "test_read.txt");
   const content = "Hello, World!";
   writeFileSync(testFile, content);
 
   const result = await read({ path: testFile });
-
-  assert.ok(result.content);
-  assert.strictEqual(result.content, content);
+  assert.ok(fileContent(result));
+  assert.strictEqual(fileContent(result), content);
 });
 
 test("read rejects for non-existent file", async () => {
@@ -28,9 +47,8 @@ test("read handles empty file", async () => {
   writeFileSync(testFile, "");
 
   const result = await read({ path: testFile });
-
   assert.ok("content" in result);
-  assert.strictEqual(result.content, "");
+  assert.strictEqual(fileContent(result), "");
 });
 
 test("read handles file with special characters", async () => {
@@ -39,9 +57,8 @@ test("read handles file with special characters", async () => {
   writeFileSync(testFile, content);
 
   const result = await read({ path: testFile });
-
-  assert.ok(result.content);
-  assert.strictEqual(result.content, content);
+  assert.ok(fileContent(result));
+  assert.strictEqual(fileContent(result), content);
 });
 
 test("read handles file with newlines", async () => {
@@ -50,9 +67,8 @@ test("read handles file with newlines", async () => {
   writeFileSync(testFile, content);
 
   const result = await read({ path: testFile });
-
-  assert.ok(result.content);
-  assert.strictEqual(result.content, content);
+  assert.ok(fileContent(result));
+  assert.strictEqual(fileContent(result), content);
 });
 
 test("read handles relative path", async () => {
@@ -61,9 +77,8 @@ test("read handles relative path", async () => {
   writeFileSync(testFile, content);
 
   const result = await read({ path: testFile });
-
-  assert.ok(result.content);
-  assert.strictEqual(result.content, content);
+  assert.ok(fileContent(result));
+  assert.strictEqual(fileContent(result), content);
 });
 
 test("read lists a directory", async () => {
@@ -73,10 +88,10 @@ test("read lists a directory", async () => {
   writeFileSync(join(dir, "b.txt"), "b");
 
   const result = await read({ path: dir });
-
-  assert.ok(Array.isArray(result.contents));
+  const contents = dirContents(result);
+  assert.ok(Array.isArray(contents));
   assert.ok(!("content" in result));
-  assert.deepEqual(result.contents.sort(), ["a.txt", "b.txt"]);
+  assert.deepEqual(contents.sort(), ["a.txt", "b.txt"]);
 });
 
 test("read lists an empty directory", async () => {
@@ -84,9 +99,8 @@ test("read lists an empty directory", async () => {
   mkdirSync(dir, { recursive: true });
 
   const result = await read({ path: dir });
-
-  assert.ok(Array.isArray(result.contents));
-  assert.deepEqual(result.contents, []);
+  assert.ok(Array.isArray(dirContents(result)));
+  assert.deepEqual(dirContents(result), []);
 });
 
 test("read rejects for directory that does not exist", async () => {
