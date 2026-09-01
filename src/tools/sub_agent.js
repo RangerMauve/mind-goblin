@@ -42,16 +42,18 @@ export const parameters = {
  * @param {string[]} [parameters.tools],
  * @param {boolean} [parameters.readonly],
  * @param {Goblin} agent
+ * @param {AbortSignal} [signal] Cancellation signal
  * @returns {Promise<{content: string}|{error: string}>}
  */
 export default async function subAgent(
   { prompt, maxIterations, tools, readonly = true },
   agent,
+  signal,
 ) {
   try {
     const sub = agent.fork({ maxIterations, tools, readonly });
 
-    const content = await sub.query(prompt);
+    const content = await sub.query(prompt, { signal });
 
     console.log({ prompt, content });
 
