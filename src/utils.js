@@ -1,3 +1,4 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 import { Agent } from "undici";
 import rc from "rc";
@@ -26,6 +27,7 @@ const xdg = /** @type {import('xdg-portable').XDG} */ (
  * @property {string | string[]} [stop] - Sequences that stop generation.
  * @property {number} [seed] - Seed for reproducible sampling.
  * @property {boolean} [readonly] - When true, the goblin will not use write or edit tools.
+ * @property {boolean} [agentsMd] - When true (default), load AGENTS.md from the working directory into the system prompt.
  */
 
 // Default config for OpenAI-compatible API (Ollama default).
@@ -35,6 +37,7 @@ const DEFAULT_CONFIG = {
   server: "http://localhost:11434/v1/",
   api_key: process.env.OPENAI_API_KEY || "",
   readonly: false,
+  agentsMd: true,
 };
 
 export const APPNAME = "mindgoblin";
@@ -85,6 +88,28 @@ export async function chat({ messages = [], tools, signal }) {
   const result = await postOpenAI("chat/completions", body, signal);
 
   return result.choices[0].message;
+}
+
+/**
+ * Agent instruction files checked in priority order.
+ */
+const AGENTS_FILES = ["AGENTS.md", "CLAUDE.md", "QWEN.md", "GEMINI.md", ".cursorrules"];
+
+/**
+ * Load an agent instruction file from the given directory (defaults to cwd).
+ * All files are read in parallel; the highest-priority existing file wins.
+ * Returns an empty string if none exist.
+ * @param {string} [dir] Directory to look for agent instruction files
+ * @returns {Promise<string>}
+ */
+export async function loadAgentsMd(dir = process.cwd()) {
+  const results = await Promise.allSettled(
+    AGENTS_FILES.map((file) => fs.readFile(path.join(dir, file), "utf8")),
+  );
+  for (const result of results) {
+    if (result.status === "fulfilled") return result.value;
+  }
+  return "";
 }
 
 /**

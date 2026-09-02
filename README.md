@@ -13,6 +13,7 @@ Your friendly internet enabled assistant.
 - **Readline History**: Command history populated when resuming sessions
 - **Audio Notifications**: Bell sound on response completion
 - **Sub-agents**: Fork specialized agents with limited tool access
+- **Project Context**: Automatically loads `AGENTS.md` (or `CLAUDE.md`, `QWEN.md`, `GEMINI.md`, `.cursorrules`) from the working directory into the system prompt, so the goblin knows your project conventions
 - **Voice Input**: Speak to the goblin hands-free via microphone. Uses Silero VAD + Moonshine Tiny (int8) for offline speech-to-text
 
 ## Built-in Commands
@@ -42,6 +43,7 @@ Summarize and compact the conversation history. First asks the goblin for a shor
 
 - `--debug`: Output extra debug info to inspect the train of thought
 - `--readonly`: Run with only read-only tools. Write tools (`write_file`, `edit_file`) and side-effect tools (`desktop_notification`, `speak`) are stripped. Shell commands are restricted to a safe allowlist. Sub-agents inherit readonly mode and can only further restrict tool access.
+- `--no-agents-md`: Don't load agent instruction files (`AGENTS.md`, `CLAUDE.md`, etc.) into the system prompt. Enabled by default.
 
 ### Commands
 
@@ -98,6 +100,7 @@ Mind Goblin uses `rc` for configuration. It looks for `~/.mindgoblinrc` or the `
 - **Model**: The model name to use (e.g., `llama3`, `qwen3.5:4b`).
 - **Server**: The URL of the OpenAI-compatible API (defaults to Ollama).
 - **API Key**: Your API key (defaults to `OPENAI_API_KEY` env var).
+- **agentsMd**: When `true` (default), load the first agent instruction file found in the working directory (`AGENTS.md`, `CLAUDE.md`, `QWEN.md`, `GEMINI.md`, `.cursorrules`) and append it to the system prompt. Set to `false` or use `--no-agents-md` to disable.
 
 **Optional Sampling Parameters:**
 

@@ -1,5 +1,5 @@
 import { Tools } from "./tools.js";
-import { chat } from "./utils.js";
+import { chat, loadAgentsMd } from "./utils.js";
 
 /** @import {FunctionCall} from './tools.js' */
 /** @import {CancelResource} from './cancel.js' */
@@ -44,6 +44,7 @@ export class Goblin {
    * @param {number} [options.forkDepth]
    * @param {boolean} [options.thinkingHistory]
    * @param {boolean} [options.readonly] When true, write and edit tools are stripped.
+   * @param {boolean} [options.agentsMd] When true (default), load AGENTS.md into the system prompt.
    */
   constructor({
     tools = new Tools(),
@@ -52,6 +53,7 @@ export class Goblin {
     forkDepth = 0,
     thinkingHistory = false,
     readonly = false,
+    agentsMd = true,
   }) {
     if (readonly) {
       tools = tools.readonly();
@@ -64,6 +66,7 @@ export class Goblin {
     this.forkDepth = forkDepth;
     this.thinkingHistory = thinkingHistory;
     this.readonly = readonly;
+    this.agentsMd = agentsMd;
   }
 
   /**
@@ -72,8 +75,9 @@ export class Goblin {
    * @param {string[]} [options.tools] Names of tools that should be passed down
    * @param {number} [options.maxIterations]
    * @param {boolean} [options.readonly] Override readonly for the sub-agent
+   * @param {boolean} [options.agentsMd] Override agentsMd for the sub-agent
    */
-  fork({ tools, maxIterations = this.maxIterations, readonly }) {
+  fork({ tools, maxIterations = this.maxIterations, readonly, agentsMd }) {
     const subTools = tools ? this.tools.subset(tools) : this.tools;
 
     return new Goblin({
@@ -82,6 +86,7 @@ export class Goblin {
       tools: subTools,
       maxIterations,
       readonly: readonly ?? this.readonly,
+      agentsMd: agentsMd ?? this.agentsMd,
     });
   }
 
@@ -109,7 +114,8 @@ export class Goblin {
 
     // Add in system prompt if it isn't set
     if (!messages[0] || messages[0].role !== SYSTEM) {
-      const content = DEFAULT_SYSTEM; // + this.#getMemoryInstructions()
+      const agentsMd = this.agentsMd ? await loadAgentsMd() : "";
+      const content = DEFAULT_SYSTEM + agentsMd;
       messages.unshift({ role: SYSTEM, content });
     }
 
@@ -209,6 +215,7 @@ export class Goblin {
    * @param {(name:string, args: object) => Promise<void>} [options.onbeforetool] Optional callback before each tool call. Throw to cancel the tool.
    * @param {(message: string) => void} [options.onthinking] Optional callback for intermediate thinking steps
    * @param {() => CancelResource?} [options.listenForCancel] Optional function to listen on canellation during inference
+   * @param {AbortSignal} [options.signal] Cancellation signal
    * @returns  {Promise<string>}
    */
   async query(prompt, options = {}) {

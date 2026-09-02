@@ -13,7 +13,8 @@ program
   .name("mind-goblin")
   .description("Your local ai assistant.")
   .option("--debug", "output extra debug info to inspect the train of thought")
-  .option("--readonly", "refuse to use write or edit tools", conf.readonly);
+  .option("--readonly", "refuse to use write or edit tools", conf.readonly)
+  .option("--no-agents-md", "don't load AGENTS.md into the system prompt", conf.agentsMd);
 
 program
   .command("transform")
