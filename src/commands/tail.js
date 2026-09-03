@@ -5,6 +5,7 @@ import { playBell } from "../ansi.js";
 /** @import {REPLContext} from "../repl.js" */
 
 export const name = "/tail";
+export const description = "Show the last n user/assistant messages (default 5)";
 
 const MAX = 50;
 const DEFAULT_N = 5;

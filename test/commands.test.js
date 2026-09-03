@@ -9,11 +9,14 @@ import { makeContext } from "./helpers.js";
  */
 function makeRecordingCommands() {
   const commands = new Commands();
-  /** @type {Array<{line: string, context: import("../src/repl.js").REPLContext, signal?: AbortSignal}>} */
+  /** @type {Array<{line: string, context: import("../src/repl.js").REPLContext, commands: Commands, signal?: AbortSignal}>} */
   const calls = [];
-  commands.register("!", (line, context, signal) => {
-    calls.push({ line, context, signal });
-  });
+  commands.register(
+    "!",
+    (line, context, commands, signal) => {
+      calls.push({ line, context, commands, signal });
+    },
+  );
   return { commands, calls };
 }
 
@@ -24,6 +27,7 @@ test("Commands.run dispatches to the matching command", (t) => {
     assert.equal(calls.length, 1);
     assert.equal(calls[0].line, "ls");
     assert.equal(calls[0].context, context);
+    assert.equal(calls[0].commands, commands);
   });
 });
 
@@ -33,6 +37,7 @@ test("Commands.run forwards the signal to the command", (t) => {
   const controller = new AbortController();
   return commands.run("!ls", context, controller.signal).then(() => {
     assert.equal(calls[0].signal, controller.signal);
+    assert.equal(calls[0].commands, commands);
     assert.equal(calls[0].context.goblin, context.goblin);
   });
 });
@@ -63,6 +68,16 @@ test("Commands.has and names reflect registered commands", () => {
   assert.deepEqual(commands.names(), ["!"]);
 });
 
+test("Commands.descriptions returns name-to-description map", () => {
+  const commands = new Commands();
+  commands.register("!", () => {}, DEFAULT_COMPLETE, "Run a shell command");
+  commands.register("/clear", () => {}, DEFAULT_COMPLETE, "Clear history");
+  assert.deepEqual(commands.descriptions(), new Map([
+    ["!", "Run a shell command"],
+    ["/clear", "Clear history"],
+  ]));
+});
+
 test("Commands.complete delegates to the command's complete", async (t) => {
   const commands = new Commands();
   commands.register(
@@ -86,22 +101,28 @@ test("Commands.complete returns [] when no command matches", async (t) => {
   assert.deepEqual(await commands.complete("x", context), []);
 });
 
-test("CommandDef.run forwards args, context, and signal", async (t) => {
-  /** @type {Array<{line: string, context: import("../src/repl.js").REPLContext, signal?: AbortSignal}>} */
+test("CommandDef.run forwards args, context, commands, and signal", async (t) => {
+  /** @type {Array<{line: string, context: import("../src/repl.js").REPLContext, commands: Commands, signal?: AbortSignal}>} */
   const calls = [];
+  const fakeCommands = new Commands();
   const def = new CommandDef(
     "x",
-    (line, context, signal) => {
-      calls.push({ line, context, signal });
+    (line, context, commands, signal) => {
+      calls.push({ line, context, commands, signal });
     },
     DEFAULT_COMPLETE,
   );
   const context = makeContext(t);
   const controller = new AbortController();
-  await def.run("foo", context, controller.signal);
+  await def.run("foo", context, fakeCommands, controller.signal);
   assert.deepEqual(calls, [
-    { line: "foo", context, signal: controller.signal },
+    { line: "foo", context, commands: fakeCommands, signal: controller.signal },
   ]);
+});
+
+test("CommandDef.description getter returns the description", () => {
+  const def = new CommandDef("x", () => {}, DEFAULT_COMPLETE, "A test command");
+  assert.equal(def.description, "A test command");
 });
 
 test("CommandDef.complete prefixes completions with the command name", async (t) => {

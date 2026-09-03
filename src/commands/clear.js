@@ -3,6 +3,7 @@ import { INFO, color, playBell } from "../ansi.js";
 /** @import {REPLContext} from "../repl.js" */
 
 export const name = "/clear";
+export const description = "Clear the conversation history";
 
 /**
  * @param {string} _

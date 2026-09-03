@@ -5,13 +5,15 @@ import { INFO, color, playBell } from "../ansi.js";
 /** @import {REPLContext} from "../repl.js" */
 
 export const name = "/compact";
+export const description = "Summarize and compact the conversation history";
 
 /**
  * @param {string} _
  * @param {REPLContext} context
+ * @param {import("../commands.js").Commands} _commands
  * @param {AbortSignal} [signal]
  */
-export async function run(_, context, signal) {
+export async function run(_, context, _commands, signal) {
   // Summarize before compacting
   /** @type {Message[]} */
   const summaryMessages = [

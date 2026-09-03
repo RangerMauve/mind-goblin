@@ -1,6 +1,6 @@
 /** @import {REPLContext} from "./repl.js"*/
 
-/** @typedef {(line: string, context: REPLContext, signal?: AbortSignal)=> Promise<void> | void} RunCommand*/
+/** @typedef {(line: string, context: REPLContext, commands: Commands, signal?: AbortSignal)=> Promise<void> | void} RunCommand*/
 /** @typedef {(prefix: string, context: REPLContext)=> Promise<string[]> | string[]} CompleteCommand*/
 
 export class Commands {
@@ -20,16 +20,20 @@ export class Commands {
    * @param {string} name
    * @param {RunCommand} run
    * @param {CompleteCommand} [complete]
+   * @param {string} [description]
    */
-  register(name, run, complete = DEFAULT_COMPLETE) {
-    this.#commands.set(name, new CommandDef(name, run, complete));
+  register(name, run, complete = DEFAULT_COMPLETE, description = "") {
+    this.#commands.set(
+      name,
+      new CommandDef(name, run, complete, description),
+    );
   }
 
   /** @param {string} name */
   async load(name) {
     const module = await import(`./commands/${name}.js`);
-    const { name: commandName, run, complete } = module;
-    this.register(commandName, run, complete);
+    const { name: commandName, run, complete, description } = module;
+    this.register(commandName, run, complete, description);
   }
 
   /**
@@ -41,7 +45,7 @@ export class Commands {
     const command = this.#commandFor(line);
     if (!command) throw new Error(`Unknown command: ${line}`);
     const args = line.slice(command.name.length);
-    await command.run(args, context, signal);
+    await command.run(args, context, this, signal);
   }
 
   /**
@@ -77,6 +81,18 @@ export class Commands {
   }
 
   /**
+   * @returns {Map<string, string>}
+   */
+  descriptions() {
+    /** @type {Map<string, string>} */
+    const map = new Map();
+    for (const [name, cmd] of this.#commands.entries()) {
+      map.set(name, cmd.description);
+    }
+    return map;
+  }
+
+  /**
    * @param {string} line
    * @returns {CommandDef|null}
    */
@@ -92,20 +108,27 @@ export class CommandDef {
   #complete;
   #run;
   #name;
+  #description;
 
   /**
    * @param {string} name
    * @param {RunCommand} run
    * @param {CompleteCommand} complete
+   * @param {string} description
    */
-  constructor(name, run, complete) {
+  constructor(name, run, complete, description = "") {
     this.#name = name;
     this.#run = run;
     this.#complete = complete;
+    this.#description = description;
   }
 
   get name() {
     return this.#name;
+  }
+
+  get description() {
+    return this.#description;
   }
 
   /**
@@ -120,10 +143,11 @@ export class CommandDef {
   /**
    * @param {string} line
    * @param {REPLContext} context
+   * @param {Commands} commands
    * @param {AbortSignal} [signal]
    */
-  async run(line, context, signal) {
-    await this.#run(line, context, signal);
+  async run(line, context, commands, signal) {
+    await this.#run(line, context, commands, signal);
   }
 }
 

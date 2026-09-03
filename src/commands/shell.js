@@ -11,6 +11,7 @@ import { WARN, color, playBell } from "../ansi.js";
 /** @import {REPLContext} from "../repl.js"*/
 
 export const name = "!";
+export const description = "Run a shell command directly, recording it in the conversation history";
 
 const execAsync = promisify(exec);
 
@@ -41,9 +42,10 @@ export async function complete(line) {
 /**
  * @param {string} command
  * @param {REPLContext} context
+ * @param {import("../commands.js").Commands} _commands
  * @param {AbortSignal} [signal]
  */
-export async function run(command, context, signal) {
+export async function run(command, context, _commands, signal) {
   let output;
   try {
     const escaped = command.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
