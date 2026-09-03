@@ -28,6 +28,10 @@ Run a shell command directly without asking the goblin. The command's output is 
 
 Summarize and compact the conversation history. First asks the goblin for a short summary of what was discussed, decisions made, and tasks completed. Then strips all tool calls, tool responses, reasoning blocks, and empty messages from the history, replacing them with just the summary. Reports how many of each were removed.
 
+### `/tail [n]`
+
+Show the last `n` user and assistant messages from the conversation (default: 5, max: 50). Tool messages and empty messages are skipped. Useful for quickly reviewing recent context without scrolling.
+
 ## What should it do? (TODO)
 
 - look through either the camera, the screen, or a static image
@@ -64,7 +68,7 @@ Have a conversation via the TUI.
 - `--clear`: Clear the session before starting.
 - `--thinking-history`: Preserve thinking history. Increases context size but speeds up inference from better caching.
 
-See [Built-in Commands](#built-in-commands) for REPL commands like `!` and `/compact`.
+See [Built-in Commands](#built-in-commands) for REPL commands like `!`, `/compact`, and `/tail`.
 
 #### `mind-goblin transform <prompt> <file>`
 
