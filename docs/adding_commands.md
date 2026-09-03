@@ -16,7 +16,7 @@ A command module must export **four** things:
 | Export        | Type                                                          | Purpose                                   |
 | ------------- | ------------------------------------------------------------- | ----------------------------------------- |
 | `name`        | `string`                                                      | The trigger prefix (e.g. `/compact`, `!`) |
-| `description` | `string`                                                g     | Short description shown in `/help`        |
+| `description` | `string` g                                                    | Short description shown in `/help`        |
 | `run`         | `(line, context, commands, signal?) => void \| Promise<void>` | Executes the command                      |
 | `complete`    | `(prefix, context) => string[] \| Promise<string[]>`          | Tab-completion (optional)                 |
 

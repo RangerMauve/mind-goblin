@@ -32,6 +32,10 @@ Summarize and compact the conversation history. First asks the goblin for a shor
 
 Show the last `n` user and assistant messages from the conversation (default: 5, max: 50). Tool messages and empty messages are skipped. Useful for quickly reviewing recent context without scrolling.
 
+### `/help [command]`
+
+Show a description of a specific command, or list all available commands if no name is given. Tab completion suggests command names as you type.
+
 ## What should it do? (TODO)
 
 - look through either the camera, the screen, or a static image
@@ -68,7 +72,7 @@ Have a conversation via the TUI.
 - `--clear`: Clear the session before starting.
 - `--thinking-history`: Preserve thinking history. Increases context size but speeds up inference from better caching.
 
-See [Built-in Commands](#built-in-commands) for REPL commands like `!`, `/compact`, and `/tail`.
+See [Built-in Commands](#built-in-commands) for REPL commands like `!`, `/compact`, `/tail`, and `/help`.
 
 #### `mind-goblin transform <prompt> <file>`
 

@@ -93,7 +93,13 @@ export async function chat({ messages = [], tools, signal }) {
 /**
  * Agent instruction files checked in priority order.
  */
-const AGENTS_FILES = ["AGENTS.md", "CLAUDE.md", "QWEN.md", "GEMINI.md", ".cursorrules"];
+const AGENTS_FILES = [
+  "AGENTS.md",
+  "CLAUDE.md",
+  "QWEN.md",
+  "GEMINI.md",
+  ".cursorrules",
+];
 
 /**
  * Load an agent instruction file from the given directory (defaults to cwd).

@@ -11,12 +11,9 @@ function makeRecordingCommands() {
   const commands = new Commands();
   /** @type {Array<{line: string, context: import("../src/repl.js").REPLContext, commands: Commands, signal?: AbortSignal}>} */
   const calls = [];
-  commands.register(
-    "!",
-    (line, context, commands, signal) => {
-      calls.push({ line, context, commands, signal });
-    },
-  );
+  commands.register("!", (line, context, commands, signal) => {
+    calls.push({ line, context, commands, signal });
+  });
   return { commands, calls };
 }
 
@@ -72,10 +69,13 @@ test("Commands.descriptions returns name-to-description map", () => {
   const commands = new Commands();
   commands.register("!", () => {}, DEFAULT_COMPLETE, "Run a shell command");
   commands.register("/clear", () => {}, DEFAULT_COMPLETE, "Clear history");
-  assert.deepEqual(commands.descriptions(), new Map([
-    ["!", "Run a shell command"],
-    ["/clear", "Clear history"],
-  ]));
+  assert.deepEqual(
+    commands.descriptions(),
+    new Map([
+      ["!", "Run a shell command"],
+      ["/clear", "Clear history"],
+    ]),
+  );
 });
 
 test("Commands.complete delegates to the command's complete", async (t) => {
@@ -125,12 +125,49 @@ test("CommandDef.description getter returns the description", () => {
   assert.equal(def.description, "A test command");
 });
 
-test("CommandDef.complete prefixes completions with the command name", async (t) => {
+test("CommandDef.complete is a passthrough", async (t) => {
   const def = new CommandDef(
     "x",
     () => {},
     () => ["ls", "pwd"],
   );
   const context = makeContext(t);
-  assert.deepEqual(await def.complete("", context), ["xls", "xpwd"]);
+  const fakeCommands = new Commands();
+  assert.deepEqual(await def.complete("", context, fakeCommands), [
+    "ls",
+    "pwd",
+  ]);
+});
+
+test("Commands.complete inserts space for multi-char commands", async (t) => {
+  const commands = new Commands();
+  commands.register("/foo", () => {}, () => ["ls", "pwd"]);
+  const context = makeContext(t);
+  assert.deepEqual(await commands.complete("/foo", context), [
+    "/foo ls",
+    "/foo pwd",
+  ]);
+});
+
+test("Commands.complete strips user-typed space before delegating", async (t) => {
+  const commands = new Commands();
+  commands.register("/foo", () => {}, () => ["ls", "pwd"]);
+  const context = makeContext(t);
+  assert.deepEqual(await commands.complete("/foo ", context), [
+    "/foo ls",
+    "/foo pwd",
+  ]);
+});
+
+test("Commands.complete passes args without leading space to command", async (t) => {
+  /** @type {string[]} */
+  const received = [];
+  const commands = new Commands();
+  commands.register("/foo", () => {}, (args) => {
+    received.push(args);
+    return ["bar"];
+  });
+  const context = makeContext(t);
+  await commands.complete("/foo b", context);
+  assert.deepEqual(received, ["b"]);
 });

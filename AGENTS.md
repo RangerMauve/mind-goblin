@@ -12,14 +12,14 @@ A local-first AI assistant CLI. It runs an agentic loop (tool-calling chat) agai
 
 ## Commands
 
-| Task | Command |
-|------|---------|
-| Run tests | `npm test` (runs `node --test "test/**/*.test.js"`) |
-| Lint + typecheck | `npm run lint` (eslint --fix + tsc --noEmit) |
-| Format | `npm run format` (prettier --write .) |
-| Run the REPL | `node src/cli.js chat` |
-| One-shot query | `node src/cli.js think "prompt"` |
-| Transform a file | `node src/cli.js transform "prompt" file.js` |
+| Task             | Command                                             |
+| ---------------- | --------------------------------------------------- |
+| Run tests        | `npm test` (runs `node --test "test/**/*.test.js"`) |
+| Lint + typecheck | `npm run lint` (eslint --fix + tsc --noEmit)        |
+| Format           | `npm run format` (prettier --write .)               |
+| Run the REPL     | `node src/cli.js chat`                              |
+| One-shot query   | `node src/cli.js think "prompt"`                    |
+| Transform a file | `node src/cli.js transform "prompt" file.js`        |
 
 ## Project Structure
 
@@ -53,6 +53,7 @@ test/
 ### Tools (`src/tools/*.js`)
 
 Each tool file exports:
+
 - `name` — snake_case string, must match filename
 - `description` — shown to the LLM
 - `parameters` — JSON Schema object for tool args
@@ -66,6 +67,7 @@ Register new tools by adding a `tools.loadTool("name")` line in `src/tools.js` �
 ### Commands (`src/commands/*.js`)
 
 Each command file exports:
+
 - `name` — trigger prefix (e.g. `"/compact"`, `"!"`)
 - `run` — `(line, context, signal) => void | Promise<void>`
 - `complete` — `(prefix, context) => string[] | Promise<string[]>` (optional)
@@ -108,17 +110,18 @@ Register new commands by adding a `commands.load("name")` line in `src/commands.
 
 Conventional Commits style: `type: summary` or `type(scope): summary`.
 
-| Type | Use for |
-|------|---------|
-| `feat` | New capabilities (tools, commands, CLI options) |
-| `fix` | Bug fixes, edge cases, incorrect behavior |
-| `refactor` | Restructuring without behavior change |
-| `perf` | Performance improvements |
-| `test` | Adding or fixing tests |
-| `docs` | Documentation changes (including AGENTS.md, README, docs/) |
-| `chore` | Housekeeping — formatting, deps, type fixes, config |
+| Type       | Use for                                                    |
+| ---------- | ---------------------------------------------------------- |
+| `feat`     | New capabilities (tools, commands, CLI options)            |
+| `fix`      | Bug fixes, edge cases, incorrect behavior                  |
+| `refactor` | Restructuring without behavior change                      |
+| `perf`     | Performance improvements                                   |
+| `test`     | Adding or fixing tests                                     |
+| `docs`     | Documentation changes (including AGENTS.md, README, docs/) |
+| `chore`    | Housekeeping — formatting, deps, type fixes, config        |
 
 Rules:
+
 - **Lowercase** after the type colon. No trailing period.
 - **Scope** is optional but encouraged when the change is localized (e.g. `fix(shell_command):`, `feat(sub_agent):`).
 - One line for the summary. Body is optional for multi-paragraph context.
@@ -126,9 +129,10 @@ Rules:
 
 ## Keeping AGENTS.md Current
 
-Update this file whenever you make a change that would cause a *new* agent (or a future-you with amnesia) to do something wrong or waste time. Specifically:
+Update this file whenever you make a change that would cause a _new_ agent (or a future-you with amnesia) to do something wrong or waste time. Specifically:
 
 **Update when:**
+
 - A new source directory or top-level module is added
 - A tool or command changes its contract (new required params, different return shape)
 - A build/test/lint command changes
@@ -137,11 +141,12 @@ Update this file whenever you make a change that would cause a *new* agent (or a
 - A gotcha is discovered that cost time to figure out
 
 **Don't update for:**
+
 - Internal refactors that don't change external contracts
 - Bug fixes that don't alter structure
 - Content changes within existing files
 
-The test: *"Would an agent reading only this file make a mistake or get confused?"* If yes, update it.
+The test: _"Would an agent reading only this file make a mistake or get confused?"_ If yes, update it.
 
 ## Gotchas
 

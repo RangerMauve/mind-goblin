@@ -1,11 +1,11 @@
 import { USER, ASSISTANT, TOOL } from "../index.js";
-import { playBell } from "../ansi.js";
 
 /** @import {Message} from "../index.js" */
 /** @import {REPLContext} from "../repl.js" */
 
 export const name = "/tail";
-export const description = "Show the last n user/assistant messages (default 5)";
+export const description =
+  "Show the last n user/assistant messages (default 5)";
 
 const MAX = 50;
 const DEFAULT_N = 5;
@@ -40,5 +40,5 @@ export function run(line, context) {
     }
   }
 
-  if (selected.length > 0) playBell();
+  if (selected.length === 0) context.logger.warn("No history found");
 }

@@ -11,7 +11,8 @@ import { WARN, color, playBell } from "../ansi.js";
 /** @import {REPLContext} from "../repl.js"*/
 
 export const name = "!";
-export const description = "Run a shell command directly, recording it in the conversation history";
+export const description =
+  "Run a shell command directly, recording it in the conversation history";
 
 const execAsync = promisify(exec);
 

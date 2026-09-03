@@ -1,7 +1,7 @@
 /** @import {REPLContext} from "./repl.js"*/
 
 /** @typedef {(line: string, context: REPLContext, commands: Commands, signal?: AbortSignal)=> Promise<void> | void} RunCommand*/
-/** @typedef {(prefix: string, context: REPLContext)=> Promise<string[]> | string[]} CompleteCommand*/
+/** @typedef {(prefix: string, context: REPLContext, commands: Commands)=> Promise<string[]> | string[]} CompleteCommand*/
 
 export class Commands {
   static async default() {
@@ -10,6 +10,7 @@ export class Commands {
     await commands.load("compact");
     await commands.load("clear");
     await commands.load("tail");
+    await commands.load("help");
     return commands;
   }
 
@@ -23,10 +24,7 @@ export class Commands {
    * @param {string} [description]
    */
   register(name, run, complete = DEFAULT_COMPLETE, description = "") {
-    this.#commands.set(
-      name,
-      new CommandDef(name, run, complete, description),
-    );
+    this.#commands.set(name, new CommandDef(name, run, complete, description));
   }
 
   /** @param {string} name */
@@ -57,8 +55,11 @@ export class Commands {
     const command = this.#commandFor(prefix);
     if (!command) return [];
     try {
-      const args = prefix.slice(command.name.length);
-      return command.complete(args, context);
+      let args = prefix.slice(command.name.length);
+      const sep = command.name.length > 1 ? " " : "";
+      if (sep && args.startsWith(sep)) args = args.slice(sep.length);
+      const completions = await command.complete(args, context, this);
+      return completions.map((text) => command.name + sep + text);
     } catch (e) {
       console.error("Error running completions", e.message);
       return [];
@@ -134,10 +135,10 @@ export class CommandDef {
   /**
    * @param {string} prefix
    * @param {REPLContext} context
+   * @param {Commands} commands
    */
-  async complete(prefix, context) {
-    const completions = await this.#complete(prefix, context);
-    return completions.map((text) => this.name + text);
+  async complete(prefix, context, commands) {
+    return this.#complete(prefix, context, commands);
   }
 
   /**
