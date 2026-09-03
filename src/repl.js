@@ -13,6 +13,7 @@ import { makeCompleter } from "./completer.js";
 import { Commands } from "./commands.js";
 import { makeProgressLogging } from "./progress-logging.js";
 import { playBell } from "./ansi.js";
+import { Logger } from "./logger.js";
 
 /** @import { Message } from "./index.js" */
 /** @import { Session } from "./sessions.js" */
@@ -20,6 +21,8 @@ import { playBell } from "./ansi.js";
 export class REPLContext {
   #goblin;
   #session;
+  /** @type {Logger} */
+  #logger;
 
   /**
    * @type {Message[]}
@@ -29,14 +32,20 @@ export class REPLContext {
   /**
    * @param {Goblin} goblin
    * @param {Session} session
+   * @param {Logger} [logger]
    */
-  constructor(goblin, session) {
+  constructor(goblin, session, logger = new Logger()) {
     this.#goblin = goblin;
     this.#session = session;
+    this.#logger = logger;
   }
 
   get goblin() {
     return this.#goblin;
+  }
+
+  get logger() {
+    return this.#logger;
   }
 
   get messages() {
@@ -122,7 +131,7 @@ export async function repl(options) {
         });
         const response = context.messages.at(-1);
         // TODO: render formatted as markdown
-        console.log(response?.content);
+        context.logger.assistant(/** @type {string} */ (response?.content));
         playBell();
       }
     } catch (e) {

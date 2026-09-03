@@ -8,7 +8,7 @@ import { USER, Goblin } from "./index.js";
 import { Sessions } from "./sessions.js";
 import { sessionFolder, dataDir, conf } from "./utils.js";
 import speakTool from "./tools/speak.js";
-import { INFO, QUIET, ALERT, color } from "./ansi.js";
+import { Logger } from "./logger.js";
 import { makeProgressLogging } from "./progress-logging.js";
 
 /** @import {Message} from "./index.js" */
@@ -43,8 +43,10 @@ export async function listen(options) {
     ...options,
   };
 
+  const logger = new Logger();
+
   // 1. Ensure models exist + build VAD + recognizer
-  const { vad, recognizer } = await initModels();
+  const { vad, recognizer } = await initModels(logger);
 
   // 2. Setup goblin session
   const goblin = await Goblin.fromOptions({ ...goblinOpts });
@@ -69,7 +71,14 @@ export async function listen(options) {
 
   const controller = new AbortController();
 
-  console.log(color(INFO, "Listening... (Ctrl+C to stop)"));
+  const speakLogger = new Logger({
+    log: (msg) => {
+      logger.quiet(msg);
+      if (doSpeak) speakTool({ message: msg }, goblin, controller.signal);
+    },
+  });
+
+  logger.info("Listening... (Ctrl+C to stop)");
 
   // 7. Graceful shutdown
   process.on("SIGINT", () => controller.abort());
@@ -79,20 +88,9 @@ export async function listen(options) {
 
   let abortLast = new AbortController();
 
-  /**
-   * Log a progress message: print to console and speak aloud.
-   * @param {string} message
-   */
-  async function speakLog(message) {
-    console.log(color(QUIET, message));
-    if (!doSpeak) return;
-    await speakTool({ message }, goblin, controller.signal);
-  }
-
   const { onprogress, onbeforetool, onthinking } = makeProgressLogging({
     showThinking,
-    log: speakLog,
-    useColor: false,
+    logger: speakLogger,
   });
 
   /** @param {AbortSignal} signal */
@@ -106,7 +104,7 @@ export async function listen(options) {
       });
       if (signal.aborted) return;
 
-      logOutgoing(response.content);
+      speakLogger.assistant(response.content);
 
       if (doSpeak) {
         await speakTool(
@@ -116,9 +114,7 @@ export async function listen(options) {
         );
       }
     } catch (e) {
-      console.error(
-        color(ALERT, `Goblin error: ${/** @type {Error} */ (e).message}`),
-      );
+      logger.warn(`Goblin error: ${/** @type {Error} */ (e).message}`);
     }
     if (signal.aborted) return;
 
@@ -126,7 +122,7 @@ export async function listen(options) {
   }
 
   for await (const text of lines) {
-    logIncoming(text);
+    logger.user(text);
 
     messages.push({ role: USER, content: text });
 
@@ -255,16 +251,20 @@ function transcribe(samples, recognizer) {
 
 /**
  * Download (if needed) and initialize VAD + ASR models.
+ * @param {Logger} [logger]
  * @param {string} [storageDir] Directory to store models. Defaults to dataDir/models.
  * @returns {Promise<{vadPath: string, asrDir: string, vad: VadType, recognizer: RecognizerType}>}
  */
-export async function initModels(storageDir = path.join(dataDir, "models")) {
+export async function initModels(
+  logger = new Logger(),
+  storageDir = path.join(dataDir, "models"),
+) {
   await fs.promises.mkdir(storageDir, { recursive: true });
 
   // VAD model
   const vadPath = path.join(storageDir, "silero_vad.onnx");
   if (!fs.existsSync(vadPath)) {
-    console.log(color(QUIET, `Downloading VAD model to ${vadPath}...`));
+    logger.quiet(`Downloading VAD model to ${vadPath}...`);
     await download(VAD_MODEL_URL, vadPath);
   }
 
@@ -273,10 +273,10 @@ export async function initModels(storageDir = path.join(dataDir, "models")) {
   if (!fs.existsSync(path.join(asrDir, "tokens.txt"))) {
     const tarball = path.join(storageDir, "moonshine-tiny-en.tar.bz2");
     if (!fs.existsSync(tarball)) {
-      console.log(color(QUIET, `Downloading ASR model to ${tarball}...`));
+      logger.quiet(`Downloading ASR model to ${tarball}...`);
       await download(ASR_MODEL_URL, tarball);
     }
-    console.log(color(QUIET, "Extracting ASR model..."));
+    logger.quiet("Extracting ASR model...");
     await execa("tar", ["-xjf", tarball, "-C", storageDir]);
     fs.unlinkSync(tarball);
   }
@@ -333,16 +333,4 @@ async function download(url, dest) {
   }
   const buffer = Buffer.from(await response.arrayBuffer());
   fs.writeFileSync(dest, buffer);
-}
-
-/** @param {string} text */
-function logIncoming(text) {
-  const ts = new Date().toLocaleTimeString();
-  console.log(color(QUIET, `[${ts}] 🎤 USER: ${text}`));
-}
-
-/** @param {string} text */
-function logOutgoing(text) {
-  const ts = new Date().toLocaleTimeString();
-  console.log(color(INFO, `[${ts}] 👺 GOBLIN: ${text}`));
 }

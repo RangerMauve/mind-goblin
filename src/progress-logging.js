@@ -1,39 +1,29 @@
 import { diffLines } from "diff";
 import { check } from "./tools/shell_command.js";
-import { INFO, QUIET, ALERT, WARN, color as _color } from "./ansi.js";
-
-/**
- * @param {string} _
- * @param {string} text
- */
-function echo(_, text) {
-  return text;
-}
+import { INFO, WARN, color } from "./ansi.js";
+import { Logger } from "./logger.js";
 
 /**
  * Create progress-logging callbacks for Goblin.crank.
  * @param {object} [opts]
  * @param {((prompt: string) => Promise<void>)} [opts.confirm] - interactive confirmation (e.g. REPL); if omitted, dangerous ops are allowed with a log line.
  * @param {boolean} [opts.showThinking] - also log thinking tokens.
- * @param {boolean} [opts.useColor=true] - should the logging have color output
- * @param {(msg: string) => void|Promise<void>} [opts.log] - output function; defaults to console.log.
+ * @param {Logger} [opts.logger] - logger instance; defaults to a new color Logger.
  */
 export function makeProgressLogging({
   confirm,
   showThinking,
-  log = console.log,
-  useColor = true,
+  logger = new Logger(),
 } = {}) {
-  const color = useColor ? _color : echo;
   /** @param {string} message */
   async function onprogress(message) {
-    await log(color(QUIET, message));
+    logger.quiet(message);
   }
 
   /** @type {Record<string, (args: any) => void | Promise<void>>} */
   const beforeToolHandlers = {
     /** @param {{path: string}} args */
-    read: (args) => log(color(INFO, `Reading: ${args.path}`)),
+    read: (args) => logger.info(`Reading: ${args.path}`),
     /** @param {{command: string}} args */
     async shell_command(args) {
       let command = args.command;
@@ -44,12 +34,12 @@ export function makeProgressLogging({
       if (check(command)) {
         // TODO: add verbal confirm for listen mode
         if (confirm) {
-          await confirm(`${color(ALERT, "Allow shell command?")}\n${command}`);
+          await confirm(`${logger.warn("! (dangerous)")}\n${command}`);
         } else {
-          await log(color(ALERT, `! (dangerous) ${command}`));
+          logger.warn(`! (dangerous) ${command}`);
         }
       } else {
-        await log(color(INFO, `!${command}`));
+        logger.info(`!${command}`);
       }
     },
     /** @param {{path: string, content: string}} args */
@@ -59,7 +49,7 @@ export function makeProgressLogging({
           `Allow write to ${args.path}?\nContent:\n${args.content}`,
         );
       } else {
-        await log(color(INFO, `Writing: ${args.path}`));
+        logger.info(`Writing: ${args.path}`);
       }
     },
     /** @param {{path: string, old_text: string, new_text: string}} args */
@@ -69,7 +59,7 @@ export function makeProgressLogging({
           `Allow edit to ${args.path}?\n${renderDiff(args.old_text, args.new_text)}`,
         );
       } else {
-        await log(color(INFO, `Editing: ${args.path}`));
+        logger.info(`Editing: ${args.path}`);
       }
     },
   };
@@ -81,7 +71,7 @@ export function makeProgressLogging({
   async function onbeforetool(name, args) {
     const handler = beforeToolHandlers[name];
     if (handler) await handler(args);
-    else await log(color(INFO, `Using tool: ${name}`));
+    else logger.info(`Using tool: ${name}`);
   }
 
   const onthinking = showThinking ? onprogress : undefined;
@@ -101,7 +91,7 @@ export function makeProgressLogging({
       for (const line of parts) {
         if (change.removed) lines.push(color(WARN, `- ${line}`));
         else if (change.added) lines.push(color(INFO, `+ ${line}`));
-        else lines.push(color(QUIET, `  ${line}`));
+        else lines.push(`  ${line}`);
       }
     }
     return lines.join("\n");
