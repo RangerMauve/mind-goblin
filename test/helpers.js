@@ -22,7 +22,7 @@ export function makeContext(t, logger) {
   const goblin = new Goblin({});
   const sessions = new Sessions(dir);
   const session = sessions.make();
-  const context = new REPLContext(goblin, session, logger);
+  const context = new REPLContext(goblin, session, { logger });
   t.after(() => rm(dir, { recursive: true, force: true }));
   return context;
 }

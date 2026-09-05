@@ -17,6 +17,7 @@ import { Logger } from "./logger.js";
 
 /** @import { Message } from "./index.js" */
 /** @import { Session } from "./sessions.js" */
+/** @import { CancelResource } from "./cancel.js" */
 
 export class REPLContext {
   #goblin;
@@ -29,15 +30,37 @@ export class REPLContext {
    */
   #messages = [];
 
+  /** @type {ReturnType<typeof makeProgressLogging> & {listenForCancel?: () => CancelResource?}} */
+  #crankOptions;
+
+  /** @type {{fn: ((prompt: string) => Promise<void>) | null}} */
+  #confirmRef = { fn: null };
+
   /**
    * @param {Goblin} goblin
    * @param {Session} session
-   * @param {Logger} [logger]
+   * @param {object} [options]
+   * @param {Logger} [options.logger]
+   * @param {boolean} [options.showThinking]
+   * @param {(() => CancelResource?)} [options.listenForCancel]
    */
-  constructor(goblin, session, logger = new Logger()) {
+  constructor(goblin, session, options = {}) {
+    const { logger = new Logger(), showThinking, listenForCancel } = options;
     this.#goblin = goblin;
     this.#session = session;
     this.#logger = logger;
+    this.#crankOptions = {
+      ...makeProgressLogging({
+        confirm: (prompt) => {
+          if (!this.#confirmRef.fn)
+            throw new Error("confirm not yet set");
+          return this.#confirmRef.fn(prompt);
+        },
+        showThinking,
+        logger,
+      }),
+      ...(listenForCancel && { listenForCancel }),
+    };
   }
 
   get goblin() {
@@ -61,6 +84,30 @@ export class REPLContext {
 
     return history;
   }
+
+  /**
+   * Set the interactive confirmation function. Must be called before crank.
+   * @param {(prompt: string) => Promise<void>} confirm
+   */
+  setConfirm(confirm) {
+    this.#confirmRef.fn = confirm;
+  }
+
+  /**
+   * Run a full agentic turn: crank the goblin, log the response, play bell.
+   * @param {AbortSignal} [signal] Fallback cancellation signal
+   */
+  async crank(signal) {
+    await this.#goblin.crank(this.#messages, {
+      ...this.#crankOptions,
+      signal,
+    });
+    const response = this.#messages.at(-1);
+    // TODO: render formatted as markdown
+    this.#logger.assistant(/** @type {string} */ (response?.content));
+    playBell();
+  }
+
   async save() {
     await this.#session.save(this.#messages);
   }
@@ -91,7 +138,10 @@ export async function repl(options) {
 
   const goblin = await Goblin.fromOptions({ ...program.opts(), ...goblinOpts });
 
-  const context = new REPLContext(goblin, sessions.make(session));
+  const context = new REPLContext(goblin, sessions.make(session), {
+    showThinking,
+    listenForCancel: () => makeCancelSignalResource(input),
+  });
   if (session && !clear) {
     await context.load();
   }
@@ -108,11 +158,7 @@ export async function repl(options) {
 
   rl.once("close", () => process.exit(0));
 
-  const confirm = makeConfirm(rl, input);
-  const { onprogress, onbeforetool, onthinking } = makeProgressLogging({
-    confirm,
-    showThinking,
-  });
+  context.setConfirm(makeConfirm(rl, input));
 
   while (true) {
     try {
@@ -123,16 +169,7 @@ export async function repl(options) {
         await commands.run(content, context, cancel.signal);
       } else {
         context.messages.push({ role: USER, content });
-        await goblin.crank(context.messages, {
-          onprogress,
-          onbeforetool,
-          onthinking,
-          listenForCancel: () => makeCancelSignalResource(input),
-        });
-        const response = context.messages.at(-1);
-        // TODO: render formatted as markdown
-        context.logger.assistant(/** @type {string} */ (response?.content));
-        playBell();
+        await context.crank();
       }
     } catch (e) {
       if (e.name === "AbortError") continue;

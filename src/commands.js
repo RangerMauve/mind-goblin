@@ -10,6 +10,7 @@ export class Commands {
     await commands.load("compact");
     await commands.load("clear");
     await commands.load("tail");
+    await commands.load("retry");
     await commands.load("help");
     return commands;
   }
