@@ -52,8 +52,7 @@ export class REPLContext {
     this.#crankOptions = {
       ...makeProgressLogging({
         confirm: (prompt) => {
-          if (!this.#confirmRef.fn)
-            throw new Error("confirm not yet set");
+          if (!this.#confirmRef.fn) throw new Error("confirm not yet set");
           return this.#confirmRef.fn(prompt);
         },
         showThinking,
