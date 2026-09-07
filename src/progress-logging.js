@@ -34,7 +34,7 @@ export function makeProgressLogging({
       if (check(command)) {
         // TODO: add verbal confirm for listen mode
         if (confirm) {
-          await confirm(`${logger.warn("! (dangerous)")}\n${command}`);
+          await confirm(`${color(WARN, "! (dangerous)")}\n${command}`);
         } else {
           logger.warn(`! (dangerous) ${command}`);
         }
