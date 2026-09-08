@@ -15,8 +15,7 @@ A local-first AI assistant CLI. It runs an agentic loop (tool-calling chat) agai
 | Task             | Command                                             |
 | ---------------- | --------------------------------------------------- |
 | Run tests        | `npm test` (runs `node --test "test/**/*.test.js"`) |
-| Lint + typecheck | `npm run lint` (eslint --fix + tsc --noEmit)        |
-| Format           | `npm run format` (prettier --write .)               |
+| Lint + format    | `npm run lint` (eslint --fix + tsc --noEmit; prettier runs via eslint-plugin-prettier) |
 | Run the REPL     | `node src/cli.js chat`                              |
 | One-shot query   | `node src/cli.js think "prompt"`                    |
 | Transform a file | `node src/cli.js transform "prompt" file.js`        |

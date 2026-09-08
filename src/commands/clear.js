@@ -16,7 +16,7 @@ export async function run(line, context) {
       throw new Error("Invalid value passed to clear " + amount);
     if (amount <= 0) {
       // Clear from oldest messages
-      context.messages.splice(0, -amount)
+      context.messages.splice(0, -amount);
     } else {
       // Clear from most recent
       context.messages.length -= amount;
