@@ -5,19 +5,31 @@ import { INFO, color, playBell } from "../ansi.js";
 /** @import {REPLContext} from "../repl.js" */
 
 export const name = "/compact";
-export const description = "Summarize and compact the conversation history";
+export const description =
+  "Summarize and compact the conversation history. Optionally specify how many oldest messages to compact.";
 
 /**
- * @param {string} _
+ * @param {string} line
  * @param {REPLContext} context
  * @param {import("../commands.js").Commands} _commands
  * @param {AbortSignal} [signal]
  */
-export default async function compact(_, context, _commands, signal) {
+export default async function compact(line, context, _commands, signal) {
+  // Determine how many oldest messages to compact
+  let n = context.messages.length;
+  if (line.trim()) {
+    n = parseInt(line.trim(), 10);
+    if (Number.isNaN(n) || n <= 0)
+      throw new Error(`Invalid value passed to compact: ${line.trim()}`);
+    n = Math.min(n, context.messages.length);
+  }
+
+  const target = context.messages.slice(0, n);
+
   // Summarize before compacting
   /** @type {Message[]} */
   const summaryMessages = [
-    ...context.messages,
+    ...target,
     {
       role: USER,
       content:
@@ -37,7 +49,7 @@ export default async function compact(_, context, _commands, signal) {
   let toolResponsesRemoved = 0;
   let emptyRemoved = 0;
 
-  for (const msg of context.messages) {
+  for (const msg of target) {
     if (msg.role === ASSISTANT && msg.tool_calls?.length) {
       delete msg.tool_calls;
       toolCallsRemoved++;
@@ -67,9 +79,8 @@ export default async function compact(_, context, _commands, signal) {
 
   const before = context.messages.length;
 
-  // Replace messages in context
-  context.messages.length = 0;
-  context.messages.push(...compacted);
+  // Replace the first n messages with the compacted result
+  context.messages.splice(0, n, ...compacted);
 
   const after = context.messages.length;
 
