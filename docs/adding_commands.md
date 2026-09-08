@@ -17,7 +17,7 @@ A command module must export **four** things:
 | ------------- | ------------------------------------------------------------- | ----------------------------------------- |
 | `name`        | `string`                                                      | The trigger prefix (e.g. `/compact`, `!`) |
 | `description` | `string` g                                                    | Short description shown in `/help`        |
-| `run`         | `(line, context, commands, signal?) => void \| Promise<void>` | Executes the command                      |
+| `default`     | named function `(line, context, commands, signal?) => void \| Promise<void>` | Executes the command                      |
 | `complete`    | `(prefix, context) => string[] \| Promise<string[]>`          | Tab-completion (optional)                 |
 
 - `line` is the raw text _after_ the command name.
@@ -39,10 +39,12 @@ export const description = "Print a greeting";
  * @param {string} line
  * @param {REPLContext} context
  */
-export async function run(line, context) {
+export default async function hello(line, context) {
   context.logger.assistant(`Hello, ${line || "world"}!`);
 }
 ```
+
+Name the function to match the filename. This shows up in stack traces and the debugger.
 
 If you need cancellation, add the remaining params:
 
@@ -53,7 +55,7 @@ If you need cancellation, add the remaining params:
  * @param {import("../commands.js").Commands} commands
  * @param {AbortSignal} [signal]
  */
-export async function run(line, context, commands, signal) {
+export default async function compact(line, context, commands, signal) {
   // ...
 }
 ```

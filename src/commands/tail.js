@@ -15,7 +15,7 @@ const DEFAULT_N = 5;
  * @param {string} line
  * @param {REPLContext} context
  */
-export function run(line, context) {
+export default function tail(line, context) {
   const n = Math.min(Math.max(parseInt(line.trim()) || DEFAULT_N, 1), MAX);
   const messages = context.messages;
   /** @type {Message[]} */

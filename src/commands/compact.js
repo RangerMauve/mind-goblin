@@ -13,7 +13,7 @@ export const description = "Summarize and compact the conversation history";
  * @param {import("../commands.js").Commands} _commands
  * @param {AbortSignal} [signal]
  */
-export async function run(_, context, _commands, signal) {
+export default async function compact(_, context, _commands, signal) {
   // Summarize before compacting
   /** @type {Message[]} */
   const summaryMessages = [

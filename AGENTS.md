@@ -68,7 +68,7 @@ Register new tools by adding a `tools.loadTool("name")` line in `src/tools.js` �
 Each command file exports:
 
 - `name` — trigger prefix (e.g. `"/compact"`, `"!"`)
-- `run` — `(line, context, signal) => void | Promise<void>`
+- `default` — `(line, context, commands, signal?) => void | Promise<void>`
 - `complete` — `(prefix, context) => string[] | Promise<string[]>` (optional)
 
 Register new commands by adding a `commands.load("name")` line in `src/commands.js` → `Commands.default()`.

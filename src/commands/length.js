@@ -8,6 +8,6 @@ export const description =
  * @param {string} line
  * @param {REPLContext} context
  */
-export async function run(line, context) {
+export default async function length(line, context) {
   context.logger.info(`${context.messages.length} messages`);
 }

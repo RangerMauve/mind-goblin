@@ -9,7 +9,7 @@ export const description = "Show help for commands or all commands";
  * @param {REPLContext} context
  * @param {Commands} commands
  */
-export function run(line, context, commands) {
+export default function help(line, context, commands) {
   const name = line.trim();
   const descs = commands.descriptions();
 

@@ -46,7 +46,7 @@ export async function complete(line) {
  * @param {import("../commands.js").Commands} _commands
  * @param {AbortSignal} [signal]
  */
-export async function run(command, context, _commands, signal) {
+export default async function shell(command, context, _commands, signal) {
   let output;
   try {
     const escaped = command.replace(/\\/g, "\\\\").replace(/"/g, '\\"');

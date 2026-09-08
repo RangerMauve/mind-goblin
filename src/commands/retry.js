@@ -11,7 +11,7 @@ export const description = "Remove the last assistant response and re-crank";
  * @param {import("../commands.js").Commands} _commands
  * @param {AbortSignal} [signal]
  */
-export async function run(_, context, _commands, signal) {
+export default async function retry(_, context, _commands, signal) {
   const msgs = context.messages;
   const lastUserIdx = msgs.findLastIndex((m) => m.role === USER);
   if (lastUserIdx < 0) {

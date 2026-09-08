@@ -8,7 +8,7 @@ export const description =
  * @param {string} line
  * @param {REPLContext} context
  */
-export async function run(line, context) {
+export default async function clear(line, context) {
   const count = context.messages.length;
   if (line.trim()) {
     const amount = parseInt(line.trim());

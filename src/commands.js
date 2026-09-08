@@ -32,7 +32,7 @@ export class Commands {
   /** @param {string} name */
   async load(name) {
     const module = await import(`./commands/${name}.js`);
-    const { name: commandName, run, complete, description } = module;
+    const { name: commandName, default: run, complete, description } = module;
     this.register(commandName, run, complete, description);
   }
 
