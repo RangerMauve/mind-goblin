@@ -9,6 +9,7 @@ export class Commands {
     await commands.load("shell");
     await commands.load("compact");
     await commands.load("clear");
+    await commands.load("length");
     await commands.load("tail");
     await commands.load("retry");
     await commands.load("help");
