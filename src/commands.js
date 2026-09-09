@@ -6,13 +6,15 @@
 export class Commands {
   static async default() {
     const commands = new Commands();
-    await commands.load("shell");
-    await commands.load("compact");
-    await commands.load("clear");
-    await commands.load("length");
-    await commands.load("tail");
-    await commands.load("retry");
-    await commands.load("help");
+    await Promise.all([
+      commands.load("shell"),
+      commands.load("compact"),
+      commands.load("clear"),
+      commands.load("length"),
+      commands.load("tail"),
+      commands.load("retry"),
+      commands.load("help"),
+    ]);
     return commands;
   }
 
