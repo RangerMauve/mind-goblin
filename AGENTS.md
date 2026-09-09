@@ -20,6 +20,14 @@ A local-first AI assistant CLI. It runs an agentic loop (tool-calling chat) agai
 | One-shot query   | `node src/cli.js think "prompt"`                    |
 | Transform a file | `node src/cli.js transform "prompt" file.js`        |
 
+## Workflow
+
+When making code changes:
+
+1. **Write tests for new features.** Every new tool, command, or non-trivial function gets a test file in `test/`. Don't ship features without tests.
+2. **Run `npm run lint` after each logical code change.** Fix any lint or type errors before moving on.
+3. **Run `npm test` when you're done.** All tests must pass before the work is considered complete.
+
 ## Project Structure
 
 ```
