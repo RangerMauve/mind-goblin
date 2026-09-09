@@ -107,7 +107,7 @@ Register new commands by adding a `commands.load("name")` line in `src/commands.
 
 ## Commit Messages
 
-Conventional Commits style: `type: summary` or `type(scope): summary`.
+Conventional Commits style: `type: summary`.
 
 | Type       | Use for                                                    |
 | ---------- | ---------------------------------------------------------- |
@@ -121,9 +121,13 @@ Conventional Commits style: `type: summary` or `type(scope): summary`.
 
 Rules:
 
-- **Lowercase** after the type colon. No trailing period.
-- **Scope** is optional but encouraged when the change is localized (e.g. `fix(shell_command):`, `feat(sub_agent):`).
-- One line for the summary. Body is optional for multi-paragraph context.
+- **One line.** Short, natural description. No trailing period.
+- **No scope.** The type prefix is enough. (Rare exceptions exist but the norm is no scope.)
+- **Name the thing.** Lead with the feature/command/tool being changed:
+  - `feat: /compact accepts a count to compact only the oldest n messages`
+  - `feat: add amount option to clear command`
+  - `fix: proper formatting for confirm string`
+  - `chore: format tests`
 - Don't prefix with "WIP" or "update" — commit in logical units.
 
 ## Keeping AGENTS.md Current
