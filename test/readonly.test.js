@@ -1,18 +1,9 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
-import { Goblin } from "../src/index.js";
 import { Tools } from "../src/tools.js";
 import shellCommand from "../src/tools/shell_command.js";
 import { check } from "../src/tools/shell_command.js";
-
-/**
- * Build a Goblin with the standard tool set.
- * @param {object} opts
- */
-async function makeGoblin(opts = {}) {
-  const tools = await Tools.default();
-  return new Goblin({ tools, ...opts });
-}
+import { makeGoblin } from "./helpers.js";
 
 test("Tools.readonly() returns a new Tools with only readonly-safe tools", async () => {
   const tools = await Tools.default();

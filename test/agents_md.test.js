@@ -1,20 +1,12 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { loadAgentsMd } from "../src/utils.js";
-import { Goblin } from "../src/index.js";
-import { Tools } from "../src/tools.js";
-
-async function makeGoblin(opts = {}) {
-  const tools = await Tools.default();
-  return new Goblin({ tools, ...opts });
-}
+import { makeGoblin, makeTempDir } from "./helpers.js";
 
 test("loadAgentsMd reads AGENTS.md from the given directory", async (t) => {
-  const dir = await mkdtemp(join(tmpdir(), "agents-md-test-"));
-  t.after(() => rm(dir, { recursive: true, force: true }));
+  const dir = await makeTempDir(t);
   await writeFile(join(dir, "AGENTS.md"), "# Test Project\nUse pnpm.");
 
   const content = await loadAgentsMd(dir);
@@ -22,8 +14,7 @@ test("loadAgentsMd reads AGENTS.md from the given directory", async (t) => {
 });
 
 test("loadAgentsMd falls back to CLAUDE.md when AGENTS.md is absent", async (t) => {
-  const dir = await mkdtemp(join(tmpdir(), "agents-md-test-"));
-  t.after(() => rm(dir, { recursive: true, force: true }));
+  const dir = await makeTempDir(t);
   await writeFile(join(dir, "CLAUDE.md"), "# Claude instructions");
 
   const content = await loadAgentsMd(dir);
@@ -31,8 +22,7 @@ test("loadAgentsMd falls back to CLAUDE.md when AGENTS.md is absent", async (t) 
 });
 
 test("loadAgentsMd falls back to QWEN.md when AGENTS.md and CLAUDE.md are absent", async (t) => {
-  const dir = await mkdtemp(join(tmpdir(), "agents-md-test-"));
-  t.after(() => rm(dir, { recursive: true, force: true }));
+  const dir = await makeTempDir(t);
   await writeFile(join(dir, "QWEN.md"), "# Qwen instructions");
 
   const content = await loadAgentsMd(dir);
@@ -40,8 +30,7 @@ test("loadAgentsMd falls back to QWEN.md when AGENTS.md and CLAUDE.md are absent
 });
 
 test("loadAgentsMd prefers AGENTS.md over CLAUDE.md when both exist", async (t) => {
-  const dir = await mkdtemp(join(tmpdir(), "agents-md-test-"));
-  t.after(() => rm(dir, { recursive: true, force: true }));
+  const dir = await makeTempDir(t);
   await writeFile(join(dir, "AGENTS.md"), "# Agents");
   await writeFile(join(dir, "CLAUDE.md"), "# Claude");
 
@@ -50,8 +39,7 @@ test("loadAgentsMd prefers AGENTS.md over CLAUDE.md when both exist", async (t) 
 });
 
 test("loadAgentsMd returns empty string when no agent files exist", async (t) => {
-  const dir = await mkdtemp(join(tmpdir(), "agents-md-test-"));
-  t.after(() => rm(dir, { recursive: true, force: true }));
+  const dir = await makeTempDir(t);
 
   const content = await loadAgentsMd(dir);
   assert.equal(content, "");

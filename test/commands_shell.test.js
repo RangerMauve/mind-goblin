@@ -1,19 +1,12 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
-import { Commands } from "../src/commands.js";
 import { USER, ASSISTANT, TOOL } from "../src/index.js";
-import { makeContext } from "./helpers.js";
+import { makeContext, makeCommands } from "./helpers.js";
 
 /** @import {AssistantMessage, ToolMessage} from "../src/index.js" */
 
-async function makeShellCommands() {
-  const commands = new Commands();
-  await commands.load("shell");
-  return commands;
-}
-
 test("shell command: run executes a command and records messages", async (t) => {
-  const commands = await makeShellCommands();
+  const commands = await makeCommands("shell");
   const context = makeContext(t);
 
   await commands.run("!echo hello", context);
@@ -40,7 +33,7 @@ test("shell command: run executes a command and records messages", async (t) => 
 });
 
 test("shell command: run forwards goblin and signal", async (t) => {
-  const commands = await makeShellCommands();
+  const commands = await makeCommands("shell");
   const context = makeContext(t);
   const controller = new AbortController();
 
@@ -50,7 +43,7 @@ test("shell command: run forwards goblin and signal", async (t) => {
 });
 
 test("shell command: run handles stderr output", async (t) => {
-  const commands = await makeShellCommands();
+  const commands = await makeCommands("shell");
   const context = makeContext(t);
 
   await commands.run("!echo oops 2>&1", context);
@@ -60,7 +53,7 @@ test("shell command: run handles stderr output", async (t) => {
 });
 
 test("shell command: run with no output records placeholder", async (t) => {
-  const commands = await makeShellCommands();
+  const commands = await makeCommands("shell");
   const context = makeContext(t);
 
   await commands.run("!:", context);
@@ -70,7 +63,7 @@ test("shell command: run with no output records placeholder", async (t) => {
 });
 
 test("shell command: tool_call_id is consistent across messages", async (t) => {
-  const commands = await makeShellCommands();
+  const commands = await makeCommands("shell");
   const context = makeContext(t);
 
   await commands.run("!true", context);
@@ -81,14 +74,14 @@ test("shell command: tool_call_id is consistent across messages", async (t) => {
 });
 
 test("Commands.run throws for unknown command", async (t) => {
-  const commands = await makeShellCommands();
+  const commands = await makeCommands("shell");
   const context = makeContext(t);
 
   await assert.rejects(() => commands.run("ls", context), /Unknown command/);
 });
 
 test("shell command: complete returns suggestions", async (t) => {
-  const commands = await makeShellCommands();
+  const commands = await makeCommands("shell");
   const context = makeContext(t);
   const completions = await commands.complete("!", context);
 

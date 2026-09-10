@@ -1,8 +1,7 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
 import { Commands } from "../src/commands.js";
-import { Logger } from "../src/logger.js";
-import { makeContext } from "./helpers.js";
+import { makeRecordingContext } from "./helpers.js";
 import * as help from "../src/commands/help.js";
 
 /**
@@ -29,17 +28,6 @@ function makeTestCommands() {
     "Shell passthrough",
   );
   return commands;
-}
-
-/**
- * @param {import("node:test").TestContext} t
- */
-function makeRecordingContext(t) {
-  /** @type {string[]} */
-  const logged = [];
-  const logger = new Logger({ log: (msg) => logged.push(msg) });
-  const context = makeContext(t, logger);
-  return { context, logged };
 }
 
 test("help run: no name prints all commands", (t) => {
