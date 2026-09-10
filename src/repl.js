@@ -84,6 +84,23 @@ export class REPLContext {
     return history;
   }
 
+  /** @returns {string} */
+  get sessionName() {
+    return this.#session.name;
+  }
+
+  /**
+   * Save to the current session, switch to a new one, then save again so the new session file exists immediately.
+   * @param {string} name New session name
+   * @returns {Promise<string>} The new session name
+   */
+  async forkSession(name) {
+    await this.save();
+    this.#session = this.#session.fork(name);
+    await this.save();
+    return name;
+  }
+
   /**
    * Set the interactive confirmation function. Must be called before crank.
    * @param {(prompt: string) => Promise<void>} confirm

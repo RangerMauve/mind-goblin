@@ -13,6 +13,7 @@ export class Commands {
       commands.load("length"),
       commands.load("tail"),
       commands.load("retry"),
+      commands.load("fork"),
       commands.load("help"),
     ]);
     return commands;

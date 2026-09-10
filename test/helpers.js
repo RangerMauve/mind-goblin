@@ -3,6 +3,7 @@ import { REPLContext } from "../src/repl.js";
 import { Sessions } from "../src/sessions.js";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { mkdirSync } from "node:fs";
 import { rm } from "node:fs/promises";
 
 /** @import {Logger} from "../src/logger.js" */
@@ -19,6 +20,7 @@ export function makeContext(t, logger) {
     tmpdir(),
     `mind-goblin-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   );
+  mkdirSync(dir, { recursive: true });
   const goblin = new Goblin({});
   const sessions = new Sessions(dir);
   const session = sessions.make();

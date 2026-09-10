@@ -6,19 +6,32 @@ const SESSION_SEP = "__";
 export class Session {
   #parent;
   #slug;
+  #name;
 
   /**
    * @param {Sessions} parent
    * @param {string} slug
+   * @param {string} [name]
    */
-  constructor(parent, slug) {
+  constructor(parent, slug, name = "default") {
     this.#parent = parent;
     this.#slug = slug;
+    this.#name = name;
   }
 
   /** @returns {string} */
   get slug() {
     return this.#slug;
+  }
+
+  /** @returns {string} */
+  get name() {
+    return this.#name;
+  }
+
+  /** @param {string} name @returns {Session} */
+  fork(name) {
+    return this.#parent.make(name);
   }
 
   /**
@@ -62,7 +75,7 @@ export class Sessions {
    */
   make(session = "default") {
     const slug = this.slug(session);
-    return new Session(this, slug);
+    return new Session(this, slug, session);
   }
 
   /** @param {string} slug */
