@@ -4,8 +4,8 @@ import { stdin as input, stdout as output } from "node:process";
 
 import { program } from "commander";
 
-import { USER, Goblin } from "./index.js";
-import { sessionFolder, conf } from "./utils.js";
+import { Goblin, USER } from "./index.js";
+import { conf, sessionFolder } from "./utils.js";
 import { makeCancelSignalResource } from "./cancel.js";
 import { makeConfirm } from "./confirm.js";
 import { Sessions } from "./sessions.js";

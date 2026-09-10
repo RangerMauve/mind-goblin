@@ -1,5 +1,5 @@
 import { ASSISTANT, TOOL, USER } from "../index.js";
-import { INFO, color, playBell } from "../ansi.js";
+import { color, INFO, playBell } from "../ansi.js";
 
 /** @import {Message} from "../index.js" */
 /** @import {REPLContext} from "../repl.js" */

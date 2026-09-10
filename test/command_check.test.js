@@ -2,12 +2,12 @@ import { test } from "node:test";
 import { strict as assert } from "node:assert";
 import {
   check,
-  isAllowed,
   hasDangerousPatterns,
-  hasRedirectionOrSubstitution,
   hasFindAction,
-  stripQuotedArgs,
   hasQuotedCommandSubstitution,
+  hasRedirectionOrSubstitution,
+  isAllowed,
+  stripQuotedArgs,
 } from "../src/tools/shell_command.js";
 
 test("isAllowed allows bare ls", () => {

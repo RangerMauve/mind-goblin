@@ -4,9 +4,9 @@ import { execa } from "execa";
 import cpal from "node-cpal";
 import sherpa from "sherpa-onnx-node";
 
-import { USER, Goblin } from "./index.js";
+import { Goblin, USER } from "./index.js";
 import { Sessions } from "./sessions.js";
-import { sessionFolder, dataDir, conf } from "./utils.js";
+import { conf, dataDir, sessionFolder } from "./utils.js";
 import speakTool from "./tools/speak.js";
 import { Logger } from "./logger.js";
 import { makeProgressLogging } from "./progress-logging.js";

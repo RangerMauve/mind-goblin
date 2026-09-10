@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
-import { Commands, CommandDef, DEFAULT_COMPLETE } from "../src/commands.js";
+import { CommandDef, Commands, DEFAULT_COMPLETE } from "../src/commands.js";
 import { makeContext } from "./helpers.js";
 
 /**

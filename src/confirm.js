@@ -1,5 +1,5 @@
 import { makeCancelSignalResource } from "./cancel.js";
-import { INFO, WARN, RESET, playBell } from "./ansi.js";
+import { INFO, playBell, RESET, WARN } from "./ansi.js";
 
 /**
  * @param {import("node:readline/promises").Interface} rl

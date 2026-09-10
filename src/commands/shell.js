@@ -4,8 +4,8 @@ import { promisify } from "node:util";
 
 import { SHELL_JOINERS } from "../tools/shell_command.js";
 import shellCommand from "../tools/shell_command.js";
-import { USER, ASSISTANT, TOOL } from "../index.js";
-import { WARN, color, playBell } from "../ansi.js";
+import { ASSISTANT, TOOL, USER } from "../index.js";
+import { color, playBell, WARN } from "../ansi.js";
 
 /** @import {Message} from "../index.js"*/
 /** @import {REPLContext} from "../repl.js"*/

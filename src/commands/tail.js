@@ -1,4 +1,4 @@
-import { USER, ASSISTANT, TOOL } from "../index.js";
+import { ASSISTANT, TOOL, USER } from "../index.js";
 
 /** @import {Message} from "../index.js" */
 /** @import {REPLContext} from "../repl.js" */

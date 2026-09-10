@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
-import { USER, ASSISTANT, TOOL } from "../src/index.js";
-import { makeContext, makeCommands } from "./helpers.js";
+import { ASSISTANT, TOOL, USER } from "../src/index.js";
+import { makeCommands, makeContext } from "./helpers.js";
 
 /** @import {AssistantMessage, ToolMessage} from "../src/index.js" */
 

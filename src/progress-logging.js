@@ -1,6 +1,6 @@
 import { diffLines } from "diff";
 import { check } from "./tools/shell_command.js";
-import { INFO, WARN, color } from "./ansi.js";
+import { color, INFO, WARN } from "./ansi.js";
 import { Logger } from "./logger.js";
 
 /**

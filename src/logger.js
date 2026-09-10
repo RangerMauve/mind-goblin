@@ -1,4 +1,4 @@
-import { INFO, QUIET, ALERT, color as _color } from "./ansi.js";
+import { color as _color, ALERT, INFO, QUIET } from "./ansi.js";
 
 /**
  * @param {string} _
