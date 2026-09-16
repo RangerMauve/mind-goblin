@@ -14,6 +14,7 @@ Your friendly internet enabled assistant.
 - **Audio Notifications**: Bell sound on response completion
 - **Sub-agents**: Fork specialized agents with limited tool access
 - **Project Context**: Automatically loads `AGENTS.md` (or `CLAUDE.md`, `QWEN.md`, `GEMINI.md`, `.cursorrules`) from the working directory into the system prompt, so the goblin knows your project conventions
+- **Persistent Memory**: Optional `MEMORY.md` file injected into the system prompt. The goblin can read and update it to remember instructions and facts across sessions
 - **Voice Input**: Speak to the goblin hands-free via microphone. Uses Silero VAD + Moonshine Tiny (int8) for offline speech-to-text
 
 ## Built-in Commands
@@ -109,6 +110,7 @@ Mind Goblin uses `rc` for configuration. It looks for `~/.mindgoblinrc` or the `
 - **Server**: The URL of the OpenAI-compatible API (defaults to Ollama).
 - **API Key**: Your API key (defaults to `OPENAI_API_KEY` env var).
 - **agentsMd**: When `true` (default), load the first agent instruction file found in the working directory (`AGENTS.md`, `CLAUDE.md`, `QWEN.md`, `GEMINI.md`, `.cursorrules`) and append it to the system prompt. Set to `false` or use `--no-agents-md` to disable.
+- **memoryFile**: Path to a persistent memory file injected into the system prompt. The goblin is instructed to read and update it with `write_file`/`edit_file` to remember things across sessions. Defaults to `~/.local/share/mindgoblin/MEMORY.md`. Set to `null` to disable.
 
 **Optional Sampling Parameters:**
 
@@ -127,6 +129,7 @@ It also uses XDG directories for storing data:
 
 - **Config**: `~/.config/mindgoblin`
 - **Data/Sessions**: `~/.local/share/mindgoblin/sessions`
+- **Memory**: `~/.local/share/mindgoblin/MEMORY.md`
 
 ## Examples
 
