@@ -1,5 +1,5 @@
 import { Tools } from "./tools.js";
-import { chat, loadAgentsMd } from "./utils.js";
+import { chat, loadAgentsMd, loadMemory } from "./utils.js";
 
 /** @import {FunctionCall} from './tools.js' */
 /** @import {CancelResource} from './cancel.js' */
@@ -30,6 +30,12 @@ export const ASSISTANT = "assistant";
 export const TOOL = "tool";
 
 export class Goblin {
+  /**
+   * Construct a Goblin with the standard tool set.
+   * Args are spread directly into the constructor, so any new constructor
+   * option is automatically available here without extra plumbing.
+   * @param {object} args Constructor options
+   */
   static async fromOptions({ ...args }) {
     const tools = await Tools.default();
     return new Goblin({ tools, ...args });
@@ -45,6 +51,7 @@ export class Goblin {
    * @param {boolean} [options.thinkingHistory]
    * @param {boolean} [options.readonly] When true, write and edit tools are stripped.
    * @param {boolean} [options.agentsMd] When true (default), load AGENTS.md into the system prompt.
+   * @param {string | null} [options.memoryFile] Path to the persistent memory file. Pass null (default) to disable.
    */
   constructor({
     tools = new Tools(),
@@ -54,6 +61,7 @@ export class Goblin {
     thinkingHistory = false,
     readonly = false,
     agentsMd = true,
+    memoryFile = null,
   }) {
     if (readonly) {
       tools = tools.readonly();
@@ -67,6 +75,7 @@ export class Goblin {
     this.thinkingHistory = thinkingHistory;
     this.readonly = readonly;
     this.agentsMd = agentsMd;
+    this.memoryFile = memoryFile;
   }
 
   /**
@@ -76,8 +85,15 @@ export class Goblin {
    * @param {number} [options.maxIterations]
    * @param {boolean} [options.readonly] Override readonly for the sub-agent
    * @param {boolean} [options.agentsMd] Override agentsMd for the sub-agent
+   * @param {string | null} [options.memoryFile] Override memoryFile for the sub-agent
    */
-  fork({ tools, maxIterations = this.maxIterations, readonly, agentsMd }) {
+  fork({
+    tools,
+    maxIterations = this.maxIterations,
+    readonly,
+    agentsMd,
+    memoryFile,
+  }) {
     const subTools = tools ? this.tools.subset(tools) : this.tools;
 
     return new Goblin({
@@ -87,6 +103,7 @@ export class Goblin {
       maxIterations,
       readonly: readonly ?? this.readonly,
       agentsMd: agentsMd ?? this.agentsMd,
+      memoryFile: memoryFile ?? this.memoryFile,
     });
   }
 
@@ -115,7 +132,21 @@ export class Goblin {
     // Add in system prompt if it isn't set
     if (!messages[0] || messages[0].role !== SYSTEM) {
       const agentsMd = this.agentsMd ? await loadAgentsMd() : "";
-      const content = DEFAULT_SYSTEM + agentsMd;
+      let memorySection = "";
+      if (this.memoryFile) {
+        const memory = await loadMemory(this.memoryFile);
+        const instructions = this.readonly
+          ? `Your memory file is at ${this.memoryFile}. You can read it but cannot modify it in this session.`
+          : `Your memory file is at ${this.memoryFile}.\nUse the write_file or edit_file tools to update it when you need to remember instructions or facts across sessions.\nKeep it minimal — only store things genuinely useful in future conversations. Use a markdown bullet list.`;
+        memorySection = `
+## Memory
+${instructions}
+
+### Current memory:
+${memory.trim() || "(empty)"}
+`;
+      }
+      const content = DEFAULT_SYSTEM + agentsMd + memorySection;
       messages.unshift({ role: SYSTEM, content });
     }
 

@@ -28,7 +28,10 @@ const xdg = /** @type {import('xdg-portable').XDG} */ (
  * @property {number} [seed] - Seed for reproducible sampling.
  * @property {boolean} [readonly] - When true, the goblin will not use write or edit tools.
  * @property {boolean} [agentsMd] - When true (default), load AGENTS.md from the working directory into the system prompt.
+ * @property {string} [memoryFile] - Path to the persistent memory file. Defaults to MEMORY.md in the data dir.
  */
+
+export const APPNAME = "mindgoblin";
 
 // Default config for OpenAI-compatible API (Ollama default).
 // Sampling params are intentionally unset so the provider's defaults apply.
@@ -38,15 +41,28 @@ const DEFAULT_CONFIG = {
   api_key: process.env.OPENAI_API_KEY || "",
   readonly: false,
   agentsMd: true,
+  memoryFile: path.join(xdg.data(), APPNAME, "MEMORY.md"),
 };
-
-export const APPNAME = "mindgoblin";
 
 // Load config from ~/.mindgoblinrc
 export const conf = /** @type {Config} */ (rc(APPNAME, DEFAULT_CONFIG));
 export const configDir = path.join(xdg.config(), APPNAME);
 export const dataDir = path.join(xdg.data(), APPNAME);
 export const sessionFolder = path.join(dataDir, "sessions");
+export const memoryFile = path.join(dataDir, "MEMORY.md");
+
+/**
+ * Read the persistent memory file.
+ * @param {string} file - Path to the memory file
+ * @returns {Promise<string>} The memory content, or empty string if the file doesn't exist.
+ */
+export async function loadMemory(file) {
+  try {
+    return await fs.readFile(file, "utf8");
+  } catch {
+    return "";
+  }
+}
 
 // Apply config to constants
 const MODEL = conf.model;
