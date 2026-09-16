@@ -98,6 +98,13 @@ Register new commands by adding a `commands.load("name")` line in `src/commands.
 - Loaded via `rc("mindgoblin", defaults)` → reads `~/.mindgoblinrc` (ini format).
 - XDG paths for data/sessions: `~/.local/share/mindgoblin/`.
 
+### Design
+
+- **Configurable over hardcoded.** New features that involve file paths, URLs, or tunable settings should be constructor options with a corresponding entry in `Config`/`DEFAULT_CONFIG`. Never hardcode paths in the implementation.
+- **Opt-in by default.** New features with side effects (writing files, network calls) default to `null` (off). The caller opts in explicitly.
+- **`null` means disabled.** Use `null` (not `undefined`) as the "off" sentinel for optional features. Guard with a truthy check (`if (this.x)`).
+- **Readonly-aware prompts.** When the system prompt includes instructions for a feature, provide different wording for readonly mode (e.g. "you can read but not modify" vs. "use write_file to update").
+
 ### Testing
 
 - Uses built-in `node:test` + `node:assert/strict`.
