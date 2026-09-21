@@ -13,6 +13,8 @@ const noInteractive = {
 };
 
 const ALLOWED_COMMANDS_LIST = [
+  // Allow cd into subdirs for convenience
+  `cd ${process.cwd()}`,
   // Common utilities for controling the machine
   "bluetoothctl",
   "upower",

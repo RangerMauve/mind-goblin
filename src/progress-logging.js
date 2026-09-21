@@ -27,10 +27,6 @@ export function makeProgressLogging({
     /** @param {{command: string}} args */
     async shell_command(args) {
       let command = args.command;
-      const cdPrefix = `cd ${process.cwd()} && `;
-      if (command.startsWith(cdPrefix)) {
-        command = command.slice(cdPrefix.length);
-      }
       if (check(command)) {
         // TODO: add verbal confirm for listen mode
         if (confirm) {

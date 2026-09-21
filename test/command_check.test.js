@@ -231,3 +231,21 @@ test("check forces confirmation on unterminated quotes", () => {
   assert.ok(check("echo 'unterminated"));
   assert.ok(check('echo "unterminated'));
 });
+
+test("isAllowed allows cd to current working directory", () => {
+  assert.ok(isAllowed(`cd ${process.cwd()}`));
+});
+
+test("isAllowed rejects cd to other paths", () => {
+  assert.equal(isAllowed("cd /somewhere/else"), false);
+});
+
+test("check allows cd to cwd combined with another allowed command", () => {
+  assert.equal(check(`cd ${process.cwd()} && git diff`), false);
+  assert.equal(check(`cd ${process.cwd()} && ls`), false);
+});
+
+test("check rejects cd to non-cwd path in compound", () => {
+  assert.ok(check("cd /etc && ls"));
+  assert.ok(check("ls && cd /etc"));
+});
