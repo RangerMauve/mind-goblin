@@ -67,7 +67,9 @@ export async function loadMemory(file) {
 // Apply config to constants
 const MODEL = conf.model;
 const SERVER = conf.server;
-const API_KEY = conf.api_key;
+// Prefer the environment variable at runtime so API keys are not required
+// to be persisted in plaintext in ~/.mindgoblinrc.
+const API_KEY = process.env.OPENAI_API_KEY || conf.api_key;
 const REQUEST_TIMEOUT = 30 * 60 * 1000;
 
 const agent = new Agent({
