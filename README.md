@@ -1,5 +1,7 @@
 # mind-goblin
 
+![logo](./logo.png)
+
 Your friendly internet enabled assistant.
 
 ## Features

@@ -166,6 +166,14 @@ Update this file whenever you make a change that would cause a _new_ agent (or a
 
 The test: _"Would an agent reading only this file make a mistake or get confused?"_ If yes, update it.
 
+## Logo
+
+The logo lives in `logo.svg` (source of truth). To update it:
+
+1. Edit `logo.svg` directly (concentric circles, centered at 333,333, viewBox 666x666).
+2. Re-render the PNG: `rsvg-convert -w 666 -h 666 logo.svg -o logo.png`
+3. `logo.png` is referenced in `README.md` — no path change needed.
+
 ## Gotchas
 
 - There is **no build step**. Edit `.js` directly, run directly.
