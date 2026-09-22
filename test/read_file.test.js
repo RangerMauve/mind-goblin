@@ -1,12 +1,13 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import read from "../src/tools/read.js";
 
 const testDir = join(tmpdir(), "mind-goblin-test-files");
 mkdirSync(testDir, { recursive: true });
+const logoPath = resolve(import.meta.dirname, "../logo.png");
 
 /** @typedef {Awaited<ReturnType<typeof read>>} ReadResult */
 
@@ -26,6 +27,18 @@ function fileContent(r) {
 function dirContents(r) {
   assert.ok("contents" in r, "expected directory result, got file content");
   return r.contents;
+}
+
+/**
+ * @param {ReadResult} r
+ * @returns {{data: string, mime: string}}
+ */
+function imageData(r) {
+  assert.ok(
+    "image" in r,
+    `expected image result, got ${JSON.stringify(Object.keys(r))}`,
+  );
+  return r.image;
 }
 
 test("read reads a valid file", async () => {
@@ -105,4 +118,41 @@ test("read lists an empty directory", async () => {
 
 test("read rejects for directory that does not exist", async () => {
   await assert.rejects(read({ path: join(testDir, "no-such-dir") }));
+});
+
+test("read returns image data for a PNG file", async () => {
+  const result = await read({ path: logoPath });
+  const { data, mime } = imageData(result);
+  assert.strictEqual(mime, "image/png");
+  assert.ok(data.length > 0);
+  assert.ok(!("content" in result));
+});
+
+test("read returns image data for a JPEG file", async () => {
+  const img = join(testDir, "test_image.jpg");
+  writeFileSync(img, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0]));
+
+  const result = await read({ path: img });
+  const { data, mime } = imageData(result);
+  assert.strictEqual(mime, "image/jpeg");
+  assert.ok(data.length > 0);
+  assert.ok(!("content" in result));
+});
+
+test("read treats SVG as text, not image", async () => {
+  const svg = join(testDir, "test.svg");
+  writeFileSync(svg, '<svg xmlns="http://www.w3.org/2000/svg"/>');
+
+  const result = await read({ path: svg });
+  assert.ok("content" in result);
+  assert.ok(!("image" in result));
+});
+
+test("read handles uppercase image extension", async () => {
+  const img = join(testDir, "test_image.PNG");
+  copyFileSync(logoPath, img);
+
+  const result = await read({ path: img });
+  const { mime } = imageData(result);
+  assert.strictEqual(mime, "image/png");
 });

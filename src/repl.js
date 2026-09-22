@@ -75,9 +75,11 @@ export class REPLContext {
   }
 
   get history() {
-    const history = this.#messages
-      .filter(({ role }) => role === USER)
-      .map(({ content }) => content);
+    const items = this.#messages.filter(({ role }) => role === USER);
+    const history = [];
+    for (const { content } of items) {
+      if (typeof content === "string") history.push(content);
+    }
     // Make most recent messages first
     history.reverse();
 

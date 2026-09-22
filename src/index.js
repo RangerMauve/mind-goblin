@@ -4,7 +4,8 @@ import { chat, loadAgentsMd, loadMemory } from "./utils.js";
 /** @import {FunctionCall} from './tools.js' */
 /** @import {CancelResource} from './cancel.js' */
 
-/** @typedef {{role: 'user', content: string}} UserMessage */
+/** @typedef {{type: 'text', text: string} | {type: 'image_url', image_url: {url: string, detail?: string}}} ContentPart */
+/** @typedef {{role: 'user', content: string | ContentPart[]}} UserMessage */
 /** @typedef {{role: 'system', content: string}} SystemMessage */
 /** @typedef {{role: 'assistant', content: string, reasoning_content?: string, tool_calls?: FunctionCall[]}} AssistantMessage */
 /** @typedef {{role: 'tool', content: string, name: string, tool_call_id?: string}} ToolMessage */
@@ -28,6 +29,18 @@ export const SYSTEM = "system";
 export const USER = "user";
 export const ASSISTANT = "assistant";
 export const TOOL = "tool";
+
+/**
+ * Asserts that a message's content is a plain string (not a ContentPart array).
+ * @param {Message} message
+ * @returns {string} The string content
+ */
+export function checkIsTextContent(message) {
+  if (typeof message.content !== "string") {
+    throw new Error(`Expected text content, got ${typeof message.content}`);
+  }
+  return message.content;
+}
 
 export class Goblin {
   /**
@@ -206,12 +219,31 @@ ${memory.trim() || "(empty)"}
             cancel?.signal ?? signal,
           );
           cancel?.signal?.throwIfAborted();
-          addMessage({
-            role: TOOL,
-            content: JSON.stringify(toolContent),
-            name,
-            tool_call_id: call.id,
-          });
+          if (toolContent.image) {
+            addMessage({
+              role: TOOL,
+              content: `Image file: ${args.path} (${toolContent.image.mime})`,
+              name,
+              tool_call_id: call.id,
+            });
+            /** @type {ContentPart[]} */
+            const parts = [
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:${toolContent.image.mime};base64,${toolContent.image.data}`,
+                },
+              },
+            ];
+            addMessage({ role: USER, content: parts });
+          } else {
+            addMessage({
+              role: TOOL,
+              content: JSON.stringify(toolContent),
+              name,
+              tool_call_id: call.id,
+            });
+          }
         } catch (e) {
           addMessage({
             role: TOOL,

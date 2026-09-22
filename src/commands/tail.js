@@ -1,4 +1,4 @@
-import { ASSISTANT, TOOL, USER } from "../index.js";
+import { ASSISTANT, checkIsTextContent, TOOL, USER } from "../index.js";
 
 /** @import {Message} from "../index.js" */
 /** @import {REPLContext} from "../repl.js" */
@@ -34,7 +34,7 @@ export default function tail(line, context) {
 
   for (const msg of selected) {
     if (msg.role === USER) {
-      context.logger.user(msg.content.trim());
+      context.logger.user(checkIsTextContent(msg).trim());
     } else if (msg.role === ASSISTANT) {
       context.logger.assistant(msg.content.trim());
     }

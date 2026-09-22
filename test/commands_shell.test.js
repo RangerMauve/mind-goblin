@@ -49,7 +49,8 @@ test("shell command: run handles stderr output", async (t) => {
   await commands.run("!echo oops 2>&1", context);
 
   assert.equal(context.messages.length, 3);
-  assert.match(context.messages[2].content, /oops/);
+  const toolMsg = /** @type {ToolMessage} */ (context.messages[2]);
+  assert.match(toolMsg.content, /oops/);
 });
 
 test("shell command: run with no output records placeholder", async (t) => {
@@ -59,7 +60,8 @@ test("shell command: run with no output records placeholder", async (t) => {
   await commands.run("!:", context);
 
   assert.equal(context.messages.length, 3);
-  assert.equal(context.messages[2].content, "(no output)");
+  const toolMsg = /** @type {ToolMessage} */ (context.messages[2]);
+  assert.equal(toolMsg.content, "(no output)");
 });
 
 test("shell command: tool_call_id is consistent across messages", async (t) => {
