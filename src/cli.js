@@ -15,6 +15,11 @@ program
   .option("--debug", "output extra debug info to inspect the train of thought")
   .option("--readonly", "refuse to use write or edit tools", conf.readonly)
   .option(
+    "--allow-local",
+    "auto-approve writes and edits to files in the current directory",
+    conf.allowLocal,
+  )
+  .option(
     "--no-agents-md",
     "don't load AGENTS.md into the system prompt",
     conf.agentsMd,

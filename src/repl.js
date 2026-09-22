@@ -42,10 +42,16 @@ export class REPLContext {
    * @param {object} [options]
    * @param {Logger} [options.logger]
    * @param {boolean} [options.showThinking]
+   * @param {boolean} [options.allowLocal]
    * @param {(() => CancelResource?)} [options.listenForCancel]
    */
   constructor(goblin, session, options = {}) {
-    const { logger = new Logger(), showThinking, listenForCancel } = options;
+    const {
+      logger = new Logger(),
+      showThinking,
+      allowLocal = false,
+      listenForCancel,
+    } = options;
     this.#goblin = goblin;
     this.#session = session;
     this.#logger = logger;
@@ -56,6 +62,7 @@ export class REPLContext {
           return this.#confirmRef.fn(prompt);
         },
         showThinking,
+        allowLocal,
         logger,
       }),
       ...(listenForCancel && { listenForCancel }),
@@ -147,7 +154,7 @@ export class REPLContext {
  * @param {boolean} [options.clear] Clear session before starting
  */
 export async function repl(options) {
-  const { showThinking, session, clear, ...goblinOpts } = {
+  const { showThinking, session, clear, allowLocal, ...goblinOpts } = {
     ...conf,
     ...options,
   };
@@ -158,6 +165,7 @@ export async function repl(options) {
 
   const context = new REPLContext(goblin, sessions.make(session), {
     showThinking,
+    allowLocal,
     listenForCancel: () => makeCancelSignalResource(input),
   });
   if (session && !clear) {

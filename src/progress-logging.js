@@ -2,17 +2,32 @@ import { diffLines } from "diff";
 import { check } from "./tools/shell_command.js";
 import { color, INFO, WARN } from "./ansi.js";
 import { Logger } from "./logger.js";
+import { isAbsolute, relative, resolve } from "node:path";
+
+/**
+ * Check whether a resolved path is within the given root directory.
+ * @param {string} filePath
+ * @param {string} root
+ * @returns {boolean}
+ */
+export function isWithinRoot(filePath, root) {
+  const resolved = resolve(filePath);
+  const rel = relative(root, resolved);
+  return !rel.startsWith("..") && !isAbsolute(rel);
+}
 
 /**
  * Create progress-logging callbacks for Goblin.crank.
  * @param {object} [opts]
  * @param {((prompt: string) => Promise<void>)} [opts.confirm] - interactive confirmation (e.g. REPL); if omitted, dangerous ops are allowed with a log line.
  * @param {boolean} [opts.showThinking] - also log thinking tokens.
+ * @param {boolean} [opts.allowLocal] - auto-approve writes/edits within cwd; still confirm for paths outside.
  * @param {Logger} [opts.logger] - logger instance; defaults to a new color Logger.
  */
 export function makeProgressLogging({
   confirm,
   showThinking,
+  allowLocal = false,
   logger = new Logger(),
 } = {}) {
   /** @param {string} message */
@@ -40,7 +55,9 @@ export function makeProgressLogging({
     },
     /** @param {{path: string, content: string}} args */
     async write_file(args) {
-      if (confirm) {
+      if (allowLocal && isWithinRoot(args.path, process.cwd())) {
+        logger.info(`Writing: ${args.path}`);
+      } else if (confirm) {
         await confirm(
           `Allow write to ${args.path}?\nContent:\n${args.content}`,
         );
@@ -50,7 +67,9 @@ export function makeProgressLogging({
     },
     /** @param {{path: string, old_text: string, new_text: string}} args */
     async edit_file(args) {
-      if (confirm) {
+      if (allowLocal && isWithinRoot(args.path, process.cwd())) {
+        logger.info(`Editing: ${args.path}`);
+      } else if (confirm) {
         await confirm(
           `Allow edit to ${args.path}?\n${renderDiff(args.old_text, args.new_text)}`,
         );
