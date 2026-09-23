@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
+import process from "node:process";
 
 import { SHELL_JOINERS } from "../tools/shell_command.js";
 import shellCommand from "../tools/shell_command.js";
@@ -50,8 +51,14 @@ export default async function shell(command, context, _commands, signal) {
   let output;
   try {
     const escaped = command.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    let scriptCmd = command;
+    if (process.platform === "darwin") {
+      scriptCmd = `script -q /dev/null /bin/sh -c "${escaped}"`;
+    } else if (process.platform === "linux") {
+      scriptCmd = `script -qec "${escaped}" /dev/null`;
+    }
     const { stdout: rawStdout, stderr: rawStderr } = await shellCommand(
-      { command: `script -qec "${escaped}" /dev/null` },
+      { command: scriptCmd },
       context.goblin,
       signal,
     );
