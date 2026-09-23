@@ -6,8 +6,9 @@ Your friendly internet enabled assistant.
 
 ## Features
 
-- **Tool Use**: 9 built-in tools: `get_current_time`, `read_clipboard`, `read`, `write_file`, `edit_file`, `fetch`, `search_web`, `sub_agent`, `shell_command`
+- **Tool Use**: 10 built-in tools: `get_current_time`, `read_clipboard`, `read`, `write_file`, `edit_file`, `fetch`, `search_web`, `sub_agent`, `shell_command`, `screenshot`
 - **Image Reading**: The `read` tool returns image data for image files on the filesystem, and `fetch` returns image data for image URLs, so the goblin can "see" images from both the local disk and the web
+- **Screenshots**: The `screenshot` tool captures the full screen via `grim` on Wayland, so the goblin can see what's on your display
 - **Session Persistence**: Save and resume conversations across runs
 - **Tab Completion**: File path autocomplete in the REPL
 - **Shell Passthrough**: Run shell commands directly from the REPL with a `!` prefix, recording them in the conversation as a tool call
@@ -42,8 +43,7 @@ Show a description of a specific command, or list all available commands if no n
 
 ## What should it do? (TODO)
 
-- look through the camera or the screen
-  - using mplayer on linux
+- look through the camera
 - query databases
   - postgres
   - neo4j

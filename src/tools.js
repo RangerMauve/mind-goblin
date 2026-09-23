@@ -40,6 +40,7 @@ export class Tools {
       tools.loadTool("search_web"),
       tools.loadTool("sub_agent"),
       tools.loadTool("shell_command"),
+      tools.loadTool("screenshot"),
       // tools.loadTool('desktop_notification')
     ]);
     return tools;
