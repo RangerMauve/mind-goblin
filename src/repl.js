@@ -198,8 +198,7 @@ export async function repl(options) {
         await context.crank();
       }
     } catch (e) {
-      if (e.name === "AbortError") continue;
-      throw e;
+      console.error(e.stack)
     }
     await context.save();
   }
