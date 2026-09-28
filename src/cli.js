@@ -7,12 +7,15 @@ import { Goblin } from "./index.js";
 import { repl } from "./repl.js";
 import { listen } from "./listen.js";
 import speakTool from "./tools/speak.js";
-import { conf } from "./utils.js";
+import { conf, resolveModel } from "./utils.js";
+
+/** @import {Config} from "./utils.js" */
 
 program
   .name("mind-goblin")
   .description("Your local ai assistant.")
   .option("--debug", "output extra debug info to inspect the train of thought")
+  .option("--model <name>", "Use a named model preset from config", "default")
   .option("--readonly", "refuse to use write or edit tools", conf.readonly)
   .option(
     "--allow-local",
@@ -37,6 +40,7 @@ program
      * @param {object} options Parsed commander options
      */
     async (prompt, file, options) => {
+      const opts = buildOptions(options);
       // Read the file up front; error if it doesn't exist.
       let content;
       try {
@@ -47,10 +51,7 @@ program
       const targetPath = path.resolve(file);
 
       // Fork a goblin that can only write/edit, so it can't wander off.
-      const goblin = await Goblin.fromOptions({
-        ...program.opts(),
-        ...options,
-      });
+      const goblin = await Goblin.fromOptions(opts);
       const writer = goblin.fork({ tools: ["write_file", "edit_file"] });
 
       // Track whether a write/edit actually happened, and keep edits on-target.
@@ -100,8 +101,9 @@ program
   .argument("[prompt]", "The task you wish for the assistant to complete")
   .argument("[file]")
   .option("--speak")
-  .action(async (prompt, file, { speak, ...options }) => {
-    const goblin = await Goblin.fromOptions({ ...program.opts(), ...options });
+  .action(async (prompt, file, options) => {
+    const { speak } = options;
+    const goblin = await Goblin.fromOptions(buildOptions(options));
     // TODO: Handle file
     const content = prompt || (await collect(process.stdin));
     const answer = await goblin.query(content);
@@ -121,7 +123,7 @@ program
     "--thinking-history",
     "Preserve thinking history. Increases context size but speeds up inference from better caching",
   )
-  .action(repl);
+  .action((opts) => repl(buildOptions(opts)));
 
 program
   .command("listen")
@@ -130,9 +132,20 @@ program
   .option("--clear", "Clear the session before starting")
   .option("--no-speak", "Don't speak responses, only log")
   .option("--show-thinking", "Speak thinking blocks")
-  .action(listen);
+  .action((opts) => listen(buildOptions(opts)));
 
 await program.parseAsync(process.argv);
+
+/**
+ * Merge config defaults, global CLI options, and command-specific options.
+ * Resolves the model preset into a config object.
+ * @param {object} cmdOpts Command-specific options from the action callback
+ * @returns {Config & {config: Config}}
+ */
+function buildOptions(cmdOpts) {
+  const { model, ...progOpts } = program.opts();
+  return { ...conf, ...progOpts, ...cmdOpts, config: resolveModel(model) };
+}
 
 /**
  * Collect all the data in a stream into a single blob of text.

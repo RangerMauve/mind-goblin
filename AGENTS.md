@@ -97,6 +97,8 @@ Register new commands by adding a `commands.load("name")` line in `src/commands.
 
 - Loaded via `rc("mindgoblin", defaults)` → reads `~/.mindgoblinrc` (ini format).
 - XDG paths for data/sessions: `~/.local/share/mindgoblin/`.
+- **Model presets.** The `models` key in config is a record of preset names → partial config overrides. Top-level params are auto-copied into `models.default` on load. The `--model <name>` CLI flag selects a preset via `resolveModel()` in `utils.js`. The resolved config is passed to `Goblin` as `config` and threaded to `chat()`.
+- **CLI → Goblin options flow.** `cli.js` has a `buildOptions()` helper that merges `conf` + `program.opts()` + command opts + resolved `config`. Command action handlers (`repl`, `listen`) receive this flat object — they do NOT import `program` or `conf` directly.
 
 ### Design
 
@@ -117,6 +119,7 @@ Register new commands by adding a `commands.load("name")` line in `src/commands.
 - No semicolons? **Wrong** — semicolons are used. Prettier handles formatting.
 - `import`/`export` (ESM), never `require`.
 - JSDoc on all exported functions/classes. `@ts-expect-error` sparingly.
+- **`@import` for cross-file types.** Use `/** @import {Type} from "./module.js" */` at the top of the file, then reference the bare name in JSDoc. Never use inline `import('./module.js').Type` in JSDoc annotations.
 - Private class fields use `#` (e.g. `#tools`, `#descriptions`).
 - Error messages are user-facing — keep them helpful but concise.
 
@@ -177,7 +180,7 @@ The logo lives in `logo.svg` (source of truth). To update it:
 ## Gotchas
 
 - There is **no build step**. Edit `.js` directly, run directly.
-- The `chat()` function in `utils.js` is the **only** point of LLM contact — all inference goes through it.
+- The `chat()` function in `utils.js` is the **only** point of LLM contact — all inference goes through it. It requires a `config` param (a resolved `Config` object) for model/server/api_key — never reads module-level constants.
 - `Goblin.crank()` mutates the `history` array in place (appends messages). `query()` wraps this for the common single-prompt case.
 - `fork()` increments `forkDepth` — sub-agents one level deep, and so on.
 - `shell_command.js` has a large allowlist for readonly mode. Commands with shell metacharacters (`|`, `;`, `&`, `${`) or redirection force confirmation even when individual parts are allowed.

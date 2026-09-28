@@ -54,6 +54,7 @@ Show a description of a specific command, or list all available commands if no n
 ### Global Options
 
 - `--debug`: Output extra debug info to inspect the train of thought
+- `--model <name>`: Use a named model preset from config (see Model Presets below). Defaults to `default`.
 - `--readonly`: Run with only read-only tools. Write tools (`write_file`, `edit_file`) and side-effect tools (`desktop_notification`, `speak`) are stripped. Shell commands are restricted to a safe allowlist. Sub-agents inherit readonly mode and can only further restrict tool access.
 - `--no-agents-md`: Don't load agent instruction files (`AGENTS.md`, `CLAUDE.md`, etc.) into the system prompt. Enabled by default.
 
@@ -127,6 +128,30 @@ These are passed through to the API as-is. Omit them to use the server's default
 - `presence_penalty`: Penalty for tokens that already appear in the prompt (e.g., `0.3`).
 - `stop`: Array of strings that stop generation when encountered (e.g., `["\n"]`).
 - `seed`: Fixed seed for reproducible output (e.g., `42`).
+
+**Model Presets:**
+
+Define named model presets in your config to switch between models with different settings. Top-level params are automatically available as the `default` preset.
+
+```json
+{
+  "model": "qwen3.5:4b",
+  "server": "http://localhost:11434/v1/",
+  "models": {
+    "fast": { "model": "qwen3.5:1b", "temperature": 0.3 },
+    "thinker": { "model": "qwen3.5:4b", "temperature": 0.9, "max_tokens": 8192 }
+  }
+}
+```
+
+Select a preset with the `--model` flag (defaults to `default`):
+
+```sh
+mind-goblin chat --model fast
+mind-goblin think --model thinker "Explain quantum computing"
+```
+
+Unknown preset names produce an error listing available models.
 
 It also uses XDG directories for storing data:
 

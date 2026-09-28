@@ -4,6 +4,9 @@ import { Agent } from "undici";
 import rc from "rc";
 import _xdg from "xdg-portable";
 
+/** @import {Message, AssistantMessage} from "./index.js" */
+/** @import {ToolDescription} from "./tools.js" */
+
 const xdg = /** @type {import('xdg-portable').XDG} */ (
   /** @type {unknown} */ (_xdg)
 );
@@ -30,6 +33,7 @@ const xdg = /** @type {import('xdg-portable').XDG} */ (
  * @property {boolean} [allowLocal] - When true, auto-approve writes/edits within cwd.
  * @property {boolean} [agentsMd] - When true (default), load AGENTS.md from the working directory into the system prompt.
  * @property {string} [memoryFile] - Path to the persistent memory file. Defaults to MEMORY.md in the data dir.
+ * @property {Record<string, Partial<Config>>} [models] - Named model presets. Top-level params are auto-copied into `models.default` on load.
  */
 
 export const APPNAME = "mindgoblin";
@@ -48,6 +52,15 @@ const DEFAULT_CONFIG = {
 
 // Load config from ~/.mindgoblinrc
 export const conf = /** @type {Config} */ (rc(APPNAME, DEFAULT_CONFIG));
+
+// Ensure models.default exists from top-level params
+if (!conf.models) conf.models = {};
+if (!conf.models.default) {
+  const rest = { ...conf };
+  delete rest.models;
+  conf.models.default = rest;
+}
+
 export const configDir = path.join(xdg.config(), APPNAME);
 export const dataDir = path.join(xdg.data(), APPNAME);
 export const sessionFolder = path.join(dataDir, "sessions");
@@ -66,10 +79,6 @@ export async function loadMemory(file) {
   }
 }
 
-// Apply config to constants
-const MODEL = conf.model;
-const SERVER = conf.server;
-const API_KEY = conf.api_key;
 const REQUEST_TIMEOUT = 30 * 60 * 1000;
 
 const agent = new Agent({
@@ -93,19 +102,34 @@ const SAMPLING_PARAMS = [
 
 /**
  * @param {object} options
- * @param {import('./index.js').Message[]} options.messages
- * @param {import('./tools.js').ToolDescription[]} options.tools
+ * @param {Message[]} options.messages
+ * @param {ToolDescription[]} options.tools
+ * @param {Config} options.config
  * @param {AbortSignal} [options.signal]
- * @returns {Promise<import('./index.js').AssistantMessage>}
+ * @returns {Promise<AssistantMessage>}
  */
-export async function chat({ messages = [], tools, signal }) {
+export async function chat({ messages = [], tools, signal, config }) {
   /** @type {Record<string, unknown>} */
-  const body = { model: MODEL, messages, tools };
-  for (const key of SAMPLING_PARAMS) body[key] = conf[key];
+  const body = { model: config.model, messages, tools };
+  for (const key of SAMPLING_PARAMS) body[key] = config[key];
 
-  const result = await postOpenAI("chat/completions", body, signal);
+  const result = await postOpenAI("chat/completions", body, config, signal);
 
   return result.choices[0].message;
+}
+
+/**
+ * Resolve a model preset name into a full config for API calls.
+ * @param {string} [name] - Preset name from conf.models. Defaults to "default".
+ * @returns {Config} The resolved config.
+ */
+export function resolveModel(name = "default") {
+  const preset = conf.models?.[name];
+  if (!preset) {
+    const available = Object.keys(conf.models ?? {}).join(", ") || "(none)";
+    throw new Error(`Unknown model "${name}". Available models: ${available}`);
+  }
+  return { ...conf, ...preset };
 }
 
 /**
@@ -140,17 +164,19 @@ export async function loadAgentsMd(dir = process.cwd()) {
  * Send data to OpenAI-compatible API
  * @param {string} path
  * @param {object} data
+ * @param {Config} config
  * @param {AbortSignal} [signal]
  * @returns
  */
-async function postOpenAI(path, data, signal) {
-  const url = (SERVER.endsWith("/") ? SERVER : SERVER + "/") + path;
+async function postOpenAI(path, data, config, signal) {
+  const server = config.server;
+  const url = (server.endsWith("/") ? server : server + "/") + path;
 
   const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: "Bearer " + API_KEY,
+      Authorization: "Bearer " + config.api_key,
     },
     body: JSON.stringify(data),
     signal,

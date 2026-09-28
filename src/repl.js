@@ -2,10 +2,8 @@ import readline from "node:readline/promises";
 import { emitKeypressEvents } from "node:readline";
 import { stdin as input, stdout as output } from "node:process";
 
-import { program } from "commander";
-
 import { Goblin, USER } from "./index.js";
-import { conf, sessionFolder } from "./utils.js";
+import { sessionFolder } from "./utils.js";
 import { makeCancelSignalResource } from "./cancel.js";
 import { makeConfirm } from "./confirm.js";
 import { Sessions } from "./sessions.js";
@@ -18,6 +16,18 @@ import { Logger } from "./logger.js";
 /** @import { Message } from "./index.js" */
 /** @import { Session } from "./sessions.js" */
 /** @import { CancelResource } from "./cancel.js" */
+/** @import { Config } from "./utils.js" */
+
+/**
+ * @typedef {Config & {
+ *   config: Config,
+ *   debug?: boolean,
+ *   showThinking?: boolean,
+ *   session?: string,
+ *   clear?: boolean,
+ *   thinkingHistory?: boolean,
+ * }} ReplOptions
+ */
 
 export class REPLContext {
   #goblin;
@@ -148,20 +158,15 @@ export class REPLContext {
 }
 
 /**
- * @param {object} options
- * @param {boolean} [options.showThinking]
- * @param {string} [options.session] Name of the session to resume/save
- * @param {boolean} [options.clear] Clear session before starting
+ * @param {ReplOptions} options
  */
 export async function repl(options) {
-  const { showThinking, session, clear, allowLocal, ...goblinOpts } = {
-    ...conf,
-    ...options,
-  };
+  const { showThinking, session, clear, allowLocal, config, ...goblinOpts } =
+    options;
   const sessions = new Sessions(sessionFolder);
   const commands = await Commands.default();
 
-  const goblin = await Goblin.fromOptions({ ...program.opts(), ...goblinOpts });
+  const goblin = await Goblin.fromOptions({ ...goblinOpts, config });
 
   const context = new REPLContext(goblin, sessions.make(session), {
     showThinking,
@@ -198,7 +203,7 @@ export async function repl(options) {
         await context.crank();
       }
     } catch (e) {
-      console.error(e.stack)
+      console.error(e.stack);
     }
     await context.save();
   }

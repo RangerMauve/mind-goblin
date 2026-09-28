@@ -6,15 +6,27 @@ import sherpa from "sherpa-onnx-node";
 
 import { Goblin, USER } from "./index.js";
 import { Sessions } from "./sessions.js";
-import { conf, dataDir, sessionFolder } from "./utils.js";
+import { dataDir, sessionFolder } from "./utils.js";
 import speakTool from "./tools/speak.js";
 import { Logger } from "./logger.js";
 import { makeProgressLogging } from "./progress-logging.js";
 
 /** @import {Message} from "./index.js" */
+/** @import {Config} from "./utils.js" */
 /** @typedef {import("sherpa-onnx-node").Vad} VadType */
 /** @typedef {import("sherpa-onnx-node").OfflineRecognizer} RecognizerType */
 /** @typedef {import("sherpa-onnx-node").LinearResampler} ResamplerType */
+
+/**
+ * @typedef {Config & {
+ *   config: Config,
+ *   debug?: boolean,
+ *   showThinking?: boolean,
+ *   session?: string,
+ *   clear?: boolean,
+ *   speak?: boolean,
+ * }} ListenOptions
+ */
 
 const TARGET_SAMPLE_RATE = 16000;
 const VAD_WINDOW_SIZE = 512; // 32ms at 16kHz
@@ -25,11 +37,8 @@ export const VAD_MODEL_URL = `${MODELS_BASE}/silero_vad.onnx`;
 export const ASR_MODEL_URL = `${MODELS_BASE}/sherpa-onnx-moonshine-tiny-en-int8.tar.bz2`;
 
 /**
- * @param {object} options
- * @param {string} [options.session] Session name
- * @param {boolean} [options.clear] Clear session before starting
- * @param {boolean} [options.speak] Speak responses aloud
- * @param {boolean} [options.showThinking] Speak thinking blocks
+/**
+ * @param {ListenOptions} options
  */
 export async function listen(options) {
   const {
@@ -37,11 +46,9 @@ export async function listen(options) {
     clear,
     speak: doSpeak = true,
     showThinking,
+    config,
     ...goblinOpts
-  } = {
-    ...conf,
-    ...options,
-  };
+  } = options;
 
   const logger = new Logger();
 
@@ -49,7 +56,7 @@ export async function listen(options) {
   const { vad, recognizer } = await initModels(logger);
 
   // 2. Setup goblin session
-  const goblin = await Goblin.fromOptions({ ...goblinOpts });
+  const goblin = await Goblin.fromOptions({ ...goblinOpts, config });
   const sessions = new Sessions(sessionFolder);
   const session_ = sessions.make(session);
   /** @type {Message[]} */

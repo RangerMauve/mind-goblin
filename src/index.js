@@ -1,8 +1,9 @@
 import { Tools } from "./tools.js";
-import { chat, loadAgentsMd, loadMemory } from "./utils.js";
+import { chat, conf, loadAgentsMd, loadMemory } from "./utils.js";
 
 /** @import {FunctionCall} from './tools.js' */
 /** @import {CancelResource} from './cancel.js' */
+/** @import {Config} from './utils.js' */
 
 /** @typedef {{type: 'text', text: string} | {type: 'image_url', image_url: {url: string, detail?: string}}} ContentPart */
 /** @typedef {{role: 'user', content: string | ContentPart[]}} UserMessage */
@@ -65,6 +66,7 @@ export class Goblin {
    * @param {boolean} [options.readonly] When true, write and edit tools are stripped.
    * @param {boolean} [options.agentsMd] When true (default), load AGENTS.md into the system prompt.
    * @param {string | null} [options.memoryFile] Path to the persistent memory file. Pass null (default) to disable.
+   * @param {Config} [options.config] Resolved model config for API calls. Defaults to the global conf.
    */
   constructor({
     tools = new Tools(),
@@ -75,6 +77,7 @@ export class Goblin {
     readonly = false,
     agentsMd = true,
     memoryFile = null,
+    config = conf,
   }) {
     if (readonly) {
       tools = tools.readonly();
@@ -89,6 +92,8 @@ export class Goblin {
     this.readonly = readonly;
     this.agentsMd = agentsMd;
     this.memoryFile = memoryFile;
+    /** @type {Config} */
+    this.config = config;
   }
 
   /**
@@ -99,6 +104,7 @@ export class Goblin {
    * @param {boolean} [options.readonly] Override readonly for the sub-agent
    * @param {boolean} [options.agentsMd] Override agentsMd for the sub-agent
    * @param {string | null} [options.memoryFile] Override memoryFile for the sub-agent
+   * @param {Config} [options.config] Override config for the sub-agent
    */
   fork({
     tools,
@@ -106,6 +112,7 @@ export class Goblin {
     readonly,
     agentsMd,
     memoryFile,
+    config,
   }) {
     const subTools = tools ? this.tools.subset(tools) : this.tools;
 
@@ -117,6 +124,7 @@ export class Goblin {
       readonly: readonly ?? this.readonly,
       agentsMd: agentsMd ?? this.agentsMd,
       memoryFile: memoryFile ?? this.memoryFile,
+      config: config ?? this.config,
     });
   }
 
@@ -171,6 +179,7 @@ ${memory.trim() || "(empty)"}
       messages,
       tools,
       signal: cancel?.signal ?? signal,
+      config: this.config,
     });
     if (this.debug) console.log(result);
 
@@ -261,6 +270,7 @@ ${memory.trim() || "(empty)"}
         messages,
         tools,
         signal: cancel?.signal ?? signal,
+        config: this.config,
       });
       if (this.debug) console.log(result);
     }
