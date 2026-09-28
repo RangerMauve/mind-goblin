@@ -5,6 +5,15 @@ export const description =
   "Fork the current history into a new session. Usage: /fork [name]";
 
 /**
+ * @param {string} prefix
+ * @param {REPLContext} context
+ */
+export async function complete(prefix, context) {
+  const sessions = await context.sessions();
+  return sessions.filter((s) => s.startsWith(prefix));
+}
+
+/**
  * @param {string} line
  * @param {REPLContext} context
  */

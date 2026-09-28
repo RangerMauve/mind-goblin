@@ -109,6 +109,14 @@ export class REPLContext {
   }
 
   /**
+   * List other session names in the current directory.
+   * @returns {Promise<string[]>}
+   */
+  async sessions() {
+    return this.#session.siblings();
+  }
+
+  /**
    * Save to the current session, switch to a new one, then save again so the new session file exists immediately.
    * @param {string} name New session name
    * @returns {Promise<string>} The new session name

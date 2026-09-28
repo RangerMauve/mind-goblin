@@ -35,6 +35,14 @@ export class Session {
   }
 
   /**
+   * List other session names in the current directory.
+   * @returns {Promise<string[]>}
+   */
+  async siblings() {
+    return this.#parent.list();
+  }
+
+  /**
    * @param {import('./index.js').Message[]} messages
    */
   async save(messages) {

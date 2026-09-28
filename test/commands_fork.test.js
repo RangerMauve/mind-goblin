@@ -1,5 +1,11 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { Goblin } from "../src/index.js";
+import { REPLContext } from "../src/repl.js";
+import { Sessions } from "../src/sessions.js";
 import { makeCommands, makeRecordingContext } from "./helpers.js";
 
 test("fork command: creates a new session with the given name", async (t) => {
@@ -44,4 +50,42 @@ test("fork command: empty name falls back to default", async (t) => {
 test("fork command: command is registered under /fork", async () => {
   const commands = await makeCommands("fork");
   assert.equal(commands.has("/fork"), true);
+});
+
+/**
+ * Build a REPLContext with a temp session folder containing the given session files.
+ * @param {import("node:test").TestContext} t
+ * @param {string[]} names Session names to create
+ */
+async function makeContextWithSessions(t, names) {
+  const dir = await mkdtemp(join(tmpdir(), "mg-fork-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const dirSlug = process.cwd().replaceAll("/", "__");
+  for (const name of names) {
+    await writeFile(join(dir, `${dirSlug}__${name}.session.json`), "[]");
+  }
+  const sessions = new Sessions(dir);
+  const session = sessions.make("default");
+  const goblin = new Goblin({});
+  return new REPLContext(goblin, session);
+}
+
+test("fork complete: returns all session names for empty prefix", async (t) => {
+  const commands = await makeCommands("fork");
+  const context = await makeContextWithSessions(t, [
+    "alpha",
+    "default",
+    "zeta",
+  ]);
+
+  const completions = await commands.complete("/fork", context);
+  assert.deepEqual(completions, ["/fork alpha", "/fork default", "/fork zeta"]);
+});
+
+test("fork complete: filters by prefix", async (t) => {
+  const commands = await makeCommands("fork");
+  const context = await makeContextWithSessions(t, ["foo", "foobar", "bar"]);
+
+  const completions = await commands.complete("/fork fo", context);
+  assert.deepEqual(completions, ["/fork foo", "/fork foobar"]);
 });
