@@ -96,6 +96,10 @@ Listen for voice commands via microphone and respond aloud.
 
 On first run, it downloads the Silero VAD and Moonshine Tiny English (int8) speech-to-text models into `~/.local/share/mindgoblin/models/`. Audio from the default input device is resampled to 16 kHz, segmented by VAD, transcribed, and sent to the goblin as a user message. New speech interrupts any in-progress response. Press Ctrl+C to stop.
 
+#### `mind-goblin sessions`
+
+List the names of all sessions for the current working directory. Sessions in subdirectories are excluded. Prints one name per line, or `No sessions found.` if there are none.
+
 ## Configuration
 
 Mind Goblin uses `rc` for configuration. It looks for `~/.mindgoblinrc` or the `MINDGOBLIN_CONF` environment variable.

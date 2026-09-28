@@ -7,7 +7,8 @@ import { Goblin } from "./index.js";
 import { repl } from "./repl.js";
 import { listen } from "./listen.js";
 import speakTool from "./tools/speak.js";
-import { conf, resolveModel } from "./utils.js";
+import { conf, resolveModel, sessionFolder } from "./utils.js";
+import { Sessions } from "./sessions.js";
 
 /** @import {Config} from "./utils.js" */
 
@@ -133,6 +134,21 @@ program
   .option("--no-speak", "Don't speak responses, only log")
   .option("--show-thinking", "Speak thinking blocks")
   .action((opts) => listen(buildOptions(opts)));
+
+program
+  .command("sessions")
+  .description("List sessions for the current directory")
+  .action(async () => {
+    const sessions = new Sessions(sessionFolder);
+    const names = await sessions.list();
+    if (names.length === 0) {
+      console.log("No sessions found.");
+      return;
+    }
+    for (const name of names) {
+      console.log(name);
+    }
+  });
 
 await program.parseAsync(process.argv);
 

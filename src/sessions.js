@@ -114,4 +114,25 @@ export class Sessions {
   async forget(slug) {
     await fs.unlink(this.#file(slug));
   }
+
+  /**
+   * List session names for the current working directory.
+   * @returns {Promise<string[]>} Sorted list of session names
+   */
+  async list() {
+    const dirPrefix = process.cwd().replaceAll(path.sep, SESSION_SEP);
+    const suffix = ".session.json";
+    let files;
+    try {
+      files = await fs.readdir(this.#sessionFolder);
+    } catch {
+      return [];
+    }
+    const prefix = dirPrefix + SESSION_SEP;
+    return files
+      .filter((f) => f.startsWith(prefix) && f.endsWith(suffix))
+      .map((f) => f.slice(prefix.length, -suffix.length))
+      .filter((name) => !name.includes(SESSION_SEP))
+      .sort();
+  }
 }
