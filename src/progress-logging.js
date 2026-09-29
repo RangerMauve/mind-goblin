@@ -39,6 +39,10 @@ export function makeProgressLogging({
   const beforeToolHandlers = {
     /** @param {{path: string}} args */
     read: (args) => logger.info(`Reading: ${args.path}`),
+    /** @param {{url: string}} args */
+    fetch: ({url}) => logger.info(`Fetch: ${url}`),
+    /** @param {{prompt: string}} args */
+    sub_agent: ({prompt}) => logger.info(`Sub Agent: ${prompt.split('.')[0].trim()}...`),
     /** @param {{command: string}} args */
     async shell_command(args) {
       let command = args.command;
