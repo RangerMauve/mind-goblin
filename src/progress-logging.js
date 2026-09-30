@@ -1,4 +1,5 @@
 import { diffLines } from "diff";
+import { readFile } from "node:fs/promises";
 import { check } from "./tools/shell_command.js";
 import { color, INFO, WARN } from "./ansi.js";
 import { Logger } from "./logger.js";
@@ -40,9 +41,10 @@ export function makeProgressLogging({
     /** @param {{path: string}} args */
     read: (args) => logger.info(`Reading: ${args.path}`),
     /** @param {{url: string}} args */
-    fetch: ({url}) => logger.info(`Fetch: ${url}`),
+    fetch: ({ url }) => logger.info(`Fetch: ${url}`),
     /** @param {{prompt: string}} args */
-    sub_agent: ({prompt}) => logger.info(`Sub Agent: ${prompt.split('.')[0].trim()}...`),
+    sub_agent: ({ prompt }) =>
+      logger.info(`Sub Agent: ${prompt.split(".")[0].trim()}...`),
     /** @param {{command: string}} args */
     async shell_command(args) {
       let command = args.command;
@@ -62,8 +64,18 @@ export function makeProgressLogging({
       if (allowLocal && isWithinRoot(args.path, process.cwd())) {
         logger.info(`Writing: ${args.path}`);
       } else if (confirm) {
+        let existing = null;
+        try {
+          existing = await readFile(args.path, "utf8");
+        } catch {
+          /* file does not exist */
+        }
+
+        const diff =
+          existing !== null ? renderDiff(existing, args.content) : undefined;
+
         await confirm(
-          `Allow write to ${args.path}?\nContent:\n${args.content}`,
+          `Allow write to ${args.path}?\n${diff ?? `Content:\n${args.content}`}`,
         );
       } else {
         logger.info(`Writing: ${args.path}`);
