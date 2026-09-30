@@ -118,6 +118,44 @@ describe("makeProgressLogging with allowLocal", () => {
     assert.ok(confirmCalled, "confirm should be called for edits outside cwd");
   });
 
+  test("condenses long unchanged runs in edit diffs", async () => {
+    let prompt = "";
+    /** @param {string} msg */
+    const confirm = async (msg) => {
+      prompt = msg;
+    };
+
+    const { onbeforetool } = makeProgressLogging({
+      confirm,
+      allowLocal: false,
+      logger: new Logger(),
+    });
+
+    const old = Array.from({ length: 10 }, (_, i) => `line ${i}`).join("\n");
+    const next = old.replace("line 9", "CHANGED");
+
+    await onbeforetool("edit_file", {
+      path: "/etc/somefile.txt",
+      old_text: old,
+      new_text: next,
+    });
+
+    // First and last three unchanged lines are kept...
+    for (const kept of [
+      "line 0",
+      "line 1",
+      "line 2",
+      "line 6",
+      "line 7",
+      "line 8",
+    ])
+      assert.ok(prompt.includes(kept), `expected ${kept} in diff`);
+    // ...the middle is elided with a marker.
+    assert.ok(prompt.includes("… 3 more lines"), "expected elision marker");
+    for (const elided of ["line 3", "line 4", "line 5"])
+      assert.ok(!prompt.includes(elided), `expected ${elided} to be elided`);
+  });
+
   test("calls confirm for all writes when allowLocal is false", async () => {
     let confirmCalled = 0;
     const confirm = async () => {

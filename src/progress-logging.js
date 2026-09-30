@@ -1,7 +1,7 @@
 import { diffLines } from "diff";
 import { readFile } from "node:fs/promises";
 import { check } from "./tools/shell_command.js";
-import { color, INFO, WARN } from "./ansi.js";
+import { color, INFO, QUIET, WARN } from "./ansi.js";
 import { Logger } from "./logger.js";
 import { isAbsolute, relative, resolve } from "node:path";
 
@@ -102,6 +102,7 @@ export function makeProgressLogging({
   async function onbeforetool(name, args) {
     const handler = beforeToolHandlers[name];
     if (handler) await handler(args);
+
     else logger.info(`Using tool: ${name}`);
   }
 
@@ -110,19 +111,29 @@ export function makeProgressLogging({
   return { onprogress, onbeforetool, onthinking };
 
   /**
-   * Render a line diff with color-coded prefixes.
+   * Render a line diff with color-coded prefixes. Unchanged runs longer than
+   * 7 lines are condensed to the first and last three, with the middle
+   * replaced by a muted elision marker.
    * @param {string} oldText
    * @param {string} newText
    */
   function renderDiff(oldText, newText) {
-    const changes = diffLines(oldText, newText);
     const lines = [];
-    for (const change of changes) {
+    for (const change of diffLines(oldText, newText)) {
       const parts = change.value.replace(/\n$/, "").split("\n");
-      for (const line of parts) {
-        if (change.removed) lines.push(color(WARN, `- ${line}`));
-        else if (change.added) lines.push(color(INFO, `+ ${line}`));
-        else lines.push(`  ${line}`);
+      if (change.added || change.removed) {
+        const code = change.added ? INFO : WARN;
+        const prefix = change.added ? "+ " : "- ";
+        for (const line of parts) lines.push(color(code, `${prefix}${line}`));
+      } else if (parts.length > 7) {
+        lines.push(...parts.slice(0, 3).map((l) => `  ${l}`));
+        const hidden = parts.length - 6;
+        lines.push(
+          color(QUIET, `  … ${hidden} more line${hidden === 1 ? "" : "s"}`),
+        );
+        lines.push(...parts.slice(-3).map((l) => `  ${l}`));
+      } else {
+        lines.push(...parts.map((l) => `  ${l}`));
       }
     }
     return lines.join("\n");
