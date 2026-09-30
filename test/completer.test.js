@@ -54,7 +54,10 @@ test("completes absolute paths", async (t) => {
   const completer = await makeTestCompleter();
   const prefix = path.join(dir, "al");
   const [matches, line] = await completer(prefix);
-  assert.ok(matches.includes(path.join(dir, "alpha.txt")), `expected alpha.txt, got ${JSON.stringify(matches)}`);
+  assert.ok(
+    matches.includes(path.join(dir, "alpha.txt")),
+    `expected alpha.txt, got ${JSON.stringify(matches)}`,
+  );
   assert.equal(line, prefix);
 });
 

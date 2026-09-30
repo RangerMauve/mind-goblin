@@ -46,7 +46,10 @@ export function makeCompleter(commands, context) {
       const lastSlash = lastPart.lastIndexOf("/");
       const base = isFolder
         ? ""
-        : (lastSlash >= 0 ? lastPart.slice(lastSlash + 1) : lastPart).toLowerCase();
+        : (lastSlash >= 0
+            ? lastPart.slice(lastSlash + 1)
+            : lastPart
+          ).toLowerCase();
 
       // Resolve the directory to list
       let dir;
@@ -57,7 +60,11 @@ export function makeCompleter(commands, context) {
           : lastPart.slice(1, lastSlash + 1);
         dir = home + sub;
       } else {
-        const dirPart = isFolder ? lastPart : (lastSlash >= 0 ? lastPart.slice(0, lastSlash + 1) : ".");
+        const dirPart = isFolder
+          ? lastPart
+          : lastSlash >= 0
+            ? lastPart.slice(0, lastSlash + 1)
+            : ".";
         dir = path.resolve(dirPart);
       }
 
