@@ -42,6 +42,7 @@ test("isAllowed allows allowed commands with extra args", () => {
   assert.ok(isAllowed("git status -s"));
   assert.ok(isAllowed("git diff HEAD~1"));
   assert.ok(isAllowed("npm ls react"));
+  assert.ok(isAllowed("npm view @scope/pkg version"));
 });
 
 test("hasDangerousPatterns detects joiners and substitution", () => {

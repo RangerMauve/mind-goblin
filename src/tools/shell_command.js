@@ -106,6 +106,7 @@ const ALLOWED_COMMANDS_LIST = [
   "npm run check",
   "npm ls",
   "npm show ",
+  "npm view ",
   "npm search ",
   // go
   "go mod verify",
