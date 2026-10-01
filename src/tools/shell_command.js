@@ -34,6 +34,7 @@ const ALLOWED_COMMANDS_LIST = [
   "grep ",
   "find ",
   "sort",
+  "jq ",
   "stat ",
   "df ",
   "ps ",
