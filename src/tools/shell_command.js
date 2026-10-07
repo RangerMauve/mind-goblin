@@ -45,6 +45,12 @@ const ALLOWED_COMMANDS_LIST = [
   "wc ",
   "which ",
   "sed -n ",
+  // exec wrappers (must be paired with an allowed inner command)
+  "xargs ",
+  "timeout ",
+  "time ",
+  "nice ",
+  "nohup ",
   // version checks
   "go version",
   "node --version",
@@ -263,6 +269,87 @@ export function stripQuotedArgs(command) {
 }
 
 /**
+ * Maps exec-wrapper command names to functions that extract the inner
+ * command from the argument list. Returns the inner command string, or
+ * null if no valid inner command can be identified.
+ * @type {Record<string, (args: string[]) => string | null>}
+ */
+const EXEC_WRAPPERS = {
+  xargs: (args) => {
+    for (let i = 0; i < args.length; i++) {
+      if (!args[i].startsWith("-")) return args.slice(i).join(" ");
+    }
+    return null;
+  },
+  timeout: (args) => {
+    let i = 0;
+    while (i < args.length && args[i].startsWith("--")) i++;
+    if (i < args.length && /^\d+[smhd]?$/.test(args[i])) i++;
+    return i < args.length ? args.slice(i).join(" ") : null;
+  },
+  time: (args) => {
+    for (let i = 0; i < args.length; i++) {
+      if (!args[i].startsWith("-")) return args.slice(i).join(" ");
+    }
+    return null;
+  },
+  nice: (args) => {
+    let i = 0;
+    while (i < args.length) {
+      if (args[i] === "--") {
+        i++;
+        break;
+      }
+      if (args[i] === "-n") {
+        i += 2;
+        continue;
+      }
+      if (/^-\d+$/.test(args[i])) {
+        i++;
+        continue;
+      }
+      if (args[i].startsWith("-")) {
+        i++;
+        continue;
+      }
+      break;
+    }
+    return i < args.length ? args.slice(i).join(" ") : null;
+  },
+  nohup: (args) => {
+    for (let i = 0; i < args.length; i++) {
+      if (!args[i].startsWith("-")) return args.slice(i).join(" ");
+    }
+    return null;
+  },
+};
+
+/**
+ * Check whether a subcommand that is an exec-wrapper has an allowed
+ * inner command. Returns true for non-wrappers. Returns false if the
+ * wrapper has no extractable inner command, or if the inner command
+ * is not on the allowlist.
+ * @param {string} command
+ * @returns {boolean}
+ */
+export function isWrapperSafe(command) {
+  const spaceIdx = command.indexOf(" ");
+  const cmd = spaceIdx === -1 ? command : command.slice(0, spaceIdx);
+  const extract = EXEC_WRAPPERS[cmd];
+  if (!extract) return true;
+  const args =
+    spaceIdx === -1
+      ? []
+      : command
+          .slice(spaceIdx + 1)
+          .split(/\s+/)
+          .filter(Boolean);
+  const inner = extract(args);
+  if (inner === null) return false;
+  return isAllowed(inner);
+}
+
+/**
  * Detect command substitution ($(...) or backticks) inside a
  * double-quoted string. Unlike single quotes, double quotes still
  * expand substitutions, so these would execute arbitrary commands.
@@ -313,9 +400,13 @@ export function check(command) {
     ? cleaned.split(SHELL_JOINERS).map((part) => part.trim())
     : [cleaned.trim()];
 
-  // Every part must be allowed, and find must not carry an action.
+  // Every part must be allowed, find must not carry an action, and
+  // exec-wrappers must have an allowed inner command.
   return !subcommands.every(
-    (subcommand) => isAllowed(subcommand) && !hasFindAction(subcommand),
+    (subcommand) =>
+      isAllowed(subcommand) &&
+      isWrapperSafe(subcommand) &&
+      !hasFindAction(subcommand),
   );
 }
 
