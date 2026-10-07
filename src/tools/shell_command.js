@@ -30,6 +30,7 @@ const ALLOWED_COMMANDS_LIST = [
   "uname",
   // File system and shell status
   "echo ",
+  "printf ",
   "head ",
   "tail ",
   "grep ",

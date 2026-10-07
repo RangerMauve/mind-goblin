@@ -57,6 +57,14 @@ test("check auto-allows the repro command", () => {
   assert.equal(check("ls && cat package.json | head -30"), false);
 });
 
+test("isAllowed allows printf", () => {
+  assert.ok(isAllowed("printf '%s\\n' hello"));
+});
+
+test("check auto-allows printf", () => {
+  assert.equal(check("printf 'hello\\n'"), false);
+});
+
 test("check auto-allows simple allowed commands", () => {
   assert.equal(check("ls"), false);
   assert.equal(check("pwd"), false);
