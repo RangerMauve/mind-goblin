@@ -42,10 +42,11 @@ export const parameters = { type: "object" };
 
 ### 4. Write the Core Function
 
-Export a `default` function. This function receives two arguments:
+Export a `default` function. This function receives three arguments:
 
 1.  `parameters`: The data passed by the user.
-2.  `agent`: An optional reference to the current running agent. Use this if you need to spawn sub-agents or tasks.
+2.  `context`: The session context (`Context` from `src/context.js`). Use `context.goblin` for agent access (e.g. `fork()`), `context.messages` for the conversation history, `context.goblin.readonly` for mode checks.
+3.  `signal`: An `AbortSignal` for cancellation. Pass it through to any async I/O.
 
 **Note**: The function can be `async` or sync. Use `async` when making network requests or I/O operations. Simple calculations can be sync.
 
@@ -54,13 +55,17 @@ Use JSDoc types to document the function for code editors and linters.
 Inside this function, perform your logic and return a result object.
 
 ```javascript
+/** @import { Context } from "../context.js" */
+
 /**
  * Calculates the square of a given number.
  * @param {object} parameters
  * @param {number} parameters.number The number to square
+ * @param {Context} context
+ * @param {AbortSignal} [signal]
  * @returns {Promise<{answer: number}>}
  */
-export default async function (parameters, agent) {
+export default async function (parameters, context, signal) {
   const { number } = parameters;
 
   // Perform calculation
@@ -70,7 +75,7 @@ export default async function (parameters, agent) {
 }
 ```
 
-**Sync example** (simple calculations):
+**Sync example** (simple calculations, context/signal unused):
 
 ```javascript
 export default function (parameters) {

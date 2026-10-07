@@ -33,12 +33,13 @@ When making code changes:
 ```
 src/
   index.js          Goblin class — the agentic loop (crank/query)
+  context.js        Context class — shared session state (goblin, messages, session)
   tools.js          Tools registry — loads, subsets, calls tools
   tools/            One file per tool (see "Tools" below)
   commands.js       Commands registry for REPL slash-commands
   commands/         One file per command (see "Commands" below)
   cli.js            CLI entry point (commander-based)
-  repl.js           Interactive REPL (node:readline)
+  repl.js           Interactive REPL (node:readline, REPLContext extends Context)
   cancel.js         Escape-key → AbortSignal resource
   utils.js          chat() API call, config loading (rc + XDG)
   sessions.js       Session persistence (JSONL in XDG data dir)
@@ -65,9 +66,9 @@ Each tool file exports:
 - `description` — shown to the LLM
 - `parameters` — JSON Schema object for tool args
 - `readonly` — boolean; `true` if safe in readonly mode
-- `default` — the tool function: `(parameters, agent, signal) => result`
+- `default` — the tool function: `(parameters, context, signal) => result`
 
-The `signal` parameter is an `AbortSignal` for cancellation. Always pass it through to any async operation (fetch, exec, etc.).
+The `context` parameter is a `Context` instance (from `src/context.js`) providing access to `context.goblin` (the agent, for `fork()` etc.), `context.messages` (conversation history), and `context.goblin.readonly`. The `signal` parameter is an `AbortSignal` for cancellation. Always pass it through to any async operation (fetch, exec, etc.).
 
 Register new tools by adding a `tools.loadTool("name")` line in `src/tools.js` → `Tools.default()`.
 
@@ -80,6 +81,18 @@ Each command file exports:
 - `complete` — `(prefix, context) => string[] | Promise<string[]>` (optional)
 
 Register new commands by adding a `commands.load("name")` line in `src/commands.js` → `Commands.default()`.
+
+### Context (`src/context.js`)
+
+The `Context` class is the shared session state passed to tools and commands. It holds:
+
+- `goblin` — the `Goblin` agent
+- `session` — persistence (nullable for ephemeral contexts)
+- `messages` — the conversation history array
+
+`REPLContext` (in `repl.js`) extends `Context` with terminal-specific features (logger, confirm, readline history).
+
+`Goblin.crank(messages, options)` accepts `options.context` — if provided, it's passed to tools. If omitted, a minimal `Context(this, null)` is created as a fallback. `Context.crank()` always passes itself.
 
 ### Cancellation
 
