@@ -4,6 +4,7 @@ import { Tools } from "../src/tools.js";
 import shellCommand from "../src/tools/shell_command.js";
 import { check } from "../src/tools/shell_command.js";
 import { makeGoblin } from "./helpers.js";
+import { Context } from "../src/context.js";
 
 test("Tools.readonly() returns a new Tools with only readonly-safe tools", async () => {
   const tools = await Tools.default();
@@ -85,33 +86,36 @@ test("fork: readonly override false on readonly parent still lacks stripped tool
 
 test("shell_command: readonly agent rejects non-allowlisted command", async () => {
   const g = await makeGoblin({ readonly: true });
+  const ctx = new Context(g, null);
   // `rm` is not on the allowlist
   assert.ok(check("rm -rf /"));
 
   await assert.rejects(
-    () => shellCommand({ command: "rm -rf /" }, g),
+    () => shellCommand({ command: "rm -rf /" }, ctx),
     /Rejected: read-only/,
   );
 });
 
 test("shell_command: readonly agent allows allowlisted command", async () => {
   const g = await makeGoblin({ readonly: true });
+  const ctx = new Context(g, null);
   // `ls` is on the allowlist
   assert.ok(!check("ls"));
 
-  const result = await shellCommand({ command: "ls" }, g);
+  const result = await shellCommand({ command: "ls" }, ctx);
   assert.equal(typeof result.stdout, "string");
 });
 
 test("shell_command: non-readonly agent runs any command", async () => {
   const g = await makeGoblin({ readonly: false });
+  const ctx = new Context(g, null);
   // `echo` with a pipe would normally be flagged, but non-readonly skips the check
-  const result = await shellCommand({ command: "echo hello" }, g);
+  const result = await shellCommand({ command: "echo hello" }, ctx);
   assert.equal(result.stdout.trim(), "hello");
 });
 
-test("shell_command: undefined agent does not reject", async () => {
-  // Simulates the case where no agent is passed (e.g. direct tool call)
+test("shell_command: undefined context does not reject", async () => {
+  // Simulates the case where no context is passed (e.g. direct tool call)
   const result = await shellCommand({ command: "echo hi" }, undefined);
   assert.equal(result.stdout.trim(), "hi");
 });
