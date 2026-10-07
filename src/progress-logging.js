@@ -102,7 +102,6 @@ export function makeProgressLogging({
   async function onbeforetool(name, args) {
     const handler = beforeToolHandlers[name];
     if (handler) await handler(args);
-
     else logger.info(`Using tool: ${name}`);
   }
 

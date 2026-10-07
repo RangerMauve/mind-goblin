@@ -1,3 +1,4 @@
+/** @import { Context } from "../context.js" */
 import { exec } from "child_process";
 import { promisify } from "util";
 
@@ -342,13 +343,13 @@ export { SHELL_JOINERS };
  * pass {@link check}; anything else is rejected.
  * @param {object} parameters
  * @param {string} parameters.command The shell command to execute
- * @param {Goblin | undefined} agent The agent invoking the tool
+ * @param {Context | undefined} context The context invoking the tool
  * @param {AbortSignal} [signal] Cancellation signal
  * @returns {Promise<{stdout: string, stderr?: string}>}
  */
-export default async function (parameters, agent, signal) {
+export default async function (parameters, context, signal) {
   const { command } = parameters;
-  if (agent?.readonly && check(command)) {
+  if (context?.goblin?.readonly && check(command)) {
     throw new Error(
       `Rejected: read-only agents may only run allowlisted commands, but "${command}" is not on the list.`,
     );

@@ -12,11 +12,11 @@ export const parameters = { type: "object" };
 /**
  * Take a screenshot of the full screen using grim.
  * @param {object} _parameters
- * @param {unknown} [_agent]
+ * @param {unknown} [_context]
  * @param {AbortSignal} [cancelSignal]
  * @returns {Promise<{image: {data: string, mime: string}}>}
  */
-export default async function screenshot(_parameters, _agent, cancelSignal) {
+export default async function screenshot(_parameters, _context, cancelSignal) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "grim-"));
   const file = path.join(dir, "shot.png");
   try {

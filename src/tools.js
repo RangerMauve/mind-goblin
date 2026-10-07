@@ -1,7 +1,8 @@
 /** @import { Goblin } from './index.js' */
+/** @import { Context } from './context.js' */
 
 /**
- * @typedef {(parameters: object, agent: Goblin, signal?: AbortSignal) => object} ToolFunction
+ * @typedef {(parameters: object, context: Context, signal?: AbortSignal) => object} ToolFunction
  */
 
 /**
@@ -41,6 +42,7 @@ export class Tools {
       tools.loadTool("sub_agent"),
       tools.loadTool("shell_command"),
       tools.loadTool("screenshot"),
+      tools.loadTool("prune"),
       // tools.loadTool('desktop_notification')
     ]);
     return tools;
@@ -133,19 +135,21 @@ export class Tools {
    * Call one of the tools with its parameters
    * @param {string} name
    * @param {object} parameters
-   * @param {Goblin} agent
+   * @param {Context} context
    * @param {AbortSignal} [signal]
    * @returns {Promise<any>}
    */
-  async call(name, parameters = {}, agent, signal) {
-    if (agent.debug) {
-      const depthTag = agent.forkDepth ? `(${agent.forkDepth})` : "";
+  async call(name, parameters = {}, context, signal) {
+    if (context.goblin?.debug) {
+      const depthTag = context.goblin.forkDepth
+        ? `(${context.goblin.forkDepth})`
+        : "";
       console.info("🛠️", +depthTag, name, parameters);
     }
     if (this.#tools.has(name)) {
       // @ts-expect-error Assume we have this tool
       const { fn } = this.#tools.get(name);
-      const response = await fn(parameters, agent, signal);
+      const response = await fn(parameters, context, signal);
       return response;
     } else {
       throw new Error(`Function "${name}" does not exist.

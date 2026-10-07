@@ -1,4 +1,4 @@
-/** @import { Goblin } from "../index.js" */
+/** @import { Context } from "../context.js" */
 
 export const name = "sub_agent";
 export const readonly = true;
@@ -41,17 +41,17 @@ export const parameters = {
  * @param {number} [parameters.maxIterations],
  * @param {string[]} [parameters.tools],
  * @param {boolean} [parameters.readonly],
- * @param {Goblin} agent
+ * @param {Context} context
  * @param {AbortSignal} [signal] Cancellation signal
  * @returns {Promise<{content: string}|{error: string}>}
  */
 export default async function subAgent(
   { prompt, maxIterations, tools, readonly = true },
-  agent,
+  context,
   signal,
 ) {
   try {
-    const sub = agent.fork({ maxIterations, tools, readonly });
+    const sub = context.goblin.fork({ maxIterations, tools, readonly });
 
     const content = await sub.query(prompt, { signal });
 

@@ -59,7 +59,7 @@ export default async function shell(command, context, _commands, signal) {
     }
     const { stdout: rawStdout, stderr: rawStderr } = await shellCommand(
       { command: scriptCmd },
-      context.goblin,
+      context,
       signal,
     );
     const stdout = rawStdout.replace(/\r/g, "");

@@ -12,6 +12,7 @@ import { Commands } from "./commands.js";
 import { makeProgressLogging } from "./progress-logging.js";
 import { playBell } from "./ansi.js";
 import { Logger } from "./logger.js";
+import { Context } from "./context.js";
 
 /** @import { Message } from "./index.js" */
 /** @import { Session } from "./sessions.js" */
@@ -29,16 +30,9 @@ import { Logger } from "./logger.js";
  * }} ReplOptions
  */
 
-export class REPLContext {
-  #goblin;
-  #session;
+export class REPLContext extends Context {
   /** @type {Logger} */
   #logger;
-
-  /**
-   * @type {Message[]}
-   */
-  #messages = [];
 
   /** @type {ReturnType<typeof makeProgressLogging> & {listenForCancel?: () => CancelResource?}} */
   #crankOptions;
@@ -48,7 +42,7 @@ export class REPLContext {
 
   /**
    * @param {Goblin} goblin
-   * @param {Session} session
+   * @param {import("./sessions.js").Session} session
    * @param {object} [options]
    * @param {Logger} [options.logger]
    * @param {boolean} [options.showThinking]
@@ -56,14 +50,13 @@ export class REPLContext {
    * @param {(() => CancelResource?)} [options.listenForCancel]
    */
   constructor(goblin, session, options = {}) {
+    super(goblin, session);
     const {
       logger = new Logger(),
       showThinking,
       allowLocal = false,
       listenForCancel,
     } = options;
-    this.#goblin = goblin;
-    this.#session = session;
     this.#logger = logger;
     this.#crankOptions = {
       ...makeProgressLogging({
@@ -79,20 +72,12 @@ export class REPLContext {
     };
   }
 
-  get goblin() {
-    return this.#goblin;
-  }
-
   get logger() {
     return this.#logger;
   }
 
-  get messages() {
-    return this.#messages;
-  }
-
   get history() {
-    const items = this.#messages.filter(({ role }) => role === USER);
+    const items = this.messages.filter(({ role }) => role === USER);
     const history = [];
     for (const { content } of items) {
       if (typeof content === "string") history.push(content);
@@ -101,31 +86,6 @@ export class REPLContext {
     history.reverse();
 
     return history;
-  }
-
-  /** @returns {string} */
-  get sessionName() {
-    return this.#session.name;
-  }
-
-  /**
-   * List other session names in the current directory.
-   * @returns {Promise<string[]>}
-   */
-  async sessions() {
-    return this.#session.siblings();
-  }
-
-  /**
-   * Save to the current session, switch to a new one, then save again so the new session file exists immediately.
-   * @param {string} name New session name
-   * @returns {Promise<string>} The new session name
-   */
-  async forkSession(name) {
-    await this.save();
-    this.#session = this.#session.fork(name);
-    await this.save();
-    return name;
   }
 
   /**
@@ -141,27 +101,10 @@ export class REPLContext {
    * @param {AbortSignal} [signal] Fallback cancellation signal
    */
   async crank(signal) {
-    await this.#goblin.crank(this.#messages, {
-      ...this.#crankOptions,
-      signal,
-    });
-    const response = this.#messages.at(-1);
-    // TODO: render formatted as markdown
+    const response = await super.crank(signal, this.#crankOptions);
     this.#logger.assistant(/** @type {string} */ (response?.content));
     playBell();
-  }
-
-  async save() {
-    await this.#session.save(this.#messages);
-  }
-
-  async load() {
-    this.#messages = await this.#session.load();
-  }
-
-  /** @param {Message[]} messages */
-  push(...messages) {
-    this.#messages.push(...messages);
+    return response;
   }
 }
 

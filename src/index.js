@@ -1,5 +1,6 @@
 import { Tools } from "./tools.js";
 import { chat, conf, loadAgentsMd, loadMemory } from "./utils.js";
+import { Context } from "./context.js";
 
 /** @import {FunctionCall} from './tools.js' */
 /** @import {CancelResource} from './cancel.js' */
@@ -132,6 +133,7 @@ export class Goblin {
    * Send a prompt to the agent and get a response. This triggers an agentic loop which can do tool calls.
    * @param {Message[]} history Conversation history. Have the user query be the last item, intermediate history items will be added in.
    * @param {object} [options]
+   * @param {import("./context.js").Context} [options.context] Session context passed to tools
    * @param {(message: string) => void|Promise<void>} [options.onprogress] Optional callback for progress on the task
    * @param {(name:string, args: object) => void|Promise<void>} [options.onbeforetool] Optional callback before each tool call. Throw to cancel the tool.
    * @param {(message: string) => void|Promise<void>} [options.onthinking] Optional callback for intermediate thinking steps
@@ -141,6 +143,7 @@ export class Goblin {
   async crank(
     history,
     {
+      context,
       onprogress,
       onbeforetool,
       onthinking,
@@ -148,6 +151,7 @@ export class Goblin {
       signal,
     } = {},
   ) {
+    const ctx = context ?? new Context(this, null);
     const messages = this.thinkingHistory ? history : history.slice();
 
     // Add in system prompt if it isn't set
@@ -224,7 +228,7 @@ ${memory.trim() || "(empty)"}
           const toolContent = await this.tools.call(
             name,
             args,
-            this,
+            ctx,
             cancel?.signal ?? signal,
           );
           cancel?.signal?.throwIfAborted();
@@ -284,12 +288,13 @@ ${memory.trim() || "(empty)"}
    * Send a prompt to the agent and get a response. This triggers an agentic loop which can do tool calls.
    * @param {string} prompt
    * @param {object} [options]
+   * @param {import("./context.js").Context} [options.context] Session context passed to tools
    * @param {(message: string) => void} [options.onprogress] Optional callback for progress on the task
    * @param {(name:string, args: object) => Promise<void>} [options.onbeforetool] Optional callback before each tool call. Throw to cancel the tool.
    * @param {(message: string) => void} [options.onthinking] Optional callback for intermediate thinking steps
-   * @param {() => CancelResource?} [options.listenForCancel] Optional function to listen on canellation during inference
+   * @param {() => CancelResource?} [options.listenForCancel] Optional function to listen on cancellation during inference
    * @param {AbortSignal} [options.signal] Cancellation signal
-   * @returns  {Promise<string>}
+   * @returns {Promise<string>}
    */
   async query(prompt, options = {}) {
     /** @type {Message[]} */
