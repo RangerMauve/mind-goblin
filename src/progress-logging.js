@@ -81,14 +81,15 @@ export function makeProgressLogging({
         logger.info(`Writing: ${args.path}`);
       }
     },
-    /** @param {{path: string, old_text: string, new_text: string}} args */
+    /** @param {{path: string, old_text: string, new_text: string, regex?: boolean, all?: boolean, caseInsensitive?: boolean}} args */
     async edit_file(args) {
       if (allowLocal && isWithinRoot(args.path, process.cwd())) {
         logger.info(`Editing: ${args.path}`);
       } else if (confirm) {
-        await confirm(
-          `Allow edit to ${args.path}?\n${renderDiff(args.old_text, args.new_text)}`,
-        );
+        const detail = args.regex
+          ? renderRegex(args.old_text, args.new_text, args)
+          : renderDiff(args.old_text, args.new_text);
+        await confirm(`Allow edit to ${args.path}?\n${detail}`);
       } else {
         logger.info(`Editing: ${args.path}`);
       }
@@ -136,5 +137,28 @@ export function makeProgressLogging({
       }
     }
     return lines.join("\n");
+  }
+
+  /**
+   * Render a regex edit as a plain "pattern → replacement" line for the
+   * confirm prompt, with any flags shown in muted parentheses. The pattern
+   * and replacement are highlighted so the raw text stands out.
+   * @param {string} pattern The regex pattern (old_text)
+   * @param {string} replacement The replacement (new_text)
+   * @param {{all?: boolean, caseInsensitive?: boolean}} opts
+   * @returns {string}
+   */
+  function renderRegex(pattern, replacement, opts) {
+    const flags = [
+      opts.all && "all",
+      opts.caseInsensitive && "case-insensitive",
+    ]
+      .filter(Boolean)
+      .join(", ");
+    const tail = flags ? `  ${color(QUIET, `(${flags})`)}` : "";
+    return `${color(INFO, pattern)}  ${color(QUIET, "→")}  ${color(
+      INFO,
+      replacement,
+    )}${tail}`;
   }
 }
