@@ -2,11 +2,13 @@ import { test } from "node:test";
 import { strict as assert } from "node:assert";
 import {
   check,
+  checkLine,
   hasDangerousPatterns,
   hasFindAction,
   hasQuotedCommandSubstitution,
   hasRedirectionOrSubstitution,
   isAllowed,
+  splitLines,
   stripQuotedArgs,
 } from "../src/tools/shell_command.js";
 
@@ -94,8 +96,52 @@ test("check rejects compounds with a disallowed part", () => {
   assert.ok(check("ls || rm -rf /"));
 });
 
-test("check rejects multi-line commands", () => {
+test("check rejects multi-line commands with a disallowed part", () => {
   assert.ok(check("ls\nrm -rf /"));
+});
+
+test("check allows multi-line commands where every line is allowed", () => {
+  assert.equal(check("ls\npwd\necho hello"), false);
+});
+
+test("check allows multi-line with blank lines between commands", () => {
+  assert.equal(check("ls\n\npwd"), false);
+});
+
+test("check allows multi-line with full-line comments", () => {
+  assert.equal(check("# list files\nls\n# show directory\npwd"), false);
+});
+
+test("check allows multi-line with compound expressions on one line", () => {
+  assert.equal(check("ls && pwd\necho done"), false);
+});
+
+test("check rejects multi-line with a disallowed line", () => {
+  assert.ok(check("ls\ncurl http://evil.example"));
+});
+
+test("check allows backslash continuation", () => {
+  assert.equal(check("ls \\\n  -la"), false);
+});
+
+test("check allows backslash continuation across multiple lines", () => {
+  assert.equal(check("echo \\\n  hello \\\n  world"), false);
+});
+
+test("check rejects backslash continuation to disallowed command", () => {
+  assert.ok(check("rm \\\n  -rf /"));
+});
+
+test("check allows CRLF line endings", () => {
+  assert.equal(check("ls\r\npwd"), false);
+});
+
+test("check allows empty string", () => {
+  assert.equal(check(""), false);
+});
+
+test("check allows only newlines and comments", () => {
+  assert.equal(check("\n\n# just a comment\n"), false);
 });
 
 test("check rejects empty subcommands from leading joiners", () => {
@@ -258,4 +304,84 @@ test("check allows cd to cwd combined with another allowed command", () => {
 test("check rejects cd to non-cwd path in compound", () => {
   assert.ok(check("cd /etc && ls"));
   assert.ok(check("ls && cd /etc"));
+});
+
+// --- splitLines ---
+
+test("splitLines: single line unchanged", () => {
+  assert.deepEqual(splitLines("ls -la"), ["ls -la"]);
+});
+
+test("splitLines: splits on newlines", () => {
+  assert.deepEqual(splitLines("ls\ncat foo.txt"), ["ls", "cat foo.txt"]);
+});
+
+test("splitLines: splits on CRLF", () => {
+  assert.deepEqual(splitLines("ls\r\npwd"), ["ls", "pwd"]);
+});
+
+test("splitLines: skips blank lines", () => {
+  assert.deepEqual(splitLines("ls\n\npwd\n"), ["ls", "pwd"]);
+});
+
+test("splitLines: skips full-line comments", () => {
+  assert.deepEqual(splitLines("# comment\nls\n  # indented\npwd"), [
+    "ls",
+    "pwd",
+  ]);
+});
+
+test("splitLines: merges backslash continuations", () => {
+  assert.deepEqual(splitLines("ls \\\n  -la"), ["ls    -la"]);
+});
+
+test("splitLines: multiple backslash continuations", () => {
+  assert.deepEqual(splitLines("echo \\\n  a \\\n  b"), ["echo    a    b"]);
+});
+
+test("splitLines: dangling backslash at end", () => {
+  assert.deepEqual(splitLines("ls \\"), ["ls  "]);
+});
+
+test("splitLines: comment inside continuation is part of the line", () => {
+  // In shell, a backslash continuation makes the next line a literal
+  // continuation — # is just an argument character, not a comment.
+  assert.deepEqual(splitLines("echo \\\n# note\n  hi"), [
+    "echo  # note",
+    "  hi",
+  ]);
+});
+
+// --- checkLine ---
+
+test("checkLine: allowed command", () => {
+  assert.equal(checkLine("ls -la"), false);
+});
+
+test("checkLine: disallowed command", () => {
+  assert.equal(checkLine("rm -rf /"), true);
+});
+
+test("checkLine: compound with all allowed", () => {
+  assert.equal(checkLine("ls && pwd"), false);
+});
+
+test("checkLine: compound with disallowed part", () => {
+  assert.equal(checkLine("ls && rm foo"), true);
+});
+
+test("checkLine: unterminated quote is not safe", () => {
+  assert.equal(checkLine("echo 'unterminated"), true);
+});
+
+test("checkLine: redirection is not safe", () => {
+  assert.equal(checkLine("ls > file"), true);
+});
+
+test("checkLine: find with -delete is not safe", () => {
+  assert.equal(checkLine("find . -name x -delete"), true);
+});
+
+test("checkLine: find without actions is safe", () => {
+  assert.equal(checkLine("find . -name *.js"), false);
 });

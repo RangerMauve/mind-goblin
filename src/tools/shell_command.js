@@ -363,21 +363,47 @@ export function hasQuotedCommandSubstitution(content) {
 }
 
 /**
- * Decide whether a shell command is safe to run without user
- * confirmation. Quoted argument spans are stripped first so
- * metacharacters inside them count as literal data; command
- * substitution inside double quotes still forces confirmation. Compound
- * expressions (joined with &&, ||, &, | or ;) are allowed only if every
- * subcommand is allowed and no find carries an action expression.
+ * Split a multiline command into logical lines. Handles backslash
+ * continuations (a trailing `\` merges the line with the next). Blank
+ * lines and full-line comments are skipped.
  * @param {string} command
+ * @returns {string[]}
+ */
+export function splitLines(command) {
+  const lines = [];
+  let current = "";
+  for (const rawLine of command.split(/\r\n|\n|\r/)) {
+    const trimmed = rawLine.trim();
+    // Skip blank lines and comments when starting a new logical line.
+    if (current === "" && (trimmed === "" || trimmed.startsWith("#"))) {
+      continue;
+    }
+    // Backslash continuation: strip the trailing backslash, add a space,
+    // and keep accumulating.
+    if (trimmed.endsWith("\\")) {
+      current += rawLine.trimEnd().slice(0, -1) + " ";
+    } else {
+      lines.push(current + rawLine);
+      current = "";
+    }
+  }
+  if (current !== "") lines.push(current);
+  return lines;
+}
+
+/**
+ * Check a single (already newline-free) shell command line for safety.
+ * Quoted argument spans are stripped first so metacharacters inside
+ * them count as literal data; command substitution inside double quotes
+ * still forces confirmation. Compound expressions (joined with &&, ||,
+ * &, | or ;) are allowed only if every subcommand is allowed and no
+ * find carries an action expression.
+ * @param {string} line
  * @returns {boolean}
  */
-export function check(command) {
-  // Newlines and carriage returns are shell command separators.
-  if (/\r|\n/.test(command)) return true;
-
+export function checkLine(line) {
   // Strip quoted spans so their metacharacters are treated as data.
-  const { stripped, doubleQuoted } = stripQuotedArgs(command.trim());
+  const { stripped, doubleQuoted } = stripQuotedArgs(line.trim());
   // Unterminated quoting can't be parsed safely.
   if (stripped === null) return true;
 
@@ -410,6 +436,20 @@ export function check(command) {
       isWrapperSafe(subcommand) &&
       !hasFindAction(subcommand),
   );
+}
+
+/**
+ * Decide whether a shell command is safe to run without user
+ * confirmation. Multiline commands are split into logical lines
+ * (handling backslash continuations, skipping blanks and comments) and
+ * each line is checked independently. If any line is not safe, the
+ * whole command requires confirmation.
+ * @param {string} command
+ * @returns {boolean}
+ */
+export function check(command) {
+  const lines = splitLines(command);
+  return lines.some((line) => checkLine(line));
 }
 
 export const name = "shell_command";
