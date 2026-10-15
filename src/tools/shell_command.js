@@ -1,5 +1,6 @@
 /** @import { Context } from "../context.js" */
 import { exec } from "child_process";
+import { resolve, sep } from "node:path";
 import { promisify } from "util";
 
 const execAsync = promisify(exec);
@@ -173,12 +174,25 @@ const SHELL_JOINERS = /\s*(?:&&|\|\||&|;|\|)\s*/g;
  * Check if a command matches an allowed command.
  * Entries match exactly or as a space-separated prefix, so
  * "ls " allows "ls" and "ls -la" but not "lsfoo".
+ * Special case: `cd` is allowed to the cwd or any subdirectory.
  * @param {string} command
  * @returns {boolean}
  */
 export function isAllowed(command) {
   const idx = command.indexOf(" ");
   const key = idx === -1 ? command : command.slice(0, idx);
+
+  // cd is allowed to cwd and its subdirectories (resolved to prevent
+  // ../ escapes).
+  if (key === "cd") {
+    const target = command.slice(idx === -1 ? command.length : idx + 1).trim();
+    if (!target) return false;
+    const resolved = resolve(target);
+    return (
+      resolved === process.cwd() || resolved.startsWith(process.cwd() + sep)
+    );
+  }
+
   const entries = ALLOWED_COMMANDS.get(key);
   if (!entries) return false;
   for (const cmd of entries) {

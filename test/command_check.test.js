@@ -292,8 +292,21 @@ test("isAllowed allows cd to current working directory", () => {
   assert.ok(isAllowed(`cd ${process.cwd()}`));
 });
 
+test("isAllowed allows cd to subdirectories", () => {
+  assert.ok(isAllowed(`cd ${process.cwd()}/src`));
+  assert.ok(isAllowed("cd src/tools"));
+  assert.ok(isAllowed("cd ."));
+});
+
 test("isAllowed rejects cd to other paths", () => {
   assert.equal(isAllowed("cd /somewhere/else"), false);
+  assert.equal(isAllowed("cd /etc"), false);
+  assert.equal(isAllowed("cd"), false);
+});
+
+test("isAllowed rejects cd with ../ escape", () => {
+  assert.equal(isAllowed("cd src/../.."), false);
+  assert.equal(isAllowed(`cd ${process.cwd()}/../other`), false);
 });
 
 test("check allows cd to cwd combined with another allowed command", () => {
