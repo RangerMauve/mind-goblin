@@ -104,6 +104,8 @@ const ALLOWED_COMMANDS_LIST = [
   // node / js
   "node --test",
   "npx node --test",
+  "node --test-only",
+  "npx node --test-only",
   "npx tsc ",
   "npx prettier ",
   "npx eslint ",
