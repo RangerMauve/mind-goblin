@@ -1,11 +1,12 @@
-/** @type {string} */
+// @ts-expect-error domino's types declare module 'domino', not the scoped package name
+import * as domino from "@mixmark-io/domino";
+
 export const name = "search_web";
 export const readonly = true;
 
-/** @type {string} */
-export const description = "Search the web using SearXNG.";
+export const description =
+  "Search the web. Returns a list of results, each with a title, url and abstract.";
 
-/** @type {object} */
 export const parameters = {
   type: "object",
   properties: {
@@ -13,59 +14,103 @@ export const parameters = {
       type: "string",
       description: "The search query",
     },
+    num: {
+      type: "number",
+      description: "Maximum number of results to return (default 10)",
+    },
   },
   required: ["query"],
 };
 
+const DDG_URL = "https://html.duckduckgo.com/html";
+
+const USER_AGENT =
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
 /**
- * @typedef {object} WikiResults
- * @property {WikiResult[]} [results]
+ * @typedef {object} DdgResult
+ * @property {string} title
+ * @property {string} url
+ * @property {string} abstract
  */
 
 /**
- * @typedef {object} WikiResult
- * @property {string} [title]
- * @property {string} [url]
- * @property {string} [content]
- * @property {string} [snippet]
+ * Parse a DuckDuckGo HTML result page into a list of results.
+ * @param {string} html The raw result page HTML
+ * @param {number} num Maximum number of results to return
+ * @returns {DdgResult[]}
  */
+export function parseResults(html, num) {
+  const doc = domino.createDocument(html, true);
+  const blocks = doc.querySelectorAll("div.links_main");
+  /** @type {DdgResult[]} */
+  const results = [];
+  for (const block of blocks) {
+    const a = block.querySelector(".result__title a");
+    if (!a) continue;
+    const title = (a.textContent ?? "").trim();
+    const url = a.getAttribute("href") ?? "";
+    const abstract = (
+      block.querySelector(".result__snippet")?.textContent ?? ""
+    ).trim();
+    results.push({ title, url, abstract });
+    if (results.length >= num) break;
+  }
+  return results;
+}
 
 /**
- * Search the web using SearXNG.
+ * Search the web using DuckDuckGo, mirroring ddgr's first-page request.
  * @param {object} parameters
  * @param {string} parameters.query - The search query
- * @returns {Promise<{results: Array<{title: string, url: string, content: string}>}|{error: string}>}
+ * @param {number} [parameters.num] - Max results to return (default 10)
+ * @param {unknown} [context]
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<{results: DdgResult[]}|{error: string}>}
  */
-export default async function searchWeb({ query }) {
-  const url = new URL("https://search.anoni.net/search");
-  url.searchParams.set("format", "json");
-  url.searchParams.set("q", query);
-
-  const response = await fetch(url.href, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ format: "json", q: query }),
+export default async function searchWeb({ query, num = 10 }, context, signal) {
+  const body = new URLSearchParams({
+    q: query,
+    b: "",
+    df: "",
+    kf: "-1",
+    kh: "1",
+    kl: "us-en",
+    // Disable safe search
+    kp: "-2",
+    k1: "-1",
   });
 
+  let response;
   try {
-    const data = /** @type {WikiResults} */ (
-      /** @type {unknown}*/ (await response.json())
-    );
-
-    if (!data.results || !Array.isArray(data.results)) {
-      return { error: "Invalid response format from SearXNG" };
-    }
-
-    const results = data.results.map((item) => ({
-      title: item.title || "No title",
-      url: item.url || "#",
-      content: item.content || item.snippet || "No description available",
-    }));
-
-    return { results };
+    response = await fetch(DDG_URL, {
+      method: "POST",
+      signal,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept-Encoding": "gzip",
+        "User-Agent": USER_AGENT,
+        DNT: "1",
+      },
+      body: body.toString(),
+    });
   } catch (e) {
-    return { error: "Failed to parse SearXNG response: " + e.message };
+    return { error: "Failed to reach DuckDuckGo: " + e.message };
   }
+
+  if (!response.ok) {
+    return { error: "DuckDuckGo returned HTTP " + response.status };
+  }
+
+  const html = await response.text();
+  const doc = domino.createDocument(html, true);
+
+  if (doc.querySelector("#challenge-form, .anomaly-modal")) {
+    return {
+      error:
+        "DuckDuckGo served a bot challenge. Try again later or from a different network.",
+    };
+  }
+
+  return { results: parseResults(html, num) };
 }
