@@ -88,3 +88,43 @@ test("search_web reports non-200 responses as an error", async () => {
   assert.ok("error" in result);
   assert.match(result.error, /503/);
 });
+
+test("search_web retries network errors and succeeds", async () => {
+  let calls = 0;
+  mockFetch(async () => {
+    calls++;
+    if (calls < 3) throw new Error("fetch failed");
+    return makeResponse({ body: FIXTURE });
+  });
+  const result = await searchWeb({ query: "cats" });
+  assert.equal(calls, 3);
+  assert.ok("results" in result);
+  assert.equal(result.results.length, 10);
+});
+
+test("search_web gives up after 3 retries on network errors", async () => {
+  let calls = 0;
+  mockFetch(async () => {
+    calls++;
+    throw new Error("fetch failed");
+  });
+  const result = await searchWeb({ query: "cats" });
+  assert.equal(calls, 4);
+  assert.ok("error" in result);
+  assert.match(result.error, /after 4 attempts/);
+  assert.match(result.error, /fetch failed/);
+});
+
+test("search_web does not retry an aborted request", async () => {
+  let calls = 0;
+  const ac = new AbortController();
+  ac.abort();
+  mockFetch(async () => {
+    calls++;
+    throw new Error("fetch failed");
+  });
+  const result = await searchWeb({ query: "cats" }, undefined, ac.signal);
+  assert.equal(calls, 1);
+  assert.ok("error" in result);
+  assert.match(result.error, /cancelled/);
+});

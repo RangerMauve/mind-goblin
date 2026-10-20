@@ -24,6 +24,18 @@ export const parameters = {
 
 const DDG_URL = "https://html.duckduckgo.com/html";
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 200;
+
+/**
+ * Sleep for the given number of milliseconds.
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 const USER_AGENT =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
@@ -81,21 +93,44 @@ export default async function searchWeb({ query, num = 10 }, context, signal) {
     k1: "-1",
   });
 
-  let response;
-  try {
-    response = await fetch(DDG_URL, {
-      method: "POST",
-      signal,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Accept-Encoding": "gzip",
-        "User-Agent": USER_AGENT,
-        DNT: "1",
-      },
-      body: body.toString(),
-    });
-  } catch (e) {
-    return { error: "Failed to reach DuckDuckGo: " + e.message };
+  /** @type {Response | null} */
+  let response = null;
+  let lastError;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      response = await fetch(DDG_URL, {
+        method: "POST",
+        signal,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Accept-Encoding": "gzip",
+          "User-Agent": USER_AGENT,
+          DNT: "1",
+        },
+        body: body.toString(),
+      });
+      break;
+    } catch (e) {
+      if (signal?.aborted) {
+        return { error: "Search cancelled" };
+      }
+      lastError = e;
+      // Check this before we sleep for next round
+      if (attempt >= MAX_RETRIES) {
+        break;
+      }
+      await sleep(RETRY_DELAY_MS);
+    }
+  }
+
+  if (!response) {
+    return {
+      error:
+        "Failed to reach DuckDuckGo after " +
+        (MAX_RETRIES + 1) +
+        " attempts: " +
+        lastError.message,
+    };
   }
 
   if (!response.ok) {
