@@ -42,6 +42,7 @@ export function makeProgressLogging({
     read: (args) => logger.info(`Reading: ${args.path}`),
     /** @param {{url: string}} args */
     fetch: ({ url }) => logger.info(`Fetch: ${url}`),
+    search_web: ({ query }) => logger.info(`Searching "${query}"`),
     /** @param {{prompt: string}} args */
     sub_agent: ({ prompt }) =>
       logger.info(`Sub Agent: ${prompt.split(".")[0].trim()}...`),
