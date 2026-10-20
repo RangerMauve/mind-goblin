@@ -56,6 +56,7 @@ Show a description of a specific command, or list all available commands if no n
 - `--debug`: Output extra debug info to inspect the train of thought
 - `--model <name>`: Use a named model preset from config (see Model Presets below). Defaults to `default`.
 - `--readonly`: Run with only read-only tools. Write tools (`write_file`, `edit_file`) and side-effect tools (`desktop_notification`, `speak`) are stripped. Shell commands are restricted to a safe allowlist. Sub-agents inherit readonly mode and can only further restrict tool access.
+- `--allow-all`: Allow all tools and writes without confirmation. This turns off the per-call confirm prompts (writes/edits anywhere, and dangerous shell commands) and forces `--readonly` off. Use with care — the goblin will act without asking.
 - `--no-agents-md`: Don't load agent instruction files (`AGENTS.md`, `CLAUDE.md`, etc.) into the system prompt. Enabled by default.
 
 ### Commands

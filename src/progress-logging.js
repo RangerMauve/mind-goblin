@@ -23,12 +23,14 @@ export function isWithinRoot(filePath, root) {
  * @param {((prompt: string) => Promise<void>)} [opts.confirm] - interactive confirmation (e.g. REPL); if omitted, dangerous ops are allowed with a log line.
  * @param {boolean} [opts.showThinking] - also log thinking tokens.
  * @param {boolean} [opts.allowLocal] - auto-approve writes/edits within cwd; still confirm for paths outside.
+ * @param {boolean} [opts.allowAll] - skip all confirmations, allowing any tool and any path.
  * @param {Logger} [opts.logger] - logger instance; defaults to a new color Logger.
  */
 export function makeProgressLogging({
   confirm,
   showThinking,
   allowLocal = false,
+  allowAll = false,
   logger = new Logger(),
 } = {}) {
   /** @param {string} message */
@@ -48,10 +50,12 @@ export function makeProgressLogging({
       logger.info(`Sub Agent: ${prompt.split(".")[0].trim()}...`),
     /** @param {{command: string}} args */
     async shell_command(args) {
-      let command = args.command;
+      const command = args.command;
       if (check(command)) {
-        // TODO: add verbal confirm for listen mode
-        if (confirm) {
+        if (allowAll) {
+          logger.info(`! (dangerous, auto-approved) ${command}`);
+        } else if (confirm) {
+          // TODO: add verbal confirm for listen mode
           await confirm(`${color(WARN, "! (dangerous)")}\n${command}`);
         } else {
           logger.warn(`! (dangerous) ${command}`);
@@ -62,7 +66,7 @@ export function makeProgressLogging({
     },
     /** @param {{path: string, content: string}} args */
     async write_file(args) {
-      if (allowLocal && isWithinRoot(args.path, process.cwd())) {
+      if (allowAll || (allowLocal && isWithinRoot(args.path, process.cwd()))) {
         logger.info(`Writing: ${args.path}`);
       } else if (confirm) {
         let existing = null;
@@ -84,7 +88,7 @@ export function makeProgressLogging({
     },
     /** @param {{path: string, old_text: string, new_text: string, regex?: boolean, all?: boolean, caseInsensitive?: boolean}} args */
     async edit_file(args) {
-      if (allowLocal && isWithinRoot(args.path, process.cwd())) {
+      if (allowAll || (allowLocal && isWithinRoot(args.path, process.cwd()))) {
         logger.info(`Editing: ${args.path}`);
       } else if (confirm) {
         const detail = args.regex

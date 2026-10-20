@@ -180,6 +180,89 @@ describe("makeProgressLogging with allowLocal", () => {
   });
 });
 
+describe("makeProgressLogging with allowAll", () => {
+  test("skips confirm for writes anywhere, including outside cwd", async () => {
+    let confirmCalled = false;
+    const confirm = async () => {
+      confirmCalled = true;
+    };
+
+    const { onbeforetool } = makeProgressLogging({
+      confirm,
+      allowAll: true,
+      logger: new Logger(),
+    });
+
+    await onbeforetool("write_file", {
+      path: "/etc/somefile.txt",
+      content: "hello",
+    });
+
+    assert.ok(!confirmCalled, "allowAll should skip confirm for any path");
+  });
+
+  test("skips confirm for edits anywhere", async () => {
+    let confirmCalled = false;
+    const confirm = async () => {
+      confirmCalled = true;
+    };
+
+    const { onbeforetool } = makeProgressLogging({
+      confirm,
+      allowAll: true,
+      logger: new Logger(),
+    });
+
+    await onbeforetool("edit_file", {
+      path: "/etc/somefile.txt",
+      old_text: "foo",
+      new_text: "bar",
+    });
+
+    assert.ok(!confirmCalled, "allowAll should skip confirm for edits");
+  });
+
+  test("skips confirm for dangerous shell commands", async () => {
+    let confirmCalled = false;
+    const confirm = async () => {
+      confirmCalled = true;
+    };
+
+    const { onbeforetool } = makeProgressLogging({
+      confirm,
+      allowAll: true,
+      logger: new Logger(),
+    });
+
+    await onbeforetool("shell_command", { command: "rm -rf /" });
+
+    assert.ok(
+      !confirmCalled,
+      "allowAll should skip confirm for dangerous commands",
+    );
+  });
+
+  test("still calls confirm when allowAll is false", async () => {
+    let confirmCalled = false;
+    const confirm = async () => {
+      confirmCalled = true;
+    };
+
+    const { onbeforetool } = makeProgressLogging({
+      confirm,
+      allowAll: false,
+      logger: new Logger(),
+    });
+
+    await onbeforetool("write_file", {
+      path: "/etc/somefile.txt",
+      content: "hello",
+    });
+
+    assert.ok(confirmCalled, "confirm should still fire without allowAll");
+  });
+});
+
 describe("regex edit confirm text", () => {
   /**
    * Run an edit_file pre-tool handler and capture the confirm prompt,

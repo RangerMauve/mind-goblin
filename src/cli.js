@@ -27,6 +27,11 @@ program
     "--no-agents-md",
     "don't load AGENTS.md into the system prompt",
     conf.agentsMd,
+  )
+  .option(
+    "--allow-all",
+    "allow all tools and writes without confirmation (forces --readonly off)",
+    conf.allowAll,
   );
 
 program
@@ -160,7 +165,15 @@ await program.parseAsync(process.argv);
  */
 function buildOptions(cmdOpts) {
   const { model, ...progOpts } = program.opts();
-  return { ...conf, ...progOpts, ...cmdOpts, config: resolveModel(model) };
+  const opts = {
+    ...conf,
+    ...progOpts,
+    ...cmdOpts,
+    config: resolveModel(model),
+  };
+  // allow-all implies full write access: never run readonly when it is set.
+  if (opts.allowAll) opts.readonly = false;
+  return opts;
 }
 
 /**

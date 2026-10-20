@@ -31,6 +31,7 @@ const xdg = /** @type {import('xdg-portable').XDG} */ (
  * @property {number} [seed] - Seed for reproducible sampling.
  * @property {boolean} [readonly] - When true, the goblin will not use write or edit tools.
  * @property {boolean} [allowLocal] - When true, auto-approve writes/edits within cwd.
+ * @property {boolean} [allowAll] - When true, allow all tools and writes without confirmation. Forces `readonly` off.
  * @property {boolean} [agentsMd] - When true (default), load AGENTS.md from the working directory into the system prompt.
  * @property {string} [memoryFile] - Path to the persistent memory file. Defaults to MEMORY.md in the data dir.
  * @property {Record<string, Partial<Config>>} [models] - Named model presets. Top-level params are auto-copied into `models.default` on load.
@@ -46,6 +47,7 @@ const DEFAULT_CONFIG = {
   api_key: process.env.OPENAI_API_KEY || "",
   readonly: false,
   allowLocal: false,
+  allowAll: false,
   agentsMd: true,
   memoryFile: path.join(xdg.data(), APPNAME, "MEMORY.md"),
 };

@@ -105,6 +105,7 @@ The `Context` class is the shared session state passed to tools and commands. It
 - `Goblin({ readonly: true })` filters tools to only those with `readonly = true`.
 - `shell_command` is marked readonly but self-restricts to an allowlist internally.
 - `Goblin.fork({ readonly })` can override for sub-agents.
+- **`--allow-all`.** A global CLI flag / `allowAll` config key. When true, `buildOptions()` forces `readonly` off (allow-all always implies full write access), and `makeProgressLogging({ allowAll })` skips every confirmation prompt — writes/edits anywhere and dangerous shell commands run without asking. It is threaded into the REPL via `REPLContext` options; `listen` mode has no interactive confirm so the flag only affects readonly there.
 
 ### Config
 

@@ -27,6 +27,7 @@ import { Context } from "./context.js";
  *   session?: string,
  *   clear?: boolean,
  *   thinkingHistory?: boolean,
+ *   allowAll?: boolean,
  * }} ReplOptions
  */
 
@@ -47,6 +48,7 @@ export class REPLContext extends Context {
    * @param {Logger} [options.logger]
    * @param {boolean} [options.showThinking]
    * @param {boolean} [options.allowLocal]
+   * @param {boolean} [options.allowAll]
    * @param {(() => CancelResource?)} [options.listenForCancel]
    */
   constructor(goblin, session, options = {}) {
@@ -55,6 +57,7 @@ export class REPLContext extends Context {
       logger = new Logger(),
       showThinking,
       allowLocal = false,
+      allowAll = false,
       listenForCancel,
     } = options;
     this.#logger = logger;
@@ -66,6 +69,7 @@ export class REPLContext extends Context {
         },
         showThinking,
         allowLocal,
+        allowAll,
         logger,
       }),
       ...(listenForCancel && { listenForCancel }),
@@ -112,8 +116,15 @@ export class REPLContext extends Context {
  * @param {ReplOptions} options
  */
 export async function repl(options) {
-  const { showThinking, session, clear, allowLocal, config, ...goblinOpts } =
-    options;
+  const {
+    showThinking,
+    session,
+    clear,
+    allowLocal,
+    allowAll,
+    config,
+    ...goblinOpts
+  } = options;
   const sessions = new Sessions(sessionFolder);
   const commands = await Commands.default();
 
@@ -122,6 +133,7 @@ export async function repl(options) {
   const context = new REPLContext(goblin, sessions.make(session), {
     showThinking,
     allowLocal,
+    allowAll,
     listenForCancel: () => makeCancelSignalResource(input),
   });
   if (session && !clear) {
