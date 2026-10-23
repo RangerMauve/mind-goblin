@@ -128,6 +128,7 @@ const ALLOWED_COMMANDS_LIST = [
   "go mod graph",
   // rust
   "cargo check ",
+  "cargo search ",
   "cargo metadata",
   "cargo tree ",
   // python / venv
