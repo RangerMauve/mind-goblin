@@ -48,12 +48,6 @@ const ALLOWED_COMMANDS_LIST = [
   "wc ",
   "which ",
   "sed -n ",
-  // exec wrappers (must be paired with an allowed inner command)
-  "xargs ",
-  "timeout ",
-  "time ",
-  "nice ",
-  "nohup ",
   // version checks
   "go version",
   "node --version",
@@ -289,84 +283,115 @@ export function stripQuotedArgs(command) {
 }
 
 /**
- * Maps exec-wrapper command names to functions that extract the inner
- * command from the argument list. Returns the inner command string, or
- * null if no valid inner command can be identified.
- * @type {Record<string, (args: string[]) => string | null>}
+ * Skip leading flag arguments and return the remainder as the inner
+ * command. Used by prefix commands whose own options all start with
+ * "-" (time, nohup, xargs). Returns null when no non-flag argument
+ * remains, i.e. the wrapper wraps nothing.
+ * @param {string[]} args
+ * @returns {string | null}
  */
-const EXEC_WRAPPERS = {
-  xargs: (args) => {
-    for (let i = 0; i < args.length; i++) {
-      if (!args[i].startsWith("-")) return args.slice(i).join(" ");
-    }
-    return null;
-  },
-  timeout: (args) => {
-    let i = 0;
-    while (i < args.length && args[i].startsWith("--")) i++;
-    if (i < args.length && /^\d+[smhd]?$/.test(args[i])) i++;
-    return i < args.length ? args.slice(i).join(" ") : null;
-  },
-  time: (args) => {
-    for (let i = 0; i < args.length; i++) {
-      if (!args[i].startsWith("-")) return args.slice(i).join(" ");
-    }
-    return null;
-  },
-  nice: (args) => {
-    let i = 0;
-    while (i < args.length) {
-      if (args[i] === "--") {
-        i++;
-        break;
-      }
-      if (args[i] === "-n") {
-        i += 2;
-        continue;
-      }
-      if (/^-\d+$/.test(args[i])) {
-        i++;
-        continue;
-      }
-      if (args[i].startsWith("-")) {
-        i++;
-        continue;
-      }
-      break;
-    }
-    return i < args.length ? args.slice(i).join(" ") : null;
-  },
-  nohup: (args) => {
-    for (let i = 0; i < args.length; i++) {
-      if (!args[i].startsWith("-")) return args.slice(i).join(" ");
-    }
-    return null;
-  },
-};
+function firstNonFlag(args) {
+  let i = 0;
+  while (i < args.length && args[i].startsWith("-")) i++;
+  return i < args.length ? args.slice(i).join(" ") : null;
+}
 
 /**
- * Check whether a subcommand that is an exec-wrapper has an allowed
- * inner command. Returns true for non-wrappers. Returns false if the
- * wrapper has no extractable inner command, or if the inner command
- * is not on the allowlist.
- * @param {string} command
- * @returns {boolean}
+ * Skip nice(1)'s own arguments: the `-n <num>` form, a bare `-<num>`
+ * priority, `--`, and any other leading flag. Returns the remainder as
+ * the inner command, or null when nothing is wrapped.
+ * @param {string[]} args
+ * @returns {string | null}
  */
-export function isWrapperSafe(command) {
-  const spaceIdx = command.indexOf(" ");
-  const cmd = spaceIdx === -1 ? command : command.slice(0, spaceIdx);
-  const extract = EXEC_WRAPPERS[cmd];
-  if (!extract) return true;
-  const args =
-    spaceIdx === -1
-      ? []
-      : command
-          .slice(spaceIdx + 1)
-          .split(/\s+/)
-          .filter(Boolean);
-  const inner = extract(args);
-  if (inner === null) return false;
-  return isAllowed(inner);
+function skipNiceFlags(args) {
+  let i = 0;
+  while (i < args.length) {
+    if (args[i] === "--") {
+      i++;
+      break;
+    }
+    if (args[i] === "-n") {
+      i += 2;
+      continue;
+    }
+    if (/^-\d+$/.test(args[i])) {
+      i++;
+      continue;
+    }
+    if (args[i].startsWith("-")) {
+      i++;
+      continue;
+    }
+    break;
+  }
+  return i < args.length ? args.slice(i).join(" ") : null;
+}
+
+/**
+ * Skip timeout(1)'s own arguments: any leading `--flag` (e.g.
+ * --signal, --kill-after) and the single duration operand (an integer
+ * or decimal number with an optional s/m/h/d suffix). Returns the
+ * remainder as the inner command, or null when nothing is wrapped.
+ * @param {string[]} args
+ * @returns {string | null}
+ */
+function skipTimeoutArgs(args) {
+  let i = 0;
+  while (i < args.length && args[i].startsWith("--")) i++;
+  if (i < args.length && /^\d+(\.\d+)?[smhd]?$/.test(args[i])) i++;
+  return i < args.length ? args.slice(i).join(" ") : null;
+}
+
+/**
+ * Registry of prefix (transparent) commands: commands whose safety is
+ * entirely that of the command they wrap. Each entry's `extract`
+ * consumes the wrapper's own flags/operands and returns the inner
+ * command string, or null when no inner command can be identified.
+ *
+ * To add a new transparent wrapper, add one entry here — it is then
+ * automatically unwrapped by {@link unwrap} before every safety check.
+ * @type {Record<string, { extract: (args: string[]) => string | null }>}
+ */
+const PREFIX_COMMANDS = {
+  timeout: { extract: skipTimeoutArgs },
+  time: { extract: firstNonFlag },
+  nice: { extract: skipNiceFlags },
+  nohup: { extract: firstNonFlag },
+  xargs: { extract: firstNonFlag },
+};
+
+const MAX_UNWRAP_DEPTH = 16;
+
+/**
+ * Unwrap a command through any prefix commands down to the innermost
+ * command. A prefix command (timeout, time, nice, nohup, xargs) has no
+ * safety of its own, so it is stripped of its own arguments and the
+ * search continues on the wrapped command. Returns the innermost
+ * command string, or null when a prefix command wraps nothing (which
+ * the caller treats as unsafe) or the unwrap depth is exceeded.
+ * @param {string} command
+ * @returns {string | null}
+ */
+export function unwrap(command) {
+  let current = command.trim();
+  for (let depth = 0; depth < MAX_UNWRAP_DEPTH; depth++) {
+    const spaceIdx = current.indexOf(" ");
+    const head = spaceIdx === -1 ? current : current.slice(0, spaceIdx);
+    const prefix = PREFIX_COMMANDS[head];
+    if (!prefix) return current;
+    const args =
+      spaceIdx === -1
+        ? []
+        : current
+            .slice(spaceIdx + 1)
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
+    const inner = prefix.extract(args);
+    if (inner === null) return null;
+    current = inner.trim();
+  }
+  return null;
 }
 
 /**
@@ -415,7 +440,10 @@ export function splitLines(command) {
  * them count as literal data; command substitution inside double quotes
  * still forces confirmation. Compound expressions (joined with &&, ||,
  * &, | or ;) are allowed only if every subcommand is allowed and no
- * find carries an action expression.
+ * find carries an action expression. Each subcommand is unwrapped
+ * through any prefix command (timeout, time, nice, nohup, xargs) to its
+ * innermost command before these checks, so a wrapper can't mask a
+ * dangerous command.
  * @param {string} line
  * @returns {boolean}
  */
@@ -446,14 +474,14 @@ export function checkLine(line) {
     ? cleaned.split(SHELL_JOINERS).map((part) => part.trim())
     : [cleaned.trim()];
 
-  // Every part must be allowed, find must not carry an action, and
-  // exec-wrappers must have an allowed inner command.
-  return !subcommands.every(
-    (subcommand) =>
-      isAllowed(subcommand) &&
-      isWrapperSafe(subcommand) &&
-      !hasFindAction(subcommand),
-  );
+  // Unwrap each part to its innermost command, then require it to be
+  // allowlisted and free of destructive find actions. Checking the
+  // unwrapped form means a wrapper (e.g. `timeout 10`) can't mask a
+  // dangerous inner command such as `find . -delete`.
+  return !subcommands.every((subcommand) => {
+    const inner = unwrap(subcommand);
+    return inner !== null && isAllowed(inner) && !hasFindAction(inner);
+  });
 }
 
 /**
