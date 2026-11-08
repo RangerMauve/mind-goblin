@@ -131,6 +131,7 @@ const ALLOWED_COMMANDS_LIST = [
   "cargo search ",
   "cargo metadata",
   "cargo tree ",
+  "cargo test ",
   // python / venv
   "pip list ",
   "pip show ",
