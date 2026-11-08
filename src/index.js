@@ -1,5 +1,11 @@
 import { Tools } from "./tools.js";
-import { chat, conf, loadAgentsMd, loadMemory } from "./utils.js";
+import {
+  chat,
+  conf,
+  // fetchContextWindow,
+  loadAgentsMd,
+  loadMemory,
+} from "./utils.js";
 import { Context } from "./context.js";
 
 /** @import {FunctionCall} from './tools.js' */
@@ -95,6 +101,8 @@ export class Goblin {
     this.memoryFile = memoryFile;
     /** @type {Config} */
     this.config = config;
+    this.contextWindow = -1;
+    this.pruneWarned = false;
   }
 
   /**
@@ -179,7 +187,7 @@ ${memory.trim() || "(empty)"}
 
     using cancel = listenForCancel();
 
-    let result = await chat({
+    let { message: result } = await chat({
       messages,
       tools,
       signal: cancel?.signal ?? signal,
@@ -270,12 +278,13 @@ ${memory.trim() || "(empty)"}
       using cancel = listenForCancel();
 
       // if(this.debug) console.log(messages)
-      result = await chat({
+      let { message } = await chat({
         messages,
         tools,
         signal: cancel?.signal ?? signal,
         config: this.config,
       });
+      result = message;
       if (this.debug) console.log(result);
     }
 

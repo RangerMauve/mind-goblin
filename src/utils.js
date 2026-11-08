@@ -7,6 +7,16 @@ import _xdg from "xdg-portable";
 /** @import {Message, AssistantMessage} from "./index.js" */
 /** @import {ToolDescription} from "./tools.js" */
 
+/**
+ * @typedef {object} InferenceResponse
+ * @property {AssistantMessage} message
+ * @property {InferenceUsage} usage
+ */
+
+/**
+ * @typedef {object} InferenceUsage
+ */
+
 const xdg = /** @type {import('xdg-portable').XDG} */ (
   /** @type {unknown} */ (_xdg)
 );
@@ -108,7 +118,7 @@ const SAMPLING_PARAMS = [
  * @param {ToolDescription[]} options.tools
  * @param {Config} options.config
  * @param {AbortSignal} [options.signal]
- * @returns {Promise<AssistantMessage>}
+ * @returns {Promise<InferenceResponse>}
  */
 export async function chat({ messages = [], tools, signal, config }) {
   /** @type {Record<string, unknown>} */
@@ -117,7 +127,25 @@ export async function chat({ messages = [], tools, signal, config }) {
 
   const result = await postOpenAI("chat/completions", body, config, signal);
 
-  return result.choices[0].message;
+  return { message: result.choices[0].message, usage: result.usage };
+}
+
+/**
+ * Fetch the context window size from a llama-server /props endpoint.
+ * @param {Config} config
+ * @returns {Promise<number>} The context window size in tokens, or -1 if unavailable.
+ */
+export async function fetchContextWindow(config) {
+  try {
+    const base = config.server.replace(/\/v1\/?$/, "");
+    const res = await fetch(base + "/props");
+    if (!res.ok) return -1;
+    /** @type {Record<string, any>} */
+    const data = await res.json();
+    return data.default_generation_settings?.n_ctx ?? -1;
+  } catch {
+    return -1;
+  }
 }
 
 /**
