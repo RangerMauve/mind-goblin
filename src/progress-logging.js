@@ -66,7 +66,9 @@ export function makeProgressLogging({
           logger.info(`! (dangerous, auto-approved) ${command}`);
         } else if (confirm) {
           // TODO: add verbal confirm for listen mode
-          await confirm(`${color(WARN, "! (dangerous)")}\n${command}`);
+          await confirm(
+            `${color(WARN, "! (dangerous)")}\n${args.summary}\n${command}`,
+          );
         } else {
           logger.warn(`! (dangerous) ${command}`);
         }
@@ -90,7 +92,7 @@ export function makeProgressLogging({
           existing !== null ? renderDiff(existing, args.content) : undefined;
 
         await confirm(
-          `Allow write to ${args.path}?\n${diff ?? `Content:\n${args.content}`}`,
+          `Allow write to ${args.path} — ${args.summary}?\n${diff ?? `Content:\n${args.content}`}`,
         );
       } else {
         logger.info(`Writing: ${args.path} — ${args.summary}`);
@@ -104,7 +106,9 @@ export function makeProgressLogging({
         const detail = args.regex
           ? renderRegex(args.old_text, args.new_text, args)
           : renderDiff(args.old_text, args.new_text);
-        await confirm(`Allow edit to ${args.path}?\n${detail}`);
+        await confirm(
+          `Allow edit to ${args.path} — ${args.summary}?\n${detail}`,
+        );
       } else {
         logger.info(`Editing: ${args.path} — ${args.summary}`);
       }
