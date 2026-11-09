@@ -58,7 +58,7 @@ export function makeProgressLogging({
         parts.length ? `Pruning: ${parts.join(" ")}` : "Pruning previous turn",
       );
     },
-    /** @param {{command: string}} args */
+    /** @param {{command: string, summary: string}} args */
     async shell_command(args) {
       const command = args.command;
       if (check(command)) {
@@ -71,13 +71,13 @@ export function makeProgressLogging({
           logger.warn(`! (dangerous) ${command}`);
         }
       } else {
-        logger.info(`!${command}`);
+        logger.info(args.summary);
       }
     },
-    /** @param {{path: string, content: string}} args */
+    /** @param {{path: string, content: string, summary: string}} args */
     async write_file(args) {
       if (allowAll || (allowLocal && isWithinRoot(args.path, process.cwd()))) {
-        logger.info(`Writing: ${args.path}`);
+        logger.info(`Writing: ${args.path} — ${args.summary}`);
       } else if (confirm) {
         let existing = null;
         try {
@@ -93,20 +93,20 @@ export function makeProgressLogging({
           `Allow write to ${args.path}?\n${diff ?? `Content:\n${args.content}`}`,
         );
       } else {
-        logger.info(`Writing: ${args.path}`);
+        logger.info(`Writing: ${args.path} — ${args.summary}`);
       }
     },
-    /** @param {{path: string, old_text: string, new_text: string, regex?: boolean, all?: boolean, caseInsensitive?: boolean}} args */
+    /** @param {{path: string, old_text: string, new_text: string, summary: string, regex?: boolean, all?: boolean, caseInsensitive?: boolean}} args */
     async edit_file(args) {
       if (allowAll || (allowLocal && isWithinRoot(args.path, process.cwd()))) {
-        logger.info(`Editing: ${args.path}`);
+        logger.info(`Editing: ${args.path} — ${args.summary}`);
       } else if (confirm) {
         const detail = args.regex
           ? renderRegex(args.old_text, args.new_text, args)
           : renderDiff(args.old_text, args.new_text);
         await confirm(`Allow edit to ${args.path}?\n${detail}`);
       } else {
-        logger.info(`Editing: ${args.path}`);
+        logger.info(`Editing: ${args.path} — ${args.summary}`);
       }
     },
   };

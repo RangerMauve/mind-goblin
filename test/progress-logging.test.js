@@ -51,6 +51,7 @@ describe("makeProgressLogging with allowLocal", () => {
     await onbeforetool("write_file", {
       path: "./testfile.txt",
       content: "hello",
+      summary: "create test file",
     });
 
     assert.ok(!confirmCalled, "confirm should not be called for local writes");
@@ -72,6 +73,7 @@ describe("makeProgressLogging with allowLocal", () => {
       path: "./src/index.js",
       old_text: "foo",
       new_text: "bar",
+      summary: "rename variable",
     });
 
     assert.ok(!confirmCalled, "confirm should not be called for local edits");
@@ -92,6 +94,7 @@ describe("makeProgressLogging with allowLocal", () => {
     await onbeforetool("write_file", {
       path: "/etc/somefile.txt",
       content: "hello",
+      summary: "overwrite system file",
     });
 
     assert.ok(confirmCalled, "confirm should be called for writes outside cwd");
@@ -113,6 +116,7 @@ describe("makeProgressLogging with allowLocal", () => {
       path: "/etc/somefile.txt",
       old_text: "foo",
       new_text: "bar",
+      summary: "edit system file",
     });
 
     assert.ok(confirmCalled, "confirm should be called for edits outside cwd");
@@ -138,6 +142,7 @@ describe("makeProgressLogging with allowLocal", () => {
       path: "/etc/somefile.txt",
       old_text: old,
       new_text: next,
+      summary: "condense test",
     });
 
     // First and last three unchanged lines are kept...
@@ -171,6 +176,7 @@ describe("makeProgressLogging with allowLocal", () => {
     await onbeforetool("write_file", {
       path: "./testfile.txt",
       content: "hello",
+      summary: "write local file",
     });
 
     assert.ok(
@@ -196,6 +202,7 @@ describe("makeProgressLogging with allowAll", () => {
     await onbeforetool("write_file", {
       path: "/etc/somefile.txt",
       content: "hello",
+      summary: "write anywhere",
     });
 
     assert.ok(!confirmCalled, "allowAll should skip confirm for any path");
@@ -217,6 +224,7 @@ describe("makeProgressLogging with allowAll", () => {
       path: "/etc/somefile.txt",
       old_text: "foo",
       new_text: "bar",
+      summary: "edit anywhere",
     });
 
     assert.ok(!confirmCalled, "allowAll should skip confirm for edits");
@@ -234,7 +242,10 @@ describe("makeProgressLogging with allowAll", () => {
       logger: new Logger(),
     });
 
-    await onbeforetool("shell_command", { command: "rm -rf /" });
+    await onbeforetool("shell_command", {
+      command: "rm -rf /",
+      summary: "delete everything",
+    });
 
     assert.ok(
       !confirmCalled,
@@ -257,6 +268,7 @@ describe("makeProgressLogging with allowAll", () => {
     await onbeforetool("write_file", {
       path: "/etc/somefile.txt",
       content: "hello",
+      summary: "confirm write test",
     });
 
     assert.ok(confirmCalled, "confirm should still fire without allowAll");
@@ -271,6 +283,7 @@ describe("prune logging", () => {
    */
   async function capturePruneLog(args) {
     let line = "";
+    /** @type {any} */
     const logger = {
       /** @param {string} msg */
       info: (msg) => {
@@ -331,6 +344,7 @@ describe("regex edit confirm text", () => {
       new_text: "newName",
       regex: true,
       all: true,
+      summary: "rename variable",
     });
     assert.ok(!prompt.includes("sed"), "should not use sed syntax");
     assert.ok(prompt.includes("\\boldName\\b"));
@@ -345,6 +359,7 @@ describe("regex edit confirm text", () => {
       old_text: "c.t",
       new_text: "dog",
       regex: true,
+      summary: "replace pattern",
     });
     assert.ok(prompt.includes("c.t"));
     assert.ok(prompt.includes("→"));
@@ -361,6 +376,7 @@ describe("regex edit confirm text", () => {
       regex: true,
       all: true,
       caseInsensitive: true,
+      summary: "case-insensitive replace",
     });
     assert.ok(prompt.includes("(all, case-insensitive)"));
   });
@@ -371,6 +387,7 @@ describe("regex edit confirm text", () => {
       old_text: "a/b",
       new_text: "c",
       regex: true,
+      summary: "replace slash pattern",
     });
     assert.ok(!prompt.includes("sed"));
     assert.ok(prompt.includes("a/b"));
@@ -383,9 +400,81 @@ describe("regex edit confirm text", () => {
       path: "/etc/somefile.txt",
       old_text: "foo",
       new_text: "bar",
+      summary: "swap text",
     });
     assert.ok(!prompt.includes("→"));
     assert.ok(prompt.includes("- foo"));
     assert.ok(prompt.includes("+ bar"));
+  });
+});
+
+describe("summary logging", () => {
+  /**
+   * Run a pre-tool handler and capture the info log line.
+   * @param {string} name
+   * @param {object} args
+   * @param {object} [opts]
+   * @returns {Promise<string>}
+   */
+  async function captureLog(name, args, opts = {}) {
+    let line = "";
+    /** @type {any} */
+    const logger = {
+      /** @param {string} msg */
+      info: (msg) => {
+        line = msg;
+      },
+      /** @param {string} msg */
+      warn: (msg) => {
+        line = msg;
+      },
+    };
+    const { onbeforetool } = makeProgressLogging({ logger, ...opts });
+    await onbeforetool(name, args);
+    return line;
+  }
+
+  test("safe shell command logs only the summary", async () => {
+    const line = await captureLog("shell_command", {
+      command: "ls -la",
+      summary: "list files",
+    });
+    assert.equal(line, "list files");
+  });
+
+  test("write_file logs path and summary with em-dash", async () => {
+    const line = await captureLog(
+      "write_file",
+      {
+        path: "./config.json",
+        content: "{}",
+        summary: "update defaults",
+      },
+      { allowLocal: true },
+    );
+    assert.equal(line, "Writing: ./config.json — update defaults");
+  });
+
+  test("edit_file logs path and summary with em-dash", async () => {
+    const line = await captureLog(
+      "edit_file",
+      {
+        path: "./src/app.js",
+        old_text: "foo",
+        new_text: "bar",
+        summary: "rename variable",
+      },
+      { allowLocal: true },
+    );
+    assert.equal(line, "Editing: ./src/app.js — rename variable");
+  });
+
+  test("dangerous shell command does not log only summary", async () => {
+    const line = await captureLog("shell_command", {
+      command: "rm -rf /tmp/test",
+      summary: "delete test dir",
+    });
+    assert.ok(line.includes("rm -rf /tmp/test"));
+    assert.ok(!line.includes("delete test dir") || line !== "delete test dir");
   });
 });

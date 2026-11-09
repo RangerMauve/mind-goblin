@@ -509,8 +509,13 @@ export const parameters = {
       type: "string",
       description: "The shell command to execute.",
     },
+    summary: {
+      type: "string",
+      description:
+        "A very short summary of what this command does, e.g. 'list test files'.",
+    },
   },
-  required: ["command"],
+  required: ["command", "summary"],
 };
 
 export { SHELL_JOINERS };

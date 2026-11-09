@@ -6,7 +6,7 @@ export const readonly = false;
 export const description = "Write content to a file given its path.";
 export const parameters = {
   type: "object",
-  required: ["path", "content"],
+  required: ["path", "content", "summary"],
   properties: {
     path: {
       type: "string",
@@ -15,6 +15,11 @@ export const parameters = {
     content: {
       type: "string",
       description: "The content to write to the file",
+    },
+    summary: {
+      type: "string",
+      description:
+        "A very short summary of what this write does, e.g. 'update the config defaults'.",
     },
   },
 };

@@ -7,8 +7,13 @@ export const description =
 
 export const parameters = {
   type: "object",
-  required: ["path", "old_text", "new_text"],
+  required: ["path", "old_text", "new_text", "summary"],
   properties: {
+    summary: {
+      type: "string",
+      description:
+        "A very short summary of what this edit does, e.g. 'remove unused import'.",
+    },
     path: {
       type: "string",
       description: "The absolute or relative path to the file",
