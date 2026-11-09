@@ -263,6 +263,45 @@ describe("makeProgressLogging with allowAll", () => {
   });
 });
 
+describe("prune logging", () => {
+  /**
+   * Run a prune pre-tool handler and capture the info log line.
+   * @param {object} args
+   * @returns {Promise<string>}
+   */
+  async function capturePruneLog(args) {
+    let line = "";
+    const logger = {
+      /** @param {string} msg */
+      info: (msg) => {
+        line = msg;
+      },
+    };
+    const { onbeforetool } = makeProgressLogging({ logger });
+    await onbeforetool("prune", args);
+    return line;
+  }
+
+  test("logs 'previous turn' when no args are given", async () => {
+    const line = await capturePruneLog({});
+    assert.equal(line, "Pruning previous turn");
+  });
+
+  test("logs each provided filter", async () => {
+    const line = await capturePruneLog({
+      role: "tool",
+      matches: "foo",
+      limit: 5,
+    });
+    assert.equal(line, "Pruning: role=tool /foo/ limit=5");
+  });
+
+  test("logs only the role when it is the sole arg", async () => {
+    const line = await capturePruneLog({ role: "assistant" });
+    assert.equal(line, "Pruning: role=assistant");
+  });
+});
+
 describe("regex edit confirm text", () => {
   /**
    * Run an edit_file pre-tool handler and capture the confirm prompt,

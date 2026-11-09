@@ -48,6 +48,16 @@ export function makeProgressLogging({
     /** @param {{prompt: string}} args */
     sub_agent: ({ prompt }) =>
       logger.info(`Sub Agent: ${prompt.split(".")[0].trim()}...`),
+    /** @param {{role?: string, matches?: string, limit?: number}} args */
+    prune(args) {
+      const parts = [];
+      if (args.role) parts.push(`role=${args.role}`);
+      if (args.matches) parts.push(`/${args.matches}/`);
+      if (args.limit !== undefined) parts.push(`limit=${args.limit}`);
+      logger.info(
+        parts.length ? `Pruning: ${parts.join(" ")}` : "Pruning previous turn",
+      );
+    },
     /** @param {{command: string}} args */
     async shell_command(args) {
       const command = args.command;
