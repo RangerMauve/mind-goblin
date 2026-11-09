@@ -60,20 +60,20 @@ export function makeProgressLogging({
     },
     /** @param {{command: string, summary: string}} args */
     async shell_command(args) {
-      const command = args.command;
+      const { command, summary } = args;
       if (check(command)) {
         if (allowAll) {
-          logger.info(`! (dangerous, auto-approved) ${command}`);
+          logger.info(`! (dangerous, auto-approved) ${summary} - ${command}`);
         } else if (confirm) {
           // TODO: add verbal confirm for listen mode
           await confirm(
-            `${color(WARN, "! (dangerous)")}\n${args.summary}\n${command}`,
+            `${color(WARN, "! (dangerous)")} ${summary}\n${command}`,
           );
         } else {
-          logger.warn(`! (dangerous) ${command}`);
+          logger.warn(`! (dangerous) ${summary} - ${command}`);
         }
       } else {
-        logger.info(args.summary);
+        logger.info(`Shell: ${summary}`);
       }
     },
     /** @param {{path: string, content: string, summary: string}} args */

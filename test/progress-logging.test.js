@@ -439,7 +439,7 @@ describe("summary logging", () => {
       command: "ls -la",
       summary: "list files",
     });
-    assert.equal(line, "list files");
+    assert.equal(line, "Shell: list files");
   });
 
   test("write_file logs path and summary with em-dash", async () => {
