@@ -161,6 +161,8 @@ export async function repl(options) {
       if (commands.has(content)) {
         using cancel = makeCancelSignalResource(input);
         await commands.run(content, context, cancel.signal);
+      } else if (content.trimStart().startsWith("/")) {
+        context.logger.warn(`Unknown command: ${content.trim()}. Try /help`);
       } else {
         context.messages.push({ role: USER, content });
         await context.crank();
