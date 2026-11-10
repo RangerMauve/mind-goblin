@@ -4,8 +4,7 @@ import path from "node:path";
 import { program } from "commander";
 
 import { Goblin } from "./index.js";
-import { repl } from "./repl.js";
-import { listen } from "./listen.js";
+
 import speakTool from "./tools/speak.js";
 import { conf, resolveModel, sessionFolder } from "./utils.js";
 import { Sessions } from "./sessions.js";
@@ -129,7 +128,10 @@ program
     "--thinking-history",
     "Preserve thinking history. Increases context size but speeds up inference from better caching",
   )
-  .action((opts) => repl(buildOptions(opts)));
+  .action(async (opts) => {
+    const { repl } = await import("./repl.js");
+    await repl(buildOptions(opts));
+  });
 
 program
   .command("listen")
@@ -138,7 +140,10 @@ program
   .option("--clear", "Clear the session before starting")
   .option("--no-speak", "Don't speak responses, only log")
   .option("--show-thinking", "Speak thinking blocks")
-  .action((opts) => listen(buildOptions(opts)));
+  .action(async (opts) => {
+    const { listen } = await import("./listen.js");
+    await listen(buildOptions(opts));
+  });
 
 program
   .command("sessions")

@@ -1,11 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Agent } from "undici";
+
 import rc from "rc";
 import _xdg from "xdg-portable";
 
 /** @import {Message, AssistantMessage} from "./index.js" */
 /** @import {ToolDescription} from "./tools.js" */
+/** @import {Agent} from "undici" */
 
 const xdg = /** @type {import('xdg-portable').XDG} */ (
   /** @type {unknown} */ (_xdg)
@@ -83,11 +84,19 @@ export async function loadMemory(file) {
 
 const REQUEST_TIMEOUT = 30 * 60 * 1000;
 
-const agent = new Agent({
-  connect: { timeout: REQUEST_TIMEOUT },
-  headersTimeout: REQUEST_TIMEOUT,
-  bodyTimeout: REQUEST_TIMEOUT,
-});
+/** @type {Agent | null} */
+let agent = null;
+async function loadAgent() {
+  if (!agent) {
+    const { Agent } = await import("undici");
+    agent = new Agent({
+      connect: { timeout: REQUEST_TIMEOUT },
+      headersTimeout: REQUEST_TIMEOUT,
+      bodyTimeout: REQUEST_TIMEOUT,
+    });
+  }
+  return agent;
+}
 
 // Sampling params pulled from config; undefined values are dropped by JSON.stringify
 /** @type {(keyof Config)[]} */
@@ -183,7 +192,7 @@ async function postOpenAI(path, data, config, signal) {
     body: JSON.stringify(data),
     signal,
     // @ts-expect-error This is a non standard property from nodejs
-    dispatcher: agent,
+    dispatcher: await loadAgent(),
   });
 
   if (!response.ok) {
