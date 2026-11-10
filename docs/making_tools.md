@@ -50,6 +50,17 @@ Export a `default` function. This function receives three arguments:
 
 **Note**: The function can be `async` or sync. Use `async` when making network requests or I/O operations. Simple calculations can be sync.
 
+**Dynamic imports for heavy dependencies.** If your tool needs a third-party package with significant load time (e.g. `execa`, `node-notifier`, `turndown`, `@mixmark-io/domino`, `clipboard-sys`), import it dynamically inside the function rather than at the top of the file. This keeps CLI startup fast — these imports add 100–600ms each when static.
+
+```javascript
+export default async function speak({ message }, _context, signal) {
+  const { execa } = await import("execa");
+  await execa({ cancelSignal: signal })`spd-say --wait ${message}`;
+}
+```
+
+Builtin `node:*` modules and tiny pure-JS deps (e.g. `striptags`) are fine as static top-level imports.
+
 Use JSDoc types to document the function for code editors and linters.
 
 Inside this function, perform your logic and return a result object.

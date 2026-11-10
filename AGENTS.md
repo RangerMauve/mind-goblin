@@ -134,6 +134,7 @@ The `Context` class is the shared session state passed to tools and commands. It
 - `import`/`export` (ESM), never `require`.
 - JSDoc on all exported functions/classes. `@ts-expect-error` sparingly.
 - **`@import` for cross-file types.** Use `/** @import {Type} from "./module.js" */` at the top of the file, then reference the bare name in JSDoc. Never use inline `import('./module.js').Type` in JSDoc annotations.
+- **Dynamic imports for heavy deps.** Third-party packages with significant load time (e.g. `execa`, `undici`, `node-notifier`, `turndown`, `@mixmark-io/domino`, `clipboard-sys`) should be imported dynamically inside the function that uses them, not at module top level. This keeps CLI startup fast. Builtin `node:*` modules and tiny pure-JS deps (e.g. `striptags`) are fine as static imports.
 - Private class fields use `#` (e.g. `#tools`, `#descriptions`).
 - Error messages are user-facing — keep them helpful but concise.
 
