@@ -122,6 +122,7 @@ const ALLOWED_COMMANDS_LIST = [
   "go mod graph",
   // rust
   "cargo check ",
+  "cargo clippy",
   "cargo search ",
   "cargo metadata",
   "cargo tree ",
