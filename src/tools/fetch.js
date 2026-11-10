@@ -1,5 +1,3 @@
-import TurndownService from "turndown";
-
 export const name = "fetch";
 export const readonly = true;
 
@@ -17,9 +15,17 @@ export const parameters = {
   required: ["url"],
 };
 
-const turndownService = new TurndownService({ headingStyle: "atx" });
-turndownService.remove("script");
-turndownService.remove("style");
+/** @type {any} */
+let turndownService = null;
+async function getService() {
+  if (!turndownService) {
+    const TurndownService = (await import("turndown")).default;
+    turndownService = new TurndownService({ headingStyle: "atx" });
+    turndownService.remove("script");
+    turndownService.remove("style");
+  }
+  return turndownService;
+}
 
 /** @type {Record<string, string>} */
 const IMAGE_MIME = {
@@ -54,7 +60,8 @@ export default async function fetchUrl({ url }) {
     const text = await response.text();
 
     if (contentType.includes("text/html")) {
-      return { text: turndownService.turndown(text) };
+      const service = await getService();
+      return { text: service.turndown(text) };
     }
     return { text };
   } catch (error) {

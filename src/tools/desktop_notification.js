@@ -1,5 +1,3 @@
-import notifier from "node-notifier";
-
 export const readonly = false;
 export const name = "desktop_notification";
 export const description =
@@ -22,6 +20,7 @@ export const parameters = {
  */
 export default async function notify({ message }) {
   // TODO: Allow title/icon?
+  const notifier = (await import("node-notifier")).default;
   await new Promise((resolve, reject) => {
     notifier.notify(
       {

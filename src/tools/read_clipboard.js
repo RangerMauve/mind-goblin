@@ -1,6 +1,3 @@
-import { clipboard } from "clipboard-sys";
-import { execa } from "execa";
-
 export const name = "read_clipboard";
 export const readonly = true;
 export const description =
@@ -25,8 +22,10 @@ export default async function readClipboard() {
  */
 async function read() {
   if (isWayland) {
+    const { execa } = await import("execa");
     const { stdout } = await execa`wl-paste --no-newline`;
     return stdout;
   }
+  const { clipboard } = await import("clipboard-sys");
   return clipboard.readText();
 }

@@ -1,5 +1,3 @@
-import { execa } from "execa";
-
 export const readonly = false;
 export const name = "speak";
 export const description = "Speak a message out loud through the speaker.";
@@ -21,6 +19,7 @@ export const parameters = {
  * @param {AbortSignal} [cancelSignal]
  */
 export default async function speak({ message }, _goblin, cancelSignal) {
+  const { execa } = await import("execa");
   await execa`spd-say --cancel`;
   await execa({
     cancelSignal,

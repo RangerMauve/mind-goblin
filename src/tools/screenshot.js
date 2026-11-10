@@ -1,4 +1,3 @@
-import { execa } from "execa";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -17,6 +16,7 @@ export const parameters = { type: "object" };
  * @returns {Promise<{image: {data: string, mime: string}}>}
  */
 export default async function screenshot(_parameters, _context, cancelSignal) {
+  const { execa } = await import("execa");
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "grim-"));
   const file = path.join(dir, "shot.png");
   try {

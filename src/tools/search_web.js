@@ -1,6 +1,3 @@
-// @ts-expect-error domino's types declare module 'domino', not the scoped package name
-import * as domino from "@mixmark-io/domino";
-
 export const name = "search_web";
 export const readonly = true;
 
@@ -48,11 +45,12 @@ const USER_AGENT =
 
 /**
  * Parse a DuckDuckGo HTML result page into a list of results.
+ * @param {any} domino
  * @param {string} html The raw result page HTML
  * @param {number} num Maximum number of results to return
  * @returns {DdgResult[]}
  */
-export function parseResults(html, num) {
+export function parseResults(domino, html, num) {
   const doc = domino.createDocument(html, true);
   const blocks = doc.querySelectorAll("div.links_main");
   /** @type {DdgResult[]} */
@@ -138,6 +136,8 @@ export default async function searchWeb({ query, num = 10 }, context, signal) {
   }
 
   const html = await response.text();
+  // @ts-expect-error domino's types declare module 'domino', not the scoped package name
+  const domino = await import("@mixmark-io/domino");
   const doc = domino.createDocument(html, true);
 
   if (doc.querySelector("#challenge-form, .anomaly-modal")) {
@@ -147,5 +147,5 @@ export default async function searchWeb({ query, num = 10 }, context, signal) {
     };
   }
 
-  return { results: parseResults(html, num) };
+  return { results: parseResults(domino, html, num) };
 }

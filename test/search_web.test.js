@@ -65,10 +65,12 @@ test("search_web honours the num option", async () => {
   assert.equal(result.results.length, 3);
 });
 
-test("parseResults caps results at num", () => {
-  const all = parseResults(FIXTURE, 10);
+test("parseResults caps results at num", async () => {
+  // @ts-expect-error domino's types declare module 'domino', not the scoped package name
+  const domino = await import("@mixmark-io/domino");
+  const all = parseResults(domino, FIXTURE, 10);
   assert.equal(all.length, 10);
-  const few = parseResults(FIXTURE, 2);
+  const few = parseResults(domino, FIXTURE, 2);
   assert.equal(few.length, 2);
   assert.equal(few[0].title, all[0].title);
 });
