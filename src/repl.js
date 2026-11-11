@@ -9,6 +9,7 @@ import { makeConfirm } from "./confirm.js";
 import { Sessions } from "./sessions.js";
 import { makeCompleter } from "./completer.js";
 import { Commands } from "./commands.js";
+import { Skills } from "./skills.js";
 import { makeProgressLogging } from "./progress-logging.js";
 import { playBell } from "./ansi.js";
 import { Logger } from "./logger.js";
@@ -35,6 +36,9 @@ export class REPLContext extends Context {
   /** @type {Logger} */
   #logger;
 
+  /** @type {Skills} */
+  #skills;
+
   /** @type {ReturnType<typeof makeProgressLogging> & {listenForCancel?: () => CancelResource?}} */
   #crankOptions;
 
@@ -50,6 +54,7 @@ export class REPLContext extends Context {
    * @param {boolean} [options.allowLocal]
    * @param {boolean} [options.allowAll]
    * @param {(() => CancelResource?)} [options.listenForCancel]
+   * @param {Skills} [options.skills] Discovered skills index
    */
   constructor(goblin, session, options = {}) {
     super(goblin, session);
@@ -59,8 +64,10 @@ export class REPLContext extends Context {
       allowLocal = false,
       allowAll = false,
       listenForCancel,
+      skills = new Skills(),
     } = options;
     this.#logger = logger;
+    this.#skills = skills;
     this.#crankOptions = {
       ...makeProgressLogging({
         confirm: (prompt) => {
@@ -78,6 +85,11 @@ export class REPLContext extends Context {
 
   get logger() {
     return this.#logger;
+  }
+
+  /** @returns {Skills} */
+  get skills() {
+    return this.#skills;
   }
 
   get history() {
@@ -127,6 +139,7 @@ export async function repl(options) {
   } = options;
   const sessions = new Sessions(sessionFolder);
   const commands = await Commands.default();
+  const skills = await Skills.default();
 
   const goblin = await Goblin.fromOptions({ ...goblinOpts, config });
 
@@ -135,6 +148,7 @@ export async function repl(options) {
     allowLocal,
     allowAll,
     listenForCancel: () => makeCancelSignalResource(input),
+    skills,
   });
   if (session && !clear) {
     await context.load();

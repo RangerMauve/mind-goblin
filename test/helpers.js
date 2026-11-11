@@ -14,9 +14,10 @@ import { mkdirSync } from "node:fs";
  * Registers cleanup via t.after() to remove the session dir.
  * @param {import("node:test").TestContext} t The test context for cleanup registration
  * @param {Logger} [logger] Optional custom logger
+ * @param {object} [options] Additional REPLContext options
  * @returns {REPLContext}
  */
-export function makeContext(t, logger) {
+export function makeContext(t, logger, options) {
   const dir = join(
     tmpdir(),
     `mind-goblin-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -25,7 +26,7 @@ export function makeContext(t, logger) {
   const goblin = new Goblin({});
   const sessions = new Sessions(dir);
   const session = sessions.make();
-  const context = new REPLContext(goblin, session, { logger });
+  const context = new REPLContext(goblin, session, { logger, ...options });
   t.after(() => rm(dir, { recursive: true, force: true }));
   return context;
 }
@@ -54,16 +55,17 @@ export async function makeTempDir(t) {
 /**
  * Create a REPLContext with a Logger that captures all log output into an array.
  * @param {import("node:test").TestContext} t The test context for cleanup registration
+ * @param {object} [options] Additional REPLContext options
  * @returns {{context: REPLContext, logged: string[]}}
  */
-export function makeRecordingContext(t) {
+export function makeRecordingContext(t, options) {
   /** @type {string[]} */
   const logged = [];
   const logger = new Logger({
     log: (msg) => logged.push(msg),
     useColors: false,
   });
-  const context = makeContext(t, logger);
+  const context = makeContext(t, logger, options);
   return { context, logged };
 }
 

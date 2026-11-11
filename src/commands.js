@@ -15,6 +15,8 @@ export class Commands {
       commands.load("retry"),
       commands.load("resume"),
       commands.load("fork"),
+      commands.load("skill"),
+      commands.load("unskill"),
       commands.load("help"),
     ]);
     return commands;
