@@ -48,9 +48,9 @@ src/
   progress-logging.js  Progress display utilities
   completor.js      Tab-completion glue
   confirm.js        Confirmation prompts
-docs/
-  making_tools.md   How to write a new tool
-  adding_commands.md How to write a new command
+.agents/skills/
+  making-tools/SKILL.md    Agent Skill: how to write a new tool
+  adding-commands/SKILL.md Agent Skill: how to write a new command
 test/
   *.test.js         node:test suites
   helpers.js        Shared test fixtures (makeContext)
@@ -149,7 +149,7 @@ Conventional Commits style: `type: summary`.
 | `refactor` | Restructuring without behavior change                      |
 | `perf`     | Performance improvements                                   |
 | `test`     | Adding or fixing tests                                     |
-| `docs`     | Documentation changes (including AGENTS.md, README, docs/) |
+| `docs`     | Documentation changes (including AGENTS.md, README, .agents/skills/) |
 | `chore`    | Housekeeping — formatting, deps, type fixes, config        |
 
 Rules:

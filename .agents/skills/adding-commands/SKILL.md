@@ -1,3 +1,8 @@
+---
+name: adding-commands
+description: Step-by-step guide for adding a new REPL command to mind-goblin. Use when asked to create, add, or extend a slash command in src/commands/.
+---
+
 # Adding a New Command
 
 Commands are user-facing REPL actions (like `/compact` or `!ls`). Each lives in
@@ -16,7 +21,7 @@ A command module must export **four** things:
 | Export        | Type                                                          | Purpose                                   |
 | ------------- | ------------------------------------------------------------- | ----------------------------------------- |
 | `name`        | `string`                                                      | The trigger prefix (e.g. `/compact`, `!`) |
-| `description` | `string` g                                                    | Short description shown in `/help`        |
+| `description` | `string`                                                      | Short description shown in `/help`        |
 | `default`     | named function `(line, context, commands, signal?) => void \| Promise<void>` | Executes the command                      |
 | `complete`    | `(prefix, context) => string[] \| Promise<string[]>`          | Tab-completion (optional)                 |
 

@@ -1,3 +1,8 @@
+---
+name: making-tools
+description: Step-by-step guide for adding a new tool to mind-goblin. Use when asked to create, add, or extend a tool in src/tools/.
+---
+
 # How to Create a New Tool
 
 Tools in this system are simple functions that the `Tools` class calls when needed. To create one, follow these steps:
