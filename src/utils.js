@@ -36,6 +36,7 @@ const xdg = /** @type {import('xdg-portable').XDG} */ (
  * @property {boolean} [agentsMd] - When true (default), load AGENTS.md from the working directory into the system prompt.
  * @property {string} [memoryFile] - Path to the persistent memory file. Defaults to MEMORY.md in the data dir.
  * @property {Record<string, Partial<Config>>} [models] - Named model presets. Top-level params are auto-copied into `models.default` on load.
+ * @property {string[]} [skillsDirs] - Extra skill directories, scanned between the user data dir and the project dirs.
  */
 
 export const APPNAME = "mindgoblin";
@@ -51,6 +52,7 @@ const DEFAULT_CONFIG = {
   allowAll: false,
   agentsMd: true,
   memoryFile: path.join(xdg.data(), APPNAME, "MEMORY.md"),
+  skillsDirs: [],
 };
 
 // Load config from ~/.mindgoblinrc
