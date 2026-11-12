@@ -19,11 +19,6 @@ export const parameters = {
       description:
         "A regex (source only) to match against message content. For tool messages, matches against 'name content'.",
     },
-    limit: {
-      type: "number",
-      description:
-        "Prune at most this many matches (counting from the end). Defaults to all matches.",
-    },
     dryRun: {
       type: "boolean",
       description:
@@ -62,11 +57,10 @@ function lastUserIdx(messages) {
  * @param {object} parameters
  * @param {string} [parameters.role] - Role to filter by
  * @param {string} [parameters.matches] - Regex source to match content
- * @param {number} [parameters.limit] - Max matches to prune (from end)
  * @param {boolean} [parameters.dryRun] - Report without modifying
  * @param {Context} context
  */
-export default function prune({ role, matches, limit, dryRun }, context) {
+export default function prune({ role, matches, dryRun }, context) {
   /** @type {Message[]} */
   const messages = context.messages;
   if (!messages || messages.length === 0) {
@@ -136,13 +130,11 @@ export default function prune({ role, matches, limit, dryRun }, context) {
     return { pruned: count, message: `Pruned ${count} tool result(s).` };
   }
 
-  // With args: scan from end, match by role + regex, apply limit
+  // With args: scan from end, match by role + regex
   /** @type {number[]} */
   const matched = [];
-  const max = limit ?? Infinity;
 
   for (let i = messages.length - 1; i >= 0; i--) {
-    if (matched.length >= max) break;
     if (i === protectedIdx) continue;
     const msg = messages[i];
     if (msg.role === "system") continue;

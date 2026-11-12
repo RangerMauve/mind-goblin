@@ -304,9 +304,8 @@ describe("prune logging", () => {
     const line = await capturePruneLog({
       role: "tool",
       matches: "foo",
-      limit: 5,
     });
-    assert.equal(line, "Pruning: role=tool /foo/ limit=5");
+    assert.equal(line, "Pruning: role=tool /foo/");
   });
 
   test("logs only the role when it is the sole arg", async () => {

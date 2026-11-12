@@ -105,45 +105,6 @@ test("role: tool + matches regex prunes matching tool results", () => {
   assert.equal(messages[4].content, "npm test output"); // untouched
 });
 
-test("limit restricts how many are pruned (from end)", () => {
-  /** @type {Message[]} */
-  const messages = [
-    { role: "user", content: "hi" },
-    {
-      role: "assistant",
-      content: "",
-      tool_calls: [
-        {
-          id: "1",
-          type: "function",
-          function: { name: "read", arguments: "{}" },
-        },
-        {
-          id: "2",
-          type: "function",
-          function: { name: "read", arguments: "{}" },
-        },
-        {
-          id: "3",
-          type: "function",
-          function: { name: "read", arguments: "{}" },
-        },
-      ],
-    },
-    { role: "tool", content: "one", name: "read", tool_call_id: "1" },
-    { role: "tool", content: "two", name: "read", tool_call_id: "2" },
-    { role: "tool", content: "three", name: "read", tool_call_id: "3" },
-  ];
-
-  const ctx = makeCtx(messages);
-  const result = prune({ role: "tool", limit: 2 }, ctx);
-
-  assert.equal(result.pruned, 2);
-  assert.equal(messages[2].content, "one"); // untouched (oldest)
-  assert.equal(messages[3].content, "[pruned: read (3 chars)]");
-  assert.equal(messages[4].content, "[pruned: read (5 chars)]");
-});
-
 test("role: user prunes matching user messages", () => {
   /** @type {Message[]} */
   const messages = [
