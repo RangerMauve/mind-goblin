@@ -43,6 +43,8 @@ export class Tools {
       tools.loadTool("shell_command"),
       tools.loadTool("screenshot"),
       tools.loadTool("prune"),
+      tools.loadTool("skill"),
+      tools.loadTool("unskill"),
       // tools.loadTool('desktop_notification')
     ]);
     return tools;
