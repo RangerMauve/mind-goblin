@@ -32,6 +32,10 @@ export default async function skill(line, context) {
     context.logger.warn(`Unknown skill: ${arg}`);
     return;
   }
+  if (skills.findActive(context.messages).has(arg)) {
+    context.logger.info(`Skill ${arg} is already in context.`);
+    return;
+  }
 
   const id = await skills.loadInto(arg, context.messages);
   if (!id) {

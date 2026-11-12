@@ -55,6 +55,14 @@ test("/skill <name> loads the skill as a simulated read", async (t) => {
   assert.match(/** @type {string} */ (logged.at(-1)), /Loaded skill demo/);
 });
 
+test("/skill <name> dedupes an already active skill", async (t) => {
+  const { context, logged } = makeRecordingContext(t, { skills });
+  await commands.run("/skill demo", context);
+  await commands.run("/skill demo", context);
+  assert.equal(context.messages.length, 2);
+  assert.deepEqual(logged.at(-1), "Skill demo is already in context.");
+});
+
 test("/skill shows active skills in the listing", async (t) => {
   const { context, logged } = makeRecordingContext(t, { skills });
   await commands.run("/skill demo", context);
