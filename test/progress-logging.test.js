@@ -477,4 +477,17 @@ describe("summary logging", () => {
     assert.ok(line.includes("rm -rf /tmp/test"));
     assert.ok(!line.includes("delete test dir") || line !== "delete test dir");
   });
+
+  test("skill tools log the skill name", async () => {
+    assert.ok(
+      (await captureLog("skill", { name: "making-tools" })).includes(
+        "making-tools",
+      ),
+    );
+    assert.ok(
+      (await captureLog("unskill", { name: "making-tools" })).includes(
+        "making-tools",
+      ),
+    );
+  });
 });

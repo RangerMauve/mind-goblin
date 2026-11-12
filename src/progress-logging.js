@@ -58,6 +58,10 @@ export function makeProgressLogging({
         parts.length ? `Pruning: ${parts.join(" ")}` : "Pruning previous turn",
       );
     },
+    /** @param {{name: string}} args */
+    skill: ({ name }) => logger.info(`Loading skill: ${name}`),
+    /** @param {{name: string}} args */
+    unskill: ({ name }) => logger.info(`Unloading skill: ${name}`),
     /** @param {{command: string, summary: string}} args */
     async shell_command(args) {
       const { command, summary } = args;
