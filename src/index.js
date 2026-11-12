@@ -5,6 +5,7 @@ import { Context } from "./context.js";
 /** @import {FunctionCall} from './tools.js' */
 /** @import {CancelResource} from './cancel.js' */
 /** @import {Config} from './utils.js' */
+/** @import {Skills} from './skills.js' */
 
 /** @typedef {{type: 'text', text: string} | {type: 'image_url', image_url: {url: string, detail?: string}}} ContentPart */
 /** @typedef {{role: 'user', content: string | ContentPart[]}} UserMessage */
@@ -21,7 +22,6 @@ An evil stooge that will do anything its master wants.
 You are talking to your master who is named ${process.env.USER}.
 Give the user a quick heads up on what you'll be using the tools for before doing the tool calls.
 Only use tools if you really need to. Otherwise respond directly.
-You have documentation about how to modify yourself in the .agents/skills/ folder (making-tools, adding-commands).
 You are currently in the ${process.cwd()} folder.
 Be concise and direct in your responses. Respond without unnecessary explanation.
 Respond with one or two sentences at a time.
@@ -67,6 +67,7 @@ export class Goblin {
    * @param {boolean} [options.readonly] When true, write and edit tools are stripped.
    * @param {boolean} [options.agentsMd] When true (default), load AGENTS.md into the system prompt.
    * @param {string | null} [options.memoryFile] Path to the persistent memory file. Pass null (default) to disable.
+   * @param {Skills | null} [options.skills] Discovered skills index, listed in the system prompt. Pass null (default) to disable.
    * @param {Config} [options.config] Resolved model config for API calls. Defaults to the global conf.
    */
   constructor({
@@ -78,6 +79,7 @@ export class Goblin {
     readonly = false,
     agentsMd = true,
     memoryFile = null,
+    skills = null,
     config = conf,
   }) {
     if (readonly) {
@@ -93,6 +95,7 @@ export class Goblin {
     this.readonly = readonly;
     this.agentsMd = agentsMd;
     this.memoryFile = memoryFile;
+    this.skills = skills;
     /** @type {Config} */
     this.config = config;
   }
@@ -105,6 +108,7 @@ export class Goblin {
    * @param {boolean} [options.readonly] Override readonly for the sub-agent
    * @param {boolean} [options.agentsMd] Override agentsMd for the sub-agent
    * @param {string | null} [options.memoryFile] Override memoryFile for the sub-agent
+   * @param {Skills | null} [options.skills] Override skills for the sub-agent
    * @param {Config} [options.config] Override config for the sub-agent
    */
   fork({
@@ -113,6 +117,7 @@ export class Goblin {
     readonly,
     agentsMd,
     memoryFile,
+    skills,
     config,
   }) {
     const subTools = tools ? this.tools.subset(tools) : this.tools;
@@ -125,8 +130,44 @@ export class Goblin {
       readonly: readonly ?? this.readonly,
       agentsMd: agentsMd ?? this.agentsMd,
       memoryFile: memoryFile ?? this.memoryFile,
+      skills: skills ?? this.skills,
       config: config ?? this.config,
     });
+  }
+
+  /**
+   * Build the full system prompt content.
+   * @returns {Promise<string>}
+   */
+  async makeSystemPrompt() {
+    const agentsMd = this.agentsMd ? await loadAgentsMd() : "";
+    let memorySection = "";
+    if (this.memoryFile) {
+      const memory = await loadMemory(this.memoryFile);
+      const instructions = this.readonly
+        ? `Your memory file is at ${this.memoryFile}. You can read it but cannot modify it in this session.`
+        : `Your memory file is at ${this.memoryFile}.\nUse the write_file or edit_file tools to update it when you need to remember instructions or facts across sessions.\nKeep it minimal — only store things genuinely useful in future conversations. Use a markdown bullet list.`;
+      memorySection = `
+## Memory
+${instructions}
+
+### Current memory:
+${memory.trim() || "(empty)"}
+`;
+    }
+    let skillsSection = "";
+    if (this.skills) {
+      const list = this.skills.list();
+      if (list.length > 0) {
+        const rows = list.map((s) => `- ${s.name} — ${s.description}`);
+        skillsSection = `
+## Available Skills
+Skills are instruction packs for specific tasks. Load one with the skill tool when the task matches its description, and unload it with the unskill tool when you are done with it.
+${rows.join("\n")}
+`;
+      }
+    }
+    return DEFAULT_SYSTEM + agentsMd + skillsSection + memorySection;
   }
 
   /**
@@ -156,23 +197,10 @@ export class Goblin {
 
     // Add in system prompt if it isn't set
     if (!messages[0] || messages[0].role !== SYSTEM) {
-      const agentsMd = this.agentsMd ? await loadAgentsMd() : "";
-      let memorySection = "";
-      if (this.memoryFile) {
-        const memory = await loadMemory(this.memoryFile);
-        const instructions = this.readonly
-          ? `Your memory file is at ${this.memoryFile}. You can read it but cannot modify it in this session.`
-          : `Your memory file is at ${this.memoryFile}.\nUse the write_file or edit_file tools to update it when you need to remember instructions or facts across sessions.\nKeep it minimal — only store things genuinely useful in future conversations. Use a markdown bullet list.`;
-        memorySection = `
-## Memory
-${instructions}
-
-### Current memory:
-${memory.trim() || "(empty)"}
-`;
-      }
-      const content = DEFAULT_SYSTEM + agentsMd + memorySection;
-      messages.unshift({ role: SYSTEM, content });
+      messages.unshift({
+        role: SYSTEM,
+        content: await this.makeSystemPrompt(),
+      });
     }
 
     const tools = this.tools.genDescriptions();

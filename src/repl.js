@@ -141,7 +141,7 @@ export async function repl(options) {
   const commands = await Commands.default();
   const skills = await Skills.default();
 
-  const goblin = await Goblin.fromOptions({ ...goblinOpts, config });
+  const goblin = await Goblin.fromOptions({ ...goblinOpts, config, skills });
 
   const context = new REPLContext(goblin, sessions.make(session), {
     showThinking,
