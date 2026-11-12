@@ -313,6 +313,15 @@ describe("prune logging", () => {
     const line = await capturePruneLog({ role: "assistant" });
     assert.equal(line, "Pruning: role=assistant");
   });
+
+  test("flags a dry run", async () => {
+    const line = await capturePruneLog({
+      dryRun: true,
+      role: "tool",
+      matches: "foo",
+    });
+    assert.equal(line, "Pruning: (dry run) role=tool /foo/");
+  });
 });
 
 describe("regex edit confirm text", () => {

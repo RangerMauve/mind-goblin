@@ -217,6 +217,84 @@ test("matches with no role searches all message types", () => {
   assert.equal(messages[2].content, "thanks");
 });
 
+test("dryRun reports matches without modifying history", () => {
+  /** @type {Message[]} */
+  const messages = [
+    { role: "user", content: "hi" },
+    {
+      role: "assistant",
+      content: "",
+      tool_calls: [
+        {
+          id: "1",
+          type: "function",
+          function: { name: "read", arguments: "{}" },
+        },
+        {
+          id: "2",
+          type: "function",
+          function: { name: "shell_command", arguments: "{}" },
+        },
+      ],
+    },
+    { role: "tool", content: "README stuff", name: "read", tool_call_id: "1" },
+    {
+      role: "tool",
+      content: "npm test output",
+      name: "shell_command",
+      tool_call_id: "2",
+    },
+  ];
+
+  const ctx = makeCtx(messages);
+  const result = prune({ role: "tool", matches: "^read ", dryRun: true }, ctx);
+
+  assert.equal(result.dryRun, true);
+  assert.equal(result.wouldPrune.length, 1);
+  assert.deepEqual(result.wouldPrune[0], { index: 2, name: "read", chars: 12 });
+  assert.equal(result.totalChars, 12);
+  assert.equal(messages[2].content, "README stuff"); // untouched
+  assert.equal(messages[3].content, "npm test output"); // untouched
+});
+
+test("dryRun with no args reports previous-turn tool results", () => {
+  /** @type {Message[]} */
+  const messages = [
+    { role: "user", content: "hello" },
+    {
+      role: "assistant",
+      content: "",
+      tool_calls: [
+        {
+          id: "1",
+          type: "function",
+          function: { name: "read", arguments: "{}" },
+        },
+      ],
+    },
+    { role: "tool", content: "AAA", name: "read", tool_call_id: "1" },
+    {
+      role: "assistant",
+      content: "",
+      tool_calls: [
+        {
+          id: "2",
+          type: "function",
+          function: { name: "prune", arguments: "{}" },
+        },
+      ],
+    },
+  ];
+
+  const ctx = makeCtx(messages);
+  const result = prune({ dryRun: true }, ctx);
+
+  assert.equal(result.dryRun, true);
+  assert.deepEqual(result.wouldPrune, [{ index: 2, name: "read", chars: 3 }]);
+  assert.equal(result.totalChars, 3);
+  assert.equal(messages[2].content, "AAA"); // untouched
+});
+
 test("invalid regex returns error", () => {
   const ctx = makeCtx([{ role: "user", content: "hi" }]);
   const result = prune({ matches: "[" }, ctx);

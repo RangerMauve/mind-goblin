@@ -24,6 +24,11 @@ export const parameters = {
       description:
         "Prune at most this many matches (counting from the end). Defaults to all matches.",
     },
+    dryRun: {
+      type: "boolean",
+      description:
+        "If true, report what would be pruned without modifying the history.",
+    },
   },
 };
 
@@ -58,9 +63,10 @@ function lastUserIdx(messages) {
  * @param {string} [parameters.role] - Role to filter by
  * @param {string} [parameters.matches] - Regex source to match content
  * @param {number} [parameters.limit] - Max matches to prune (from end)
+ * @param {boolean} [parameters.dryRun] - Report without modifying
  * @param {Context} context
  */
-export default function prune({ role, matches, limit }, context) {
+export default function prune({ role, matches, limit, dryRun }, context) {
   /** @type {Message[]} */
   const messages = context.messages;
   if (!messages || messages.length === 0) {
@@ -95,11 +101,33 @@ export default function prune({ role, matches, limit }, context) {
     if (lastAssistantIdx === -1) {
       return { pruned: 0, message: "No previous turn to prune." };
     }
-    let count = 0;
+    /** @type {number[]} */
+    const toolIdx = [];
     for (let i = lastAssistantIdx - 1; i >= 0; i--) {
       if (messages[i].role !== "tool") break;
       if (i === protectedIdx) continue;
-      const msg = messages[i];
+      toolIdx.push(i);
+    }
+    if (dryRun) {
+      const list = toolIdx.map((idx) => {
+        const msg = messages[idx];
+        return {
+          index: idx,
+          name: /** @type {{name?: string}} */ (msg).name ?? "tool",
+          chars: msg.content?.length ?? 0,
+        };
+      });
+      const totalChars = list.reduce((s, m) => s + m.chars, 0);
+      return {
+        dryRun: true,
+        wouldPrune: list,
+        totalChars,
+        message: `Would prune ${list.length} message(s), ${totalChars} chars.`,
+      };
+    }
+    let count = 0;
+    for (const idx of toolIdx) {
+      const msg = messages[idx];
       const len = msg.content?.length ?? 0;
       const name = /** @type {{name?: string}} */ (msg).name ?? "tool";
       msg.content = `[pruned: ${name} (${len} chars)]`;
@@ -121,6 +149,27 @@ export default function prune({ role, matches, limit }, context) {
     if (role && msg.role !== role) continue;
     if (regex && !regex.test(matchTarget(msg))) continue;
     matched.push(i);
+  }
+
+  if (dryRun) {
+    const list = matched.map((idx) => {
+      const msg = messages[idx];
+      return {
+        index: idx,
+        name:
+          msg.role === "tool"
+            ? /** @type {{name?: string}} */ (msg.name ?? "tool")
+            : msg.role,
+        chars: msg.content?.length ?? 0,
+      };
+    });
+    const totalChars = list.reduce((s, m) => s + m.chars, 0);
+    return {
+      dryRun: true,
+      wouldPrune: list,
+      totalChars,
+      message: `Would prune ${list.length} message(s), ${totalChars} chars.`,
+    };
   }
 
   if (matched.length === 0) {
