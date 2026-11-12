@@ -107,6 +107,13 @@ The `Context` class is the shared session state passed to tools and commands. It
 - `Goblin.fork({ readonly })` can override for sub-agents.
 - **`--allow-all`.** A global CLI flag / `allowAll` config key. When true, `buildOptions()` forces `readonly` off (allow-all always implies full write access), and `makeProgressLogging({ allowAll })` skips every confirmation prompt — writes/edits anywhere and dangerous shell commands run without asking. It is threaded into the REPL via `REPLContext` options; `listen` mode has no interactive confirm so the flag only affects readonly there.
 
+### Skills (agent skills, https://agentskills.io/specification)
+
+- `Skills` (`src/skills.js`) discovers `<dir>/<name>/SKILL.md` files across a priority chain (later silently overwrites earlier): bundled `src/skills/` → `configDir/skills` → `dataDir/skills` (XDG) → `conf.skillsDirs` extras → `./.agents/skills` → `./.claude/skills`.
+- `Goblin` takes a `skills` option (default `null` = off). When set, `makeSystemPrompt()` (assembles DEFAULT_SYSTEM + AGENTS.md + skills catalog + memory) lists name + description — **no paths**.
+- Loading/unloading is message-based: `Skills.loadInto(name, messages)` appends a simulated `read` tool call with a `skill_`-prefixed id (raw file content), `findActive(messages)` returns a `Set` of loaded names, `unloadFrom(name, messages)` removes them. State lives in the messages, so it survives session resume.
+- Both the model and the user can drive it: `skill`/`unskill` tools (take a name, dedupe on load, readonly-safe) and `/skill`/`/unskill` commands (same dedupe).
+
 ### Config
 
 - Loaded via `rc("mindgoblin", defaults)` → reads `~/.mindgoblinrc` (ini format).
