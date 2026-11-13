@@ -177,6 +177,8 @@ export async function repl(options) {
         await commands.run(content, context, cancel.signal);
       } else if (content.trimStart().startsWith("/")) {
         context.logger.warn(`Unknown command: ${content.trim()}. Try /help`);
+      } else if (!content.trim()) {
+        await context.crank();
       } else {
         context.messages.push({ role: USER, content });
         await context.crank();
