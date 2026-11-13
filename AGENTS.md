@@ -43,6 +43,7 @@ src/
   cancel.js         Escape-key → AbortSignal resource
   utils.js          chat() API call, config loading (rc + XDG)
   sessions.js       Session persistence (JSONL in XDG data dir)
+  session-utils.js  Shared session helpers (message compaction)
   listen.js         Voice input mode (sherpa-onnx)
   ansi.js           Terminal helpers (bell, colors)
   progress-logging.js  Progress display utilities
