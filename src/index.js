@@ -1,5 +1,11 @@
 import { Tools } from "./tools.js";
-import { chat, conf, loadAgentsMd, loadMemory } from "./utils.js";
+import {
+  chat,
+  conf,
+  fetchContextWindow,
+  loadAgentsMd,
+  loadMemory,
+} from "./utils.js";
 import { Context } from "./context.js";
 
 /** @import {FunctionCall} from './tools.js' */
@@ -45,6 +51,11 @@ export function checkIsTextContent(message) {
 }
 
 export class Goblin {
+  /** @type {number} */
+  #contextWindow = -1;
+  /** @type {boolean} */
+  #pruneWarned = false;
+
   /**
    * Construct a Goblin with the standard tool set.
    * Args are spread directly into the constructor, so any new constructor
@@ -205,15 +216,20 @@ ${rows.join("\n")}
 
     const tools = this.tools.genDescriptions();
 
+    if (this.#contextWindow === -1) {
+      this.#contextWindow = await fetchContextWindow(this.config);
+    }
+
     using cancel = listenForCancel();
 
-    let result = await chat({
+    let { message: result, usage } = await chat({
       messages,
       tools,
       signal: cancel?.signal ?? signal,
       config: this.config,
     });
     if (this.debug) console.log(result);
+    this.#checkUsage(usage, messages);
 
     if (result.reasoning_content && onthinking) {
       await onthinking(result.reasoning_content);
@@ -298,18 +314,37 @@ ${rows.join("\n")}
       using cancel = listenForCancel();
 
       // if(this.debug) console.log(messages)
-      result = await chat({
+      ({ message: result, usage } = await chat({
         messages,
         tools,
         signal: cancel?.signal ?? signal,
         config: this.config,
-      });
+      }));
       if (this.debug) console.log(result);
+      this.#checkUsage(usage, messages);
     }
 
     history.push(result);
 
     return result;
+  }
+
+  /**
+   * Inject a one-time context usage warning if prompt tokens exceed 70% of the context window.
+   * @param {import("./utils.js").Usage | null} usage
+   * @param {Message[]} messages
+   */
+  #checkUsage(usage, messages) {
+    if (!usage || this.#contextWindow <= 0 || this.#pruneWarned) return;
+    const pct = usage.prompt_tokens / this.#contextWindow;
+    if (pct >= 0.7) {
+      const rounded = Math.ceil((pct * 100) / 5) * 5;
+      messages.push({
+        role: SYSTEM,
+        content: `[Context: ${rounded}% used. Use the prune tool to remove messages you no longer need.]`,
+      });
+      this.#pruneWarned = true;
+    }
   }
 
   /**
