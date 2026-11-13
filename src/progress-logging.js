@@ -58,6 +58,12 @@ export function makeProgressLogging({
         parts.length ? `Pruning: ${parts.join(" ")}` : "Pruning previous turn",
       );
     },
+    /** @param {{n?: number}} args */
+    compact({ n }) {
+      logger.info(
+        n ? `Compacting: ${n} oldest messages` : "Compacting: full history",
+      );
+    },
     /** @param {{name: string}} args */
     skill: ({ name }) => logger.info(`Loading skill: ${name}`),
     /** @param {{name: string}} args */

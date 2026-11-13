@@ -498,4 +498,14 @@ describe("summary logging", () => {
       ),
     );
   });
+
+  test("compact logs the count when n is provided", async () => {
+    const line = await captureLog("compact", { n: 20 });
+    assert.equal(line, "Compacting: 20 oldest messages");
+  });
+
+  test("compact logs full history when n is omitted", async () => {
+    const line = await captureLog("compact", {});
+    assert.equal(line, "Compacting: full history");
+  });
 });
