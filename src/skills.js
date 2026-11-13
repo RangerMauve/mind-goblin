@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { conf, configDir, dataDir } from "./utils.js";
+import { conf, configDir } from "./utils.js";
 import { ASSISTANT, TOOL } from "./index.js";
 
 /** @import {Message} from "./index.js" */
@@ -70,9 +70,8 @@ export class Skills {
    */
   static dirs() {
     return [
-      fileURLToPath(new URL("./skills/", import.meta.url)),
+      fileURLToPath(new URL("../.agents/skills/", import.meta.url)),
       path.join(configDir, "skills"),
-      path.join(dataDir, "skills"),
       ...(conf.skillsDirs ?? []),
       path.join(process.cwd(), ".agents", "skills"),
       path.join(process.cwd(), ".claude", "skills"),
