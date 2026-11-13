@@ -509,7 +509,10 @@ describe("summary logging", () => {
   test("compact logs the count when n is provided", async () => {
     const line = await captureLog("compact", { n: 20 });
     assert.ok(line.includes("20"), "should include the count");
-    assert.ok(line.includes("oldest messages"), "should mention oldest messages");
+    assert.ok(
+      line.includes("oldest messages"),
+      "should mention oldest messages",
+    );
   });
 
   test("compact logs full history when n is omitted", async () => {
