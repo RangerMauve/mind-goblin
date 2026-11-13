@@ -6,7 +6,7 @@ Your friendly internet enabled assistant.
 
 ## Features
 
-- **Tool Use**: 10 built-in tools: `get_current_time`, `read_clipboard`, `read`, `write_file`, `edit_file`, `fetch`, `search_web`, `sub_agent`, `shell_command`, `screenshot`
+- **Tool Use**: 19 built-in tools: `calc`, `compact`, `context_length`, `desktop_notification`, `edit_file`, `fetch`, `get_current_time`, `prune`, `read`, `read_clipboard`, `screenshot`, `search_web`, `search_wikipedia`, `shell_command`, `skill`, `speak`, `sub_agent`, `unskill`, `write_file`
 - **Image Reading**: The `read` tool returns image data for image files on the filesystem, and `fetch` returns image data for image URLs, so the goblin can "see" images from both the local disk and the web
 - **Screenshots**: The `screenshot` tool captures the full screen via `grim` on Wayland, so the goblin can see what's on your display
 - **Session Persistence**: Save and resume conversations across runs
@@ -20,6 +20,11 @@ Your friendly internet enabled assistant.
 - **Project Context**: Automatically loads `AGENTS.md` (or `CLAUDE.md`, `QWEN.md`, `GEMINI.md`, `.cursorrules`) from the working directory into the system prompt, so the goblin knows your project conventions
 - **Persistent Memory**: Optional `MEMORY.md` file injected into the system prompt. The goblin can read and update it to remember instructions and facts across sessions
 - **Voice Input**: Speak to the goblin hands-free via microphone. Uses Silero VAD + Moonshine Tiny (int8) for offline speech-to-text
+- **Skills**: Loadable instruction packs (`SKILL.md`) for specific tasks. Discovered across bundled, XDG, and project directories. Load/unload via the `skill`/`unskill` tools or `/skill`/`/unskill` commands
+- **Context Warning**: Automatically detects when context usage exceeds 70% of the model's context window (queried from llama-server's `/props` endpoint) and nudges the LLM to use the `prune` tool to free space
+- **Voice Output**: The `speak` tool reads text aloud, and `desktop_notification` sends a system notification
+- **Wikipedia Search**: The `search_wikipedia` tool queries Wikipedia for structured results
+- **Math**: The `calc` tool evaluates math expressions
 
 ## Built-in Commands
 
@@ -40,6 +45,34 @@ Show the last `n` user and assistant messages from the conversation (default: 5,
 ### `/help [command]`
 
 Show a description of a specific command, or list all available commands if no name is given. Tab completion suggests command names as you type.
+
+### `/clear [n]`
+
+Clear the conversation history. Optionally specify how many recent entries to clear. Negative numbers clear from the oldest messages.
+
+### `/fork [name]`
+
+Fork the current history into a new session.
+
+### `/length`
+
+Show the number of messages in the conversation history.
+
+### `/retry`
+
+Remove the last assistant response and re-crank.
+
+### `/resume`
+
+Crank again without resetting the history (continue from where the conversation left off).
+
+### `/skill [name]`
+
+List available skills, or load a skill's instructions into the conversation by name.
+
+### `/unskill [name]`
+
+List active skills, or remove a loaded skill's instructions from the conversation by name.
 
 ## What should it do? (TODO)
 
@@ -78,7 +111,7 @@ Have a conversation via the TUI.
 - `--clear`: Clear the session before starting.
 - `--thinking-history`: Preserve thinking history. Increases context size but speeds up inference from better caching.
 
-See [Built-in Commands](#built-in-commands) for REPL commands like `!`, `/compact`, `/tail`, and `/help`.
+See [Built-in Commands](#built-in-commands) for REPL commands like `!`, `/compact`, `/tail`, `/help`, `/clear`, `/fork`, `/retry`, `/skill`, and more.
 
 #### `mind-goblin transform <prompt> <file>`
 
@@ -120,6 +153,7 @@ Mind Goblin uses `rc` for configuration. It looks for `~/.mindgoblinrc` or the `
 - **API Key**: Your API key (defaults to `OPENAI_API_KEY` env var).
 - **agentsMd**: When `true` (default), load the first agent instruction file found in the working directory (`AGENTS.md`, `CLAUDE.md`, `QWEN.md`, `GEMINI.md`, `.cursorrules`) and append it to the system prompt. Set to `false` or use `--no-agents-md` to disable.
 - **memoryFile**: Path to a persistent memory file injected into the system prompt. The goblin is instructed to read and update it with `write_file`/`edit_file` to remember things across sessions. Defaults to `~/.local/share/mindgoblin/MEMORY.md`. Set to `null` to disable.
+- **skillsDirs**: Extra directories to scan for skills (`<name>/SKILL.md`). Scanned in priority order after the bundled, XDG config, and XDG data skill dirs but before project-local dirs (`.agents/skills`, `.claude/skills`).
 
 **Optional Sampling Parameters:**
 
@@ -163,6 +197,7 @@ It also uses XDG directories for storing data:
 - **Config**: `~/.config/mindgoblin`
 - **Data/Sessions**: `~/.local/share/mindgoblin/sessions`
 - **Memory**: `~/.local/share/mindgoblin/MEMORY.md`
+- **Skills**: `~/.config/mindgoblin/skills` and `~/.local/share/mindgoblin/skills`
 
 ## Examples
 

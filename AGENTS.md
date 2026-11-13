@@ -41,7 +41,7 @@ src/
   cli.js            CLI entry point (commander-based)
   repl.js           Interactive REPL (node:readline, REPLContext extends Context)
   cancel.js         Escape-key → AbortSignal resource
-  utils.js          chat() API call, config loading (rc + XDG)
+  utils.js          chat() API call, fetchContextWindow(), config loading (rc + XDG)
   sessions.js       Session persistence (JSONL in XDG data dir)
   session-utils.js  Shared session helpers (message compaction)
   listen.js         Voice input mode (sherpa-onnx)
@@ -203,7 +203,9 @@ The logo lives in `logo.svg` (source of truth). To update it:
 ## Gotchas
 
 - There is **no build step**. Edit `.js` directly, run directly.
-- The `chat()` function in `utils.js` is the **only** point of LLM contact — all inference goes through it. It requires a `config` param (a resolved `Config` object) for model/server/api_key — never reads module-level constants.
+- The `chat()` function in `utils.js` is the **only** point of LLM contact — all inference goes through it. It requires a `config` param (a resolved `Config` object) for model/server/api_key — never reads module-level constants. Returns `{ message, usage }` where `usage` is `{ prompt_tokens, completion_tokens, total_tokens }` or `null`.
+- `fetchContextWindow(config)` in `utils.js` calls llama-server's `GET /props` to get the runtime context window (`n_ctx`). Returns `-1` if unavailable, which disables the context warning feature.
 - `Goblin.crank()` mutates the `history` array in place (appends messages). `query()` wraps this for the common single-prompt case.
+- **Context warning.** `Goblin.crank()` lazily fetches the context window via `fetchContextWindow()`. If `prompt_tokens / contextWindow >= 0.7` on any turn, a one-time system message is injected into the working messages (not `history`) nudging the LLM to use the `prune` tool. Disabled when `contextWindow` is `-1`.
 - `fork()` increments `forkDepth` — sub-agents one level deep, and so on.
 - `shell_command.js` has a large allowlist for readonly mode. Commands with shell metacharacters (`|`, `;`, `&`, `${`) or redirection force confirmation even when individual parts are allowed. Prefix (transparent) commands — `timeout`, `time`, `nice`, `nohup`, `xargs` — are unwrapped via the `PREFIX_COMMANDS` registry to their innermost command before the allowlist/find-action checks, so a wrapper can't mask a dangerous command (e.g. `timeout 10 find . -delete`). Add a new transparent wrapper there (one `extract` entry) — not in the allowlist.
