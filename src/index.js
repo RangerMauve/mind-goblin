@@ -2,6 +2,7 @@ import { Tools } from "./tools.js";
 import {
   chat,
   conf,
+  ContextOverflowError,
   fetchContextWindow,
   loadAgentsMd,
   loadMemory,
@@ -80,6 +81,7 @@ export class Goblin {
    * @param {string | null} [options.memoryFile] Path to the persistent memory file. Pass null (default) to disable.
    * @param {Skills | null} [options.skills] Discovered skills index, listed in the system prompt. Pass null (default) to disable.
    * @param {Config} [options.config] Resolved model config for API calls. Defaults to the global conf.
+   * @param {typeof globalThis.fetch | null} [options.fetch] Fetch implementation for API calls. Defaults to globalThis.fetch.
    */
   constructor({
     tools = new Tools(),
@@ -92,6 +94,7 @@ export class Goblin {
     memoryFile = null,
     skills = null,
     config = conf,
+    fetch = null,
   }) {
     if (readonly) {
       tools = tools.readonly();
@@ -109,6 +112,8 @@ export class Goblin {
     this.skills = skills;
     /** @type {Config} */
     this.config = config;
+    /** @type {typeof globalThis.fetch} */
+    this.fetch = fetch ?? globalThis.fetch;
   }
 
   /**
@@ -121,6 +126,7 @@ export class Goblin {
    * @param {string | null} [options.memoryFile] Override memoryFile for the sub-agent
    * @param {Skills | null} [options.skills] Override skills for the sub-agent
    * @param {Config} [options.config] Override config for the sub-agent
+   * @param {typeof globalThis.fetch | null} [options.fetch] Override fetch for the sub-agent
    */
   fork({
     tools,
@@ -130,6 +136,7 @@ export class Goblin {
     memoryFile,
     skills,
     config,
+    fetch,
   }) {
     const subTools = tools ? this.tools.subset(tools) : this.tools;
 
@@ -143,6 +150,7 @@ export class Goblin {
       memoryFile: memoryFile ?? this.memoryFile,
       skills: skills ?? this.skills,
       config: config ?? this.config,
+      fetch: fetch ?? this.fetch,
     });
   }
 
@@ -191,6 +199,7 @@ ${rows.join("\n")}
    * @param {(message: string) => void|Promise<void>} [options.onthinking] Optional callback for intermediate thinking steps
    * @param {() => CancelResource?} [options.listenForCancel] Optional function to listen on canellation during inference
    * @param {AbortSignal} [options.signal] Fallback signal if listenForCancel is not provided
+   * @returns {Promise<Message>} The final assistant message
    */
   async crank(
     history,
@@ -220,113 +229,150 @@ ${rows.join("\n")}
       this.#contextWindow = await fetchContextWindow(this.config);
     }
 
-    using cancel = listenForCancel();
-
-    let { message: result, usage } = await chat({
-      messages,
-      tools,
-      signal: cancel?.signal ?? signal,
-      config: this.config,
-    });
-    if (this.debug) console.log(result);
-    this.#checkUsage(usage, messages);
-
-    if (result.reasoning_content && onthinking) {
-      await onthinking(result.reasoning_content);
-    }
-
-    let iteration = 0;
-
-    /** @param {Message} message */
-    const addMessage = (message) => {
-      messages.push(message);
-    };
-
-    while (result.tool_calls?.length) {
-      if (this.maxIterations >= 0 && iteration > this.maxIterations) {
-        throw new Error(
-          `Reached max iterations at ${iteration}. Try again with more subagents or a more simple approach`,
-        );
-      }
-      if (iteration && result.reasoning_content && onthinking) {
-        await onthinking(result.reasoning_content);
-      }
-
-      iteration += 1;
-
-      if (onprogress) {
-        const { content } = result;
-        const trimmed = content.trim();
-        if (trimmed) await onprogress(trimmed);
-      }
-      addMessage(result);
-      for (const call of result.tool_calls) {
-        using cancel = listenForCancel();
-        try {
-          const { name, arguments: rawArgs } = call.function;
-          const args = JSON.parse(rawArgs);
-          if (onbeforetool) {
-            // Check if it should be invoked
-            await onbeforetool(name, args);
-          }
-          const toolContent = await this.tools.call(
-            name,
-            args,
-            ctx,
-            cancel?.signal ?? signal,
-          );
-          cancel?.signal?.throwIfAborted();
-          if (toolContent.image) {
-            addMessage({
-              role: TOOL,
-              content: `Image file: ${args.path} (${toolContent.image.mime})`,
-              name,
-              tool_call_id: call.id,
-            });
-            /** @type {ContentPart[]} */
-            const parts = [
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${toolContent.image.mime};base64,${toolContent.image.data}`,
-                },
-              },
-            ];
-            addMessage({ role: USER, content: parts });
-          } else {
-            addMessage({
-              role: TOOL,
-              content: JSON.stringify(toolContent),
-              name,
-              tool_call_id: call.id,
-            });
-          }
-        } catch (e) {
-          addMessage({
-            role: TOOL,
-            content: `Unable to call tool ${call.function.name}: ${e.message}`,
-            name: call.function.name,
-            tool_call_id: call.id,
-          });
-        }
-      }
-
+    try {
       using cancel = listenForCancel();
 
-      // if(this.debug) console.log(messages)
-      ({ message: result, usage } = await chat({
+      let { message: result, usage } = await chat({
         messages,
         tools,
         signal: cancel?.signal ?? signal,
         config: this.config,
-      }));
+        fetch: this.fetch,
+      });
       if (this.debug) console.log(result);
       this.#checkUsage(usage, messages);
+
+      if (result.reasoning_content && onthinking) {
+        await onthinking(result.reasoning_content);
+      }
+
+      let iteration = 0;
+
+      /** @param {Message} message */
+      const addMessage = (message) => {
+        messages.push(message);
+      };
+
+      while (result.tool_calls?.length) {
+        if (this.maxIterations >= 0 && iteration > this.maxIterations) {
+          throw new Error(
+            `Reached max iterations at ${iteration}. Try again with more subagents or a more simple approach`,
+          );
+        }
+        if (iteration && result.reasoning_content && onthinking) {
+          await onthinking(result.reasoning_content);
+        }
+
+        iteration += 1;
+
+        if (onprogress) {
+          const { content } = result;
+          const trimmed = content.trim();
+          if (trimmed) await onprogress(trimmed);
+        }
+        addMessage(result);
+        for (const call of result.tool_calls) {
+          using cancel = listenForCancel();
+          try {
+            const { name, arguments: rawArgs } = call.function;
+            const args = JSON.parse(rawArgs);
+            if (onbeforetool) {
+              // Check if it should be invoked
+              await onbeforetool(name, args);
+            }
+            const toolContent = await this.tools.call(
+              name,
+              args,
+              ctx,
+              cancel?.signal ?? signal,
+            );
+            cancel?.signal?.throwIfAborted();
+            if (toolContent.image) {
+              addMessage({
+                role: TOOL,
+                content: `Image file: ${args.path} (${toolContent.image.mime})`,
+                name,
+                tool_call_id: call.id,
+              });
+              /** @type {ContentPart[]} */
+              const parts = [
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:${toolContent.image.mime};base64,${toolContent.image.data}`,
+                  },
+                },
+              ];
+              addMessage({ role: USER, content: parts });
+            } else {
+              addMessage({
+                role: TOOL,
+                content: JSON.stringify(toolContent),
+                name,
+                tool_call_id: call.id,
+              });
+            }
+          } catch (e) {
+            addMessage({
+              role: TOOL,
+              content: `Unable to call tool ${call.function.name}: ${e.message}`,
+              name: call.function.name,
+              tool_call_id: call.id,
+            });
+          }
+        }
+
+        using cancel = listenForCancel();
+
+        // if(this.debug) console.log(messages)
+        ({ message: result, usage } = await chat({
+          messages,
+          tools,
+          signal: cancel?.signal ?? signal,
+          config: this.config,
+          fetch: this.fetch,
+        }));
+        if (this.debug) console.log(result);
+        this.#checkUsage(usage, messages);
+      }
+
+      history.push(result);
+
+      return result;
+    } catch (e) {
+      if (!(e instanceof ContextOverflowError)) throw e;
+      // The request exceeded the model's context window. Drop the tool
+      // call(s) that caused it and let the model try again.
+      let removed = 0;
+      while (messages.at(-1)?.role === TOOL) {
+        messages.pop();
+        removed++;
+      }
+      const last = messages.at(-1);
+      if (last?.role === ASSISTANT && last.tool_calls?.length) {
+        messages.pop();
+        removed++;
+      }
+      if (!removed) throw e;
+      messages.push({
+        role: SYSTEM,
+        content:
+          "The previous tool call(s) were dropped because the conversation exceeded the model's context window. Use the prune or compact tool to make room, then continue the task.",
+      });
+      /** @type {Message} */
+      const result = await this.crank(messages, {
+        context,
+        onprogress,
+        onbeforetool,
+        onthinking,
+        listenForCancel,
+        signal,
+      });
+      // The recursive crank pushed the result into `messages`; only mirror
+      // it into the original history if that's a different array.
+      if (messages !== history) history.push(result);
+      return result;
     }
-
-    history.push(result);
-
-    return result;
   }
 
   /**

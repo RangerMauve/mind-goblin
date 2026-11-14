@@ -89,6 +89,18 @@ export async function loadMemory(file) {
   }
 }
 
+/**
+ * Raised when the API rejects a request because it exceeds the model's
+ * context window (Ollama's `exceed_context_size_error`).
+ */
+export class ContextOverflowError extends Error {
+  /** @param {string} message */
+  constructor(message) {
+    super(message);
+    this.name = "ContextOverflowError";
+  }
+}
+
 const REQUEST_TIMEOUT = 30 * 60 * 1000;
 
 /** @type {Agent | null} */
@@ -124,14 +136,21 @@ const SAMPLING_PARAMS = [
  * @param {ToolDescription[]} options.tools
  * @param {Config} options.config
  * @param {AbortSignal} [options.signal]
+ * @param {typeof globalThis.fetch} [options.fetch] Fetch implementation. Defaults to globalThis.fetch.
  * @returns {Promise<ChatResult>}
  */
-export async function chat({ messages = [], tools, signal, config }) {
+export async function chat({ messages = [], tools, signal, config, fetch }) {
   /** @type {Record<string, unknown>} */
   const body = { model: config.model, messages, tools };
   for (const key of SAMPLING_PARAMS) body[key] = config[key];
 
-  const result = await postOpenAI("chat/completions", body, config, signal);
+  const result = await postOpenAI(
+    "chat/completions",
+    body,
+    config,
+    signal,
+    fetch,
+  );
 
   return { message: result.choices[0].message, usage: result.usage ?? null };
 }
@@ -206,13 +225,14 @@ export async function loadAgentsMd(dir = process.cwd()) {
  * @param {object} data
  * @param {Config} config
  * @param {AbortSignal} [signal]
+ * @param {typeof globalThis.fetch} [fetch] Fetch implementation. Defaults to globalThis.fetch.
  * @returns
  */
-async function postOpenAI(path, data, config, signal) {
+async function postOpenAI(path, data, config, signal, fetch) {
   const server = config.server;
   const url = (server.endsWith("/") ? server : server + "/") + path;
 
-  const response = await fetch(url, {
+  const response = await (fetch ?? globalThis.fetch)(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -225,9 +245,11 @@ async function postOpenAI(path, data, config, signal) {
   });
 
   if (!response.ok) {
-    throw new Error(
-      `OpenAI API error (${response.status}): ${await response.text()}`,
-    );
+    const text = await response.text();
+    if (text.includes("exceed_context_size_error")) {
+      throw new ContextOverflowError(text);
+    }
+    throw new Error(`OpenAI API error (${response.status}): ${text}`);
   }
   return await response.json();
 }
