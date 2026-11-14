@@ -140,6 +140,11 @@ program
   .option("--clear", "Clear the session before starting")
   .option("--no-speak", "Don't speak responses, only log")
   .option("--show-thinking", "Speak thinking blocks")
+  .option(
+    "--trigger <phrase>",
+    "Phrase that flushes the voice buffer and triggers a response",
+    conf.listenTrigger,
+  )
   .action(async (opts) => {
     const { listen } = await import("./listen.js");
     await listen(buildOptions(opts));

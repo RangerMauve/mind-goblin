@@ -25,6 +25,7 @@ import { makeProgressLogging } from "./progress-logging.js";
  *   session?: string,
  *   clear?: boolean,
  *   speak?: boolean,
+ *   trigger?: string,
  * }} ListenOptions
  */
 
@@ -128,16 +129,40 @@ export async function listen(options) {
     await session_.save(messages);
   }
 
-  for await (const text of lines) {
-    logger.user(text);
+  // Buffer transcribed lines until the user says the trigger phrase, then
+  // flush them into a single turn. Ctrl+C (abort) drops any unflushed buffer.
+  const trigger = (options.trigger ?? options.listenTrigger ?? "execute")
+    .trim()
+    .toLowerCase();
+  /** @type {string[]} */
+  const buffer = [];
 
-    messages.push({ role: USER, content: text });
-
+  function flush() {
+    if (!buffer.length) return;
+    const joined = buffer.join("\n");
+    buffer.length = 0;
+    mergeUserMessages(messages, joined);
+    logger.info("Thinking...");
     // interrupt whatever it was doing to focus on the new message
     abortLast.abort();
     abortLast = new AbortController();
     const signal = AbortSignal.any([abortLast.signal, controller.signal]);
     crank(signal);
+  }
+
+  for await (const text of lines) {
+    const rest = stripTrigger(text, trigger);
+    if (rest === null) {
+      buffer.push(text);
+      logger.user(text);
+    } else {
+      // trigger detected: keep the line (unless it's a bare trigger), then flush
+      if (rest) {
+        buffer.push(rest);
+        logger.user(rest);
+      }
+      flush();
+    }
   }
 
   session_.save(messages);
@@ -241,6 +266,49 @@ export async function* processAudio(
       if (text.trim()) yield text;
     }
   }
+}
+
+/**
+ * Merge flushed speech into the message history. If the most recent message is
+ * a USER message with string content, the text is appended to it (coalescing
+ * consecutive utterances into one message); otherwise a new USER message is
+ * pushed.
+ * @param {Message[]} messages The conversation history
+ * @param {string} text The flushed speech to merge in
+ */
+export function mergeUserMessages(messages, text) {
+  const last = messages.at(-1);
+  if (last?.role === USER && typeof last.content === "string") {
+    last.content += "\n" + text;
+  } else {
+    messages.push({ role: USER, content: text });
+  }
+}
+
+/**
+ * Detect the trigger phrase in a line. When the trigger is the only word on
+ * the line (ignoring punctuation/case) the whole line is dropped (returns
+ * `""`). When the trigger appears alongside other words, the full line is
+ * returned unchanged so the agent still sees the trigger in context. Returns
+ * `null` when the trigger is not present.
+ * @param {string} line A transcribed line
+ * @param {string} trigger The (lowercased) trigger phrase to match
+ * @returns {string | null} `""` for a bare trigger, the full line otherwise, or null if absent
+ */
+export function stripTrigger(line, trigger) {
+  const re = new RegExp(`\\b${escapeRegExp(trigger)}\\b`, "i");
+  if (!re.test(line)) return null;
+  /**
+   * Strip all non-word chars so "Execute!" and "execute" compare equal.
+   * @param {string} s
+   */
+  const wordsOnly = (s) => s.replace(/[^0-9a-zA-Z_]/g, "").toLowerCase();
+  return wordsOnly(line) === wordsOnly(trigger) ? "" : line;
+}
+
+/** @param {string} s */
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, (c) => "\\" + c);
 }
 
 /**

@@ -120,6 +120,7 @@ The `Context` class is the shared session state passed to tools and commands. It
 - Loaded via `rc("mindgoblin", defaults)` → reads `~/.mindgoblinrc` (ini format).
 - XDG paths for data/sessions: `~/.local/share/mindgoblin/`.
 - **Model presets.** The `models` key in config is a record of preset names → partial config overrides. Top-level params are auto-copied into `models.default` on load. The `--model <name>` CLI flag selects a preset via `resolveModel()` in `utils.js`. The resolved config is passed to `Goblin` as `config` and threaded to `chat()`.
+- **Voice trigger.** `listenTrigger` config key (default `"execute"`, also a `--trigger` CLI flag on `listen`). `listen` mode buffers transcribed speech and only cranks when the user says the trigger phrase; buffered lines are merged into the most recent USER message via `mergeUserMessages()` (in `listen.js`). Ctrl+C drops any unflushed buffer.
 - **CLI → Goblin options flow.** `cli.js` has a `buildOptions()` helper that merges `conf` + `program.opts()` + command opts + resolved `config`. Command action handlers (`repl`, `listen`) receive this flat object — they do NOT import `program` or `conf` directly.
 
 ### Design

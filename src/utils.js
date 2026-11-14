@@ -40,6 +40,7 @@ const xdg = /** @type {import('xdg-portable').XDG} */ (
  * @property {string} [memoryFile] - Path to the persistent memory file. Defaults to MEMORY.md in the data dir.
  * @property {Record<string, Partial<Config>>} [models] - Named model presets. Top-level params are auto-copied into `models.default` on load.
  * @property {string[]} [skillsDirs] - Extra skill directories, scanned between the user data dir and the project dirs.
+ * @property {string} [listenTrigger] - Phrase that flushes the voice buffer and triggers a response in listen mode. Defaults to "execute".
  */
 
 export const APPNAME = "mindgoblin";
@@ -56,6 +57,7 @@ const DEFAULT_CONFIG = {
   agentsMd: true,
   memoryFile: path.join(xdg.data(), APPNAME, "MEMORY.md"),
   skillsDirs: [],
+  listenTrigger: "execute",
 };
 
 // Load config from ~/.mindgoblinrc
