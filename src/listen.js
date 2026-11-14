@@ -112,7 +112,7 @@ export async function listen(options) {
       });
       if (signal.aborted) return;
 
-      speakLogger.assistant(response.content);
+      logger.assistant(response.content);
 
       if (doSpeak) {
         await speakTool(
