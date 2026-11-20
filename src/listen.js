@@ -4,7 +4,7 @@ import { execa } from "execa";
 import cpal from "node-cpal";
 import sherpa from "sherpa-onnx-node";
 
-import { Goblin, USER } from "./index.js";
+import { checkIsTextContent, Goblin, USER } from "./index.js";
 import { Sessions } from "./sessions.js";
 import { dataDir, sessionFolder } from "./utils.js";
 import speakTool from "./tools/speak.js";
@@ -31,6 +31,12 @@ import { makeProgressLogging } from "./progress-logging.js";
 
 const TARGET_SAMPLE_RATE = 16000;
 const VAD_WINDOW_SIZE = 512; // 32ms at 16kHz
+// Lookback before a detected speech onset so the first word isn't clipped by the
+// VAD (the Silero VAD segment has no pre-roll). Leading silence is harmless to ASR.
+const PRE_ROLL_SECONDS = 0.5;
+// Rolling window of recent audio we keep around to slice out each speech segment
+// (must comfortably exceed the VAD's maxSpeechDuration plus padding).
+const HISTORY_SECONDS = 32;
 
 export const MODELS_BASE =
   "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models";
@@ -112,11 +118,13 @@ export async function listen(options) {
       });
       if (signal.aborted) return;
 
-      logger.assistant(response.content);
+      logger.assistant(checkIsTextContent(response));
 
       if (doSpeak) {
         await speakTool(
-          { message: response.content.trim().replaceAll("\n", " ") },
+          {
+            message: checkIsTextContent(response).trim().replaceAll("\n", " "),
+          },
           goblin,
           signal,
         );
@@ -248,6 +256,13 @@ export async function* processAudio(
   signal = new AbortController().signal,
 ) {
   const buffer = new sherpa.CircularBuffer(30 * TARGET_SAMPLE_RATE);
+  const history = new sherpa.CircularBuffer(
+    HISTORY_SECONDS * TARGET_SAMPLE_RATE,
+  );
+  const preRoll = Math.floor(PRE_ROLL_SECONDS * TARGET_SAMPLE_RATE);
+
+  let fedCount = 0; // total samples pushed to the VAD
+  let speechStart = -1; // absolute sample index a segment should start at, -1 = idle
 
   for await (const data of audio) {
     if (signal.aborted) break;
@@ -257,13 +272,30 @@ export async function* processAudio(
       const chunk = buffer.get(buffer.head(), VAD_WINDOW_SIZE);
       buffer.pop(VAD_WINDOW_SIZE);
       vad.acceptWaveform(chunk);
-    }
+      history.push(chunk);
+      fedCount += VAD_WINDOW_SIZE;
 
-    while (!vad.isEmpty()) {
-      const segment = vad.front();
-      vad.pop();
-      const text = transcribe(segment.samples, recognizer);
-      if (text.trim()) yield text;
+      // Mark the speech start with a lookback so we include the onset.
+      if (speechStart === -1 && vad.isDetected()) {
+        speechStart = Math.max(0, fedCount - preRoll);
+      }
+
+      while (!vad.isEmpty()) {
+        const segment = vad.front();
+        vad.pop();
+        // Prefer our own buffer (with pre-roll + trailing silence); fall back to
+        // the raw VAD segment if we never tracked a start.
+        let samples = segment.samples;
+        if (speechStart >= 0) {
+          const len = Math.min(fedCount - speechStart, history.size());
+          if (len > 0) {
+            samples = history.get(history.head() + (history.size() - len), len);
+          }
+        }
+        const text = transcribe(samples, recognizer);
+        if (text.trim()) yield text;
+        speechStart = -1;
+      }
     }
   }
 }
