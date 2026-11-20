@@ -355,7 +355,7 @@ ${rows.join("\n")}
       }
       if (!removed) throw e;
       messages.push({
-        role: SYSTEM,
+        role: USER,
         content:
           "The previous tool call(s) were dropped because the conversation exceeded the model's context window. Use the prune or compact tool to make room, then continue the task.",
       });
@@ -386,7 +386,7 @@ ${rows.join("\n")}
     if (pct >= 0.7) {
       const rounded = Math.ceil((pct * 100) / 5) * 5;
       messages.push({
-        role: SYSTEM,
+        role: USER,
         content: `[Context: ${rounded}% used. Use the prune tool to remove messages you no longer need.]`,
       });
       this.#pruneWarned = true;
