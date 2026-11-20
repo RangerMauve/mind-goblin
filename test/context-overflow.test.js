@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
-import { Goblin, SYSTEM, USER } from "../src/index.js";
+import { Goblin, USER } from "../src/index.js";
 
 /** @import { Message } from "../src/index.js" */
 
@@ -146,7 +146,7 @@ test("recovers from context overflow by dropping the tool call and re-cranking",
   );
   const notice = thirdMsgs.find(
     (/** @type {any} */ m) =>
-      m.role === SYSTEM && m.content.includes("context window"),
+      m.role === USER && m.content.includes("context window"),
   );
   assert.ok(notice, "overflow notice should be present");
   assert.match(/** @type {string} */ (notice.content), /prune or compact/);

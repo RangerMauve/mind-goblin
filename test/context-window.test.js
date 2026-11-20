@@ -160,8 +160,7 @@ test("injects warning message when context usage exceeds 70%", async () => {
   assert.ok(chatReqs.length >= 2, "expected at least 2 chat calls");
   const secondMsgs = chatReqs[1].body.messages;
   const warning = secondMsgs.find(
-    (/** @type {any} */ m) =>
-      m.role === "system" && m.content.includes("% used"),
+    (/** @type {any} */ m) => m.role === "user" && m.content.includes("% used"),
   );
   assert.ok(warning, "warning message should be in second request");
   assert.match(warning.content, /Context: 80% used/);
@@ -185,7 +184,7 @@ test("warning appears only once across multiple turns", async () => {
   for (const req of chatReqs) {
     const count = req.body.messages.filter(
       (/** @type {any} */ m) =>
-        m.role === "system" && m.content.includes("% used"),
+        m.role === "user" && m.content.includes("% used"),
     ).length;
     warningCount += count;
   }
