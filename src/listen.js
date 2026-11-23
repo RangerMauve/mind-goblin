@@ -256,9 +256,8 @@ export async function* processAudio(
   signal = new AbortController().signal,
 ) {
   const buffer = new sherpa.CircularBuffer(30 * TARGET_SAMPLE_RATE);
-  const history = new sherpa.CircularBuffer(
-    HISTORY_SECONDS * TARGET_SAMPLE_RATE,
-  );
+  const HISTORY_SAMPLES = HISTORY_SECONDS * TARGET_SAMPLE_RATE;
+  const history = new sherpa.CircularBuffer(HISTORY_SAMPLES);
   const preRoll = Math.floor(PRE_ROLL_SECONDS * TARGET_SAMPLE_RATE);
 
   let fedCount = 0; // total samples pushed to the VAD
@@ -272,6 +271,12 @@ export async function* processAudio(
       const chunk = buffer.get(buffer.head(), VAD_WINDOW_SIZE);
       buffer.pop(VAD_WINDOW_SIZE);
       vad.acceptWaveform(chunk);
+      // Keep the rolling window bounded: sherpa's CircularBuffer grows
+      // (doubles) on overflow rather than overwriting the oldest, so pop the
+      // excess before each push to stay within capacity (avoids the "Overflow!"
+      // warning and unbounded memory growth on long sessions).
+      const excess = history.size() + VAD_WINDOW_SIZE - HISTORY_SAMPLES;
+      if (excess > 0) history.pop(excess);
       history.push(chunk);
       fedCount += VAD_WINDOW_SIZE;
 
