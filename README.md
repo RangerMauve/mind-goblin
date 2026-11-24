@@ -6,13 +6,13 @@ Your friendly internet enabled assistant.
 
 ## Features
 
-- **Tool Use**: 19 built-in tools: `calc`, `compact`, `context_length`, `desktop_notification`, `edit_file`, `fetch`, `get_current_time`, `prune`, `read`, `read_clipboard`, `screenshot`, `search_web`, `search_wikipedia`, `shell_command`, `skill`, `speak`, `sub_agent`, `unskill`, `write_file`
+- **Tool Use**: 16 built-in tools: `compact`, `context_length`, `edit_file`, `edit_regex`, `fetch`, `get_current_time`, `prune`, `read`, `read_clipboard`, `screenshot`, `search_web`, `shell_command`, `skill`, `sub_agent`, `unskill`, `write_file`
 - **Image Reading**: The `read` tool returns image data for image files on the filesystem, and `fetch` returns image data for image URLs, so the goblin can "see" images from both the local disk and the web
 - **Screenshots**: The `screenshot` tool captures the full screen via `grim` on Wayland, so the goblin can see what's on your display
 - **Session Persistence**: Save and resume conversations across runs
 - **Tab Completion**: File path autocomplete in the REPL
 - **Shell Passthrough**: Run shell commands directly from the REPL with a `!` prefix, recording them in the conversation as a tool call
-- **Safety Confirmations**: User confirmation required for shell commands and file modifications, with a rendered line diff for `edit_file`
+- **Safety Confirmations**: User confirmation required for shell commands and file modifications, with a rendered line diff for `edit_file` and a pattern→replacement preview for `edit_regex`
 - **Thinking Display**: Optional display of reasoning steps during chat
 - **Readline History**: Command history populated when resuming sessions
 - **Audio Notifications**: Bell sound on response completion
@@ -22,9 +22,6 @@ Your friendly internet enabled assistant.
 - **Voice Input**: Speak to the goblin hands-free via microphone. Uses Silero VAD + Moonshine Tiny (int8) for offline speech-to-text
 - **Skills**: Loadable instruction packs (`SKILL.md`) for specific tasks. Discovered across bundled, XDG, and project directories. Load/unload via the `skill`/`unskill` tools or `/skill`/`/unskill` commands
 - **Context Warning**: Automatically detects when context usage exceeds 70% of the model's context window (queried from llama-server's `/props` endpoint) and nudges the LLM to use the `prune` tool to free space
-- **Voice Output**: The `speak` tool reads text aloud, and `desktop_notification` sends a system notification
-- **Wikipedia Search**: The `search_wikipedia` tool queries Wikipedia for structured results
-- **Math**: The `calc` tool evaluates math expressions
 
 ## Built-in Commands
 
@@ -88,7 +85,7 @@ List active skills, or remove a loaded skill's instructions from the conversatio
 
 - `--debug`: Output extra debug info to inspect the train of thought
 - `--model <name>`: Use a named model preset from config (see Model Presets below). Defaults to `default`.
-- `--readonly`: Run with only read-only tools. Write tools (`write_file`, `edit_file`) and side-effect tools (`desktop_notification`, `speak`) are stripped. Shell commands are restricted to a safe allowlist. Sub-agents inherit readonly mode and can only further restrict tool access.
+- `--readonly`: Run with only read-only tools. Write tools (`write_file`, `edit_file`, `edit_regex`) and side-effect tools are stripped. Shell commands are restricted to a safe allowlist. Sub-agents inherit readonly mode and can only further restrict tool access.
 - `--allow-all`: Allow all tools and writes without confirmation. This turns off the per-call confirm prompts (writes/edits anywhere, and dangerous shell commands) and forces `--readonly` off. Use with care — the goblin will act without asking.
 - `--no-agents-md`: Don't load agent instruction files (`AGENTS.md`, `CLAUDE.md`, etc.) into the system prompt. Enabled by default.
 
@@ -118,7 +115,7 @@ See [Built-in Commands](#built-in-commands) for REPL commands like `!`, `/compac
 Transform a file in place.
 
 - `<prompt>`: The task you wish for the assistant to complete.
-- `<file>`: The file to refactor. Must exist; the goblin is forked with only `write_file`/`edit_file` and is blocked from touching any other file.
+- `<file>`: The file to refactor. Must exist; the goblin is forked with only `write_file`/`edit_file`/`edit_regex` and is blocked from touching any other file.
 
 #### `mind-goblin listen`
 
