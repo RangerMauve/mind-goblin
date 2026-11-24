@@ -500,6 +500,21 @@ describe("summary logging", () => {
     assert.ok(line.includes("rename variable"), "should include summary");
   });
 
+  test("edit_regex logs path and summary", async () => {
+    const line = await captureLog(
+      "edit_regex",
+      {
+        path: "./src/app.js",
+        pattern: "foo\\b",
+        replacement: "bar",
+        summary: "rename via regex",
+      },
+      { allowLocal: true },
+    );
+    assert.ok(line.includes("./src/app.js"), "should include path");
+    assert.ok(line.includes("rename via regex"), "should include summary");
+  });
+
   test("dangerous shell command does not log only summary", async () => {
     const line = await captureLog("shell_command", {
       command: "rm -rf /tmp/test",

@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 export const name = "edit_file";
 export const readonly = false;
 export const description =
-  "Replaces text in a file at the specified path. Exact string matching with optional global and case-insensitive matching.";
+  "Replaces the first occurrence of an exact string in a file. For global or regex replacements, use edit_regex instead.";
 
 export const parameters = {
   type: "object",
@@ -26,17 +26,6 @@ export const parameters = {
       type: "string",
       description: "The new text to insert.",
     },
-    all: {
-      type: "boolean",
-      description:
-        "Replace all occurrences instead of only the first. Defaults to false.",
-      default: false,
-    },
-    caseInsensitive: {
-      type: "boolean",
-      description: "Case-insensitive matching. Defaults to false.",
-      default: false,
-    },
   },
 };
 
@@ -50,56 +39,32 @@ function escapeRegExp(s) {
 }
 
 /**
- * Replaces exact text in a file at the specified path.
+ * Replaces the first occurrence of an exact string in a file.
  * @param {object} parameters
  * @param {string} parameters.path The absolute or relative path to the file
  * @param {string} parameters.old_text The exact text to find
  * @param {string} parameters.new_text The new text to insert
- * @param {boolean} [parameters.all] Replace all occurrences (default false)
- * @param {boolean} [parameters.caseInsensitive] Case-insensitive matching (default false)
  * @returns {Promise<{success: true, path: string, replacements: number}|{error: string}>}
  */
-export default async function editFile({
-  path,
-  old_text,
-  new_text,
-  all = false,
-  caseInsensitive = false,
-}) {
+export default async function editFile({ path, old_text, new_text }) {
   try {
     if (!old_text) {
       return { error: "old_text must not be empty." };
     }
 
     const contents = await fs.readFile(path, "utf8");
+    const escaped = escapeRegExp(old_text);
 
-    const pattern = escapeRegExp(old_text);
-    const flags = caseInsensitive ? "i" : "";
-
-    const matches = contents.match(new RegExp(pattern, `g${flags}`));
-    const total = matches ? matches.length : 0;
-    if (total === 0) {
+    if (!new RegExp(escaped).test(contents)) {
       return {
         error:
           "Pattern not found in file. Use read to check the contents and try again.",
       };
     }
 
-    let newContents;
-    let replacements;
-    if (all) {
-      newContents = contents.replace(
-        new RegExp(pattern, `g${flags}`),
-        new_text,
-      );
-      replacements = total;
-    } else {
-      newContents = contents.replace(new RegExp(pattern, flags), new_text);
-      replacements = 1;
-    }
-
+    const newContents = contents.replace(new RegExp(escaped), new_text);
     await fs.writeFile(path, newContents, "utf8");
-    return { success: true, path, replacements };
+    return { success: true, path, replacements: 1 };
   } catch (e) {
     return { error: e.message };
   }

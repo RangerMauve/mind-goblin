@@ -33,23 +33,14 @@ function ok(r) {
   return r;
 }
 
-test("exact string replaces only the first occurrence by default", async (t) => {
+test("replaces only the first occurrence", async (t) => {
   const f = await makeFile(t, "foo bar foo baz foo");
   const r = ok(await edit({ path: f, old_text: "foo", new_text: "qux" }));
   assert.strictEqual(r.replacements, 1);
   assert.strictEqual(readFileSync(f, "utf8"), "qux bar foo baz foo");
 });
 
-test("exact string with all replaces every occurrence", async (t) => {
-  const f = await makeFile(t, "foo bar foo baz foo");
-  const r = ok(
-    await edit({ path: f, old_text: "foo", new_text: "qux", all: true }),
-  );
-  assert.strictEqual(r.replacements, 3);
-  assert.strictEqual(readFileSync(f, "utf8"), "qux bar qux baz qux");
-});
-
-test("exact string errors when not found", async (t) => {
+test("errors when not found", async (t) => {
   const f = await makeFile(t, "hello world");
   const r = await edit({ path: f, old_text: "absent", new_text: "x" });
   assert.ok("error" in r && /not found/i.test(r.error));
@@ -57,44 +48,9 @@ test("exact string errors when not found", async (t) => {
 
 test("literal regex metacharacters are not special", async (t) => {
   const f = await makeFile(t, "a.c aXc a.c");
-  const r = ok(
-    await edit({ path: f, old_text: "a.c", new_text: "Z", all: true }),
-  );
-  assert.strictEqual(r.replacements, 2);
-  assert.strictEqual(readFileSync(f, "utf8"), "Z aXc Z");
-});
-
-test("caseInsensitive matches across case", async (t) => {
-  const f = await makeFile(t, "true True TRUE");
-  const r = ok(
-    await edit({
-      path: f,
-      old_text: "true",
-      new_text: "FALSE",
-      all: true,
-      caseInsensitive: true,
-    }),
-  );
-  assert.strictEqual(r.replacements, 3);
-  assert.strictEqual(readFileSync(f, "utf8"), "FALSE FALSE FALSE");
-});
-
-test("case-sensitive by default leaves other case untouched", async (t) => {
-  const f = await makeFile(t, "true True");
-  const r = ok(
-    await edit({ path: f, old_text: "true", new_text: "X", all: true }),
-  );
+  const r = ok(await edit({ path: f, old_text: "a.c", new_text: "Z" }));
   assert.strictEqual(r.replacements, 1);
-  assert.strictEqual(readFileSync(f, "utf8"), "X True");
-});
-
-test("deleting all occurrences with empty new_text", async (t) => {
-  const f = await makeFile(t, "DEBUG: one DEBUG: two DEBUG: three");
-  const r = ok(
-    await edit({ path: f, old_text: "DEBUG: ", new_text: "", all: true }),
-  );
-  assert.strictEqual(r.replacements, 3);
-  assert.strictEqual(readFileSync(f, "utf8"), "one two three");
+  assert.strictEqual(readFileSync(f, "utf8"), "Z aXc a.c");
 });
 
 test("empty old_text is rejected", async (t) => {
