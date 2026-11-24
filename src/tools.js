@@ -37,6 +37,7 @@ export class Tools {
       tools.loadTool("read"),
       tools.loadTool("write_file"),
       tools.loadTool("edit_file"),
+      tools.loadTool("edit_regex"),
       tools.loadTool("fetch"),
       tools.loadTool("search_web"),
       tools.loadTool("sub_agent"),

@@ -108,19 +108,30 @@ export function makeProgressLogging({
         logger.info(`Writing: ${args.path} — ${args.summary}`);
       }
     },
-    /** @param {{path: string, old_text: string, new_text: string, summary: string, regex?: boolean, all?: boolean, caseInsensitive?: boolean}} args */
+    /** @param {{path: string, old_text: string, new_text: string, summary: string}} args */
     async edit_file(args) {
       if (allowAll || (allowLocal && isWithinRoot(args.path, process.cwd()))) {
         logger.info(`Editing: ${args.path} — ${args.summary}`);
       } else if (confirm) {
-        const detail = args.regex
-          ? renderRegex(args.old_text, args.new_text, args)
-          : renderDiff(args.old_text, args.new_text);
+        const detail = renderDiff(args.old_text, args.new_text);
         await confirm(
           `Allow edit to ${args.path} — ${args.summary}?\n${detail}`,
         );
       } else {
         logger.info(`Editing: ${args.path} — ${args.summary}`);
+      }
+    },
+    /** @param {{path: string, pattern: string, replacement: string, summary: string, all?: boolean, caseInsensitive?: boolean}} args */
+    async edit_regex(args) {
+      if (allowAll || (allowLocal && isWithinRoot(args.path, process.cwd()))) {
+        logger.info(`Editing (regex): ${args.path} — ${args.summary}`);
+      } else if (confirm) {
+        const detail = renderRegex(args.pattern, args.replacement, args);
+        await confirm(
+          `Allow regex edit to ${args.path} — ${args.summary}?\n${detail}`,
+        );
+      } else {
+        logger.info(`Editing (regex): ${args.path} — ${args.summary}`);
       }
     },
   };

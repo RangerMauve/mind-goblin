@@ -55,52 +55,13 @@ test("exact string errors when not found", async (t) => {
   assert.ok("error" in r && /not found/i.test(r.error));
 });
 
-test("literal regex metacharacters are not special when regex is false", async (t) => {
+test("literal regex metacharacters are not special", async (t) => {
   const f = await makeFile(t, "a.c aXc a.c");
   const r = ok(
     await edit({ path: f, old_text: "a.c", new_text: "Z", all: true }),
   );
   assert.strictEqual(r.replacements, 2);
   assert.strictEqual(readFileSync(f, "utf8"), "Z aXc Z");
-});
-
-test("regex replaces first match only by default", async (t) => {
-  const f = await makeFile(t, "cat cat cat");
-  const r = ok(
-    await edit({ path: f, old_text: "c.t", new_text: "dog", regex: true }),
-  );
-  assert.strictEqual(r.replacements, 1);
-  assert.strictEqual(readFileSync(f, "utf8"), "dog cat cat");
-});
-
-test("regex with all replaces every match", async (t) => {
-  const f = await makeFile(t, "cat cat cat");
-  const r = ok(
-    await edit({
-      path: f,
-      old_text: "c.t",
-      new_text: "dog",
-      regex: true,
-      all: true,
-    }),
-  );
-  assert.strictEqual(r.replacements, 3);
-  assert.strictEqual(readFileSync(f, "utf8"), "dog dog dog");
-});
-
-test("word boundary regex avoids partial identifiers", async (t) => {
-  const f = await makeFile(t, "oldName oldNameX oldName");
-  const r = ok(
-    await edit({
-      path: f,
-      old_text: "\\boldName\\b",
-      new_text: "newName",
-      regex: true,
-      all: true,
-    }),
-  );
-  assert.strictEqual(r.replacements, 2);
-  assert.strictEqual(readFileSync(f, "utf8"), "newName oldNameX newName");
 });
 
 test("caseInsensitive matches across case", async (t) => {
@@ -125,51 +86,6 @@ test("case-sensitive by default leaves other case untouched", async (t) => {
   );
   assert.strictEqual(r.replacements, 1);
   assert.strictEqual(readFileSync(f, "utf8"), "X True");
-});
-
-test("capture group references in replacement", async (t) => {
-  const f = await makeFile(t, "foo(bar)foo(baz)");
-  const r = ok(
-    await edit({
-      path: f,
-      old_text: "foo\\(([a-z]*)\\)",
-      new_text: "bar($1)",
-      regex: true,
-      all: true,
-    }),
-  );
-  assert.strictEqual(r.replacements, 2);
-  assert.strictEqual(readFileSync(f, "utf8"), "bar(bar)bar(baz)");
-});
-
-test("regex ^ and $ match each line", async (t) => {
-  const f = await makeFile(t, "# a\nb\n# c\n# d\n");
-  const r = ok(
-    await edit({
-      path: f,
-      old_text: "^# ",
-      new_text: "",
-      regex: true,
-      all: true,
-    }),
-  );
-  assert.strictEqual(r.replacements, 3);
-  assert.strictEqual(readFileSync(f, "utf8"), "a\nb\nc\nd\n");
-});
-
-test("tabs to spaces via regex", async (t) => {
-  const f = await makeFile(t, "\ta\tb\tc");
-  const r = ok(
-    await edit({
-      path: f,
-      old_text: "\\t",
-      new_text: "    ",
-      regex: true,
-      all: true,
-    }),
-  );
-  assert.strictEqual(r.replacements, 3);
-  assert.strictEqual(readFileSync(f, "utf8"), "    a    b    c");
 });
 
 test("deleting all occurrences with empty new_text", async (t) => {

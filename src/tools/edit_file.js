@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 export const name = "edit_file";
 export const readonly = false;
 export const description =
-  "Replaces text in a file at the specified path. Supports exact string or regex matching, with optional global and case-insensitive matching. Regex patterns always match line boundaries (^ and $).";
+  "Replaces text in a file at the specified path. Exact string matching with optional global and case-insensitive matching.";
 
 export const parameters = {
   type: "object",
@@ -20,13 +20,11 @@ export const parameters = {
     },
     old_text: {
       type: "string",
-      description:
-        "The text to replace. Treated as an exact string unless regex is true, in which case it is a regular expression pattern.",
+      description: "The exact text to find in the file.",
     },
     new_text: {
       type: "string",
-      description:
-        "The new text to insert. When regex is true, supports $1 / ${name} capture group references.",
+      description: "The new text to insert.",
     },
     all: {
       type: "boolean",
@@ -34,16 +32,9 @@ export const parameters = {
         "Replace all occurrences instead of only the first. Defaults to false.",
       default: false,
     },
-    regex: {
-      type: "boolean",
-      description:
-        "Treat old_text as a regular expression. Defaults to false (exact string match).",
-      default: false,
-    },
     caseInsensitive: {
       type: "boolean",
-      description:
-        "Case-insensitive matching (regex 'i' flag). Defaults to false.",
+      description: "Case-insensitive matching. Defaults to false.",
       default: false,
     },
   },
@@ -59,13 +50,12 @@ function escapeRegExp(s) {
 }
 
 /**
- * Replaces text in a file at the specified path.
+ * Replaces exact text in a file at the specified path.
  * @param {object} parameters
  * @param {string} parameters.path The absolute or relative path to the file
- * @param {string} parameters.old_text The text (or regex pattern) to replace
+ * @param {string} parameters.old_text The exact text to find
  * @param {string} parameters.new_text The new text to insert
  * @param {boolean} [parameters.all] Replace all occurrences (default false)
- * @param {boolean} [parameters.regex] Treat old_text as a regex (default false)
  * @param {boolean} [parameters.caseInsensitive] Case-insensitive matching (default false)
  * @returns {Promise<{success: true, path: string, replacements: number}|{error: string}>}
  */
@@ -74,7 +64,6 @@ export default async function editFile({
   old_text,
   new_text,
   all = false,
-  regex = false,
   caseInsensitive = false,
 }) {
   try {
@@ -82,15 +71,12 @@ export default async function editFile({
       return { error: "old_text must not be empty." };
     }
 
-    // Read the file
     const contents = await fs.readFile(path, "utf8");
 
-    const pattern = regex ? old_text : escapeRegExp(old_text);
-    // Regex patterns always match line boundaries; case-insensitivity is opt-in.
-    const extraFlags = `${regex ? "m" : ""}${caseInsensitive ? "i" : ""}`;
+    const pattern = escapeRegExp(old_text);
+    const flags = caseInsensitive ? "i" : "";
 
-    // Count total matches (always global for counting)
-    const matches = contents.match(new RegExp(pattern, `g${extraFlags}`));
+    const matches = contents.match(new RegExp(pattern, `g${flags}`));
     const total = matches ? matches.length : 0;
     if (total === 0) {
       return {
@@ -103,13 +89,12 @@ export default async function editFile({
     let replacements;
     if (all) {
       newContents = contents.replace(
-        new RegExp(pattern, `g${extraFlags}`),
+        new RegExp(pattern, `g${flags}`),
         new_text,
       );
       replacements = total;
     } else {
-      // Replace only the first occurrence
-      newContents = contents.replace(new RegExp(pattern, extraFlags), new_text);
+      newContents = contents.replace(new RegExp(pattern, flags), new_text);
       replacements = 1;
     }
 

@@ -329,8 +329,28 @@ describe("prune logging", () => {
 
 describe("regex edit confirm text", () => {
   /**
-   * Run an edit_file pre-tool handler and capture the confirm prompt,
+   * Run an edit_regex pre-tool handler and capture the confirm prompt,
    * with ANSI color codes stripped for easy assertion.
+   * @param {object} args
+   * @returns {Promise<string>} The captured prompt
+   */
+  async function captureRegexPrompt(args) {
+    const ESC = String.fromCharCode(27);
+    const stripAnsi = new RegExp(`${ESC}\\[[0-9;]*m`, "g");
+    let prompt = "";
+    const { onbeforetool } = makeProgressLogging({
+      confirm: async (msg) => {
+        prompt = msg.replace(stripAnsi, "");
+      },
+      allowLocal: false,
+      logger: new Logger(),
+    });
+    await onbeforetool("edit_regex", args);
+    return prompt;
+  }
+
+  /**
+   * Run an edit_file pre-tool handler and capture the confirm prompt.
    * @param {object} args
    * @returns {Promise<string>} The captured prompt
    */
@@ -350,11 +370,10 @@ describe("regex edit confirm text", () => {
   }
 
   test("shows pattern, replacement, and the all flag", async () => {
-    const prompt = await captureEditPrompt({
+    const prompt = await captureRegexPrompt({
       path: "/etc/somefile.txt",
-      old_text: "\\boldName\\b",
-      new_text: "newName",
-      regex: true,
+      pattern: "\\boldName\\b",
+      replacement: "newName",
       all: true,
       summary: "rename variable",
     });
@@ -366,11 +385,10 @@ describe("regex edit confirm text", () => {
   });
 
   test("omits the flag suffix when neither flag is set", async () => {
-    const prompt = await captureEditPrompt({
+    const prompt = await captureRegexPrompt({
       path: "/etc/somefile.txt",
-      old_text: "c.t",
-      new_text: "dog",
-      regex: true,
+      pattern: "c.t",
+      replacement: "dog",
       summary: "replace pattern",
     });
     assert.ok(prompt.includes("c.t"));
@@ -381,11 +399,10 @@ describe("regex edit confirm text", () => {
   });
 
   test("shows both flags when all and caseInsensitive are set", async () => {
-    const prompt = await captureEditPrompt({
+    const prompt = await captureRegexPrompt({
       path: "/etc/somefile.txt",
-      old_text: "true",
-      new_text: "FALSE",
-      regex: true,
+      pattern: "true",
+      replacement: "FALSE",
       all: true,
       caseInsensitive: true,
       summary: "case-insensitive replace",
@@ -394,11 +411,10 @@ describe("regex edit confirm text", () => {
   });
 
   test("renders patterns containing slashes as-is", async () => {
-    const prompt = await captureEditPrompt({
+    const prompt = await captureRegexPrompt({
       path: "/etc/somefile.txt",
-      old_text: "a/b",
-      new_text: "c",
-      regex: true,
+      pattern: "a/b",
+      replacement: "c",
       summary: "replace slash pattern",
     });
     assert.ok(!prompt.includes("sed"));
@@ -407,7 +423,7 @@ describe("regex edit confirm text", () => {
     assert.ok(prompt.includes("c"));
   });
 
-  test("non-regex edits still render a diff, not a pattern line", async () => {
+  test("edit_file renders a diff, not a pattern line", async () => {
     const prompt = await captureEditPrompt({
       path: "/etc/somefile.txt",
       old_text: "foo",
