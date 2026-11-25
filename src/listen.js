@@ -38,6 +38,11 @@ const PRE_ROLL_SECONDS = 0.5;
 // (must comfortably exceed the VAD's maxSpeechDuration plus padding).
 const HISTORY_SECONDS = 32;
 
+const COMMAND_TRIGGER = "execute";
+const COMMAND_CLEAR = "clear buffer";
+
+const REGEX_WORD_CHARS = /[^0-9a-zA-Z_ ]/g;
+
 export const MODELS_BASE =
   "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models";
 export const VAD_MODEL_URL = `${MODELS_BASE}/silero_vad.onnx`;
@@ -139,9 +144,9 @@ export async function listen(options) {
 
   // Buffer transcribed lines until the user says the trigger phrase, then
   // flush them into a single turn. Ctrl+C (abort) drops any unflushed buffer.
-  const trigger = (options.trigger ?? options.listenTrigger ?? "execute")
-    .trim()
-    .toLowerCase();
+  const trigger = wordsOnly(
+    options.trigger ?? options.listenTrigger ?? COMMAND_TRIGGER,
+  );
   /** @type {string[]} */
   const buffer = [];
 
@@ -159,17 +164,15 @@ export async function listen(options) {
   }
 
   for await (const text of lines) {
-    const rest = stripTrigger(text, trigger);
-    if (rest === null) {
+    const rawWords = wordsOnly(text);
+    if (rawWords === trigger) {
+      flush();
+    } else if (rawWords == COMMAND_CLEAR) {
+      buffer.length = 0;
+      logger.info("Cleared buffer");
+    } else {
       buffer.push(text);
       logger.user(text);
-    } else {
-      // trigger detected: keep the line (unless it's a bare trigger), then flush
-      if (rest) {
-        buffer.push(rest);
-        logger.user(rest);
-      }
-      flush();
     }
   }
 
@@ -322,30 +325,9 @@ export function mergeUserMessages(messages, text) {
   }
 }
 
-/**
- * Detect the trigger phrase in a line. When the trigger is the only word on
- * the line (ignoring punctuation/case) the whole line is dropped (returns
- * `""`). When the trigger appears alongside other words, the full line is
- * returned unchanged so the agent still sees the trigger in context. Returns
- * `null` when the trigger is not present.
- * @param {string} line A transcribed line
- * @param {string} trigger The (lowercased) trigger phrase to match
- * @returns {string | null} `""` for a bare trigger, the full line otherwise, or null if absent
- */
-export function stripTrigger(line, trigger) {
-  const re = new RegExp(`\\b${escapeRegExp(trigger)}\\b`, "i");
-  if (!re.test(line)) return null;
-  /**
-   * Strip all non-word chars so "Execute!" and "execute" compare equal.
-   * @param {string} s
-   */
-  const wordsOnly = (s) => s.replace(/[^0-9a-zA-Z_]/g, "").toLowerCase();
-  return wordsOnly(line) === wordsOnly(trigger) ? "" : line;
-}
-
-/** @param {string} s */
-function escapeRegExp(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, (c) => "\\" + c);
+/** @param {string} text */
+function wordsOnly(text) {
+  return text.replace(REGEX_WORD_CHARS, "").toLowerCase().trim();
 }
 
 /**
