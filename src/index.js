@@ -197,6 +197,7 @@ ${rows.join("\n")}
    * @param {(message: string) => void|Promise<void>} [options.onprogress] Optional callback for progress on the task
    * @param {(name:string, args: object) => void|Promise<void>} [options.onbeforetool] Optional callback before each tool call. Throw to cancel the tool.
    * @param {(message: string) => void|Promise<void>} [options.onthinking] Optional callback for intermediate thinking steps
+   * @param {() => string} [options.onInterjection] Optional callback checked after the first chat and before each subsequent chat; returning a non-empty string appends it as a user message and runs a fresh chat round before continuing the loop
    * @param {() => CancelResource?} [options.listenForCancel] Optional function to listen on canellation during inference
    * @param {AbortSignal} [options.signal] Fallback signal if listenForCancel is not provided
    * @returns {Promise<Message>} The final assistant message
@@ -208,6 +209,7 @@ ${rows.join("\n")}
       onprogress,
       onbeforetool,
       onthinking,
+      onInterjection,
       listenForCancel = () => null,
       signal,
     } = {},
@@ -230,17 +232,22 @@ ${rows.join("\n")}
     }
 
     try {
-      using cancel = listenForCancel();
+      /** Run a chat round, returning the assistant message. */
+      const runChat = async () => {
+        using cancel = listenForCancel();
+        const { message, usage } = await chat({
+          messages,
+          tools,
+          signal: cancel?.signal ?? signal,
+          config: this.config,
+          fetch: this.fetch,
+        });
+        if (this.debug) console.log(message);
+        this.#checkUsage(usage, messages);
+        return message;
+      };
 
-      let { message: result, usage } = await chat({
-        messages,
-        tools,
-        signal: cancel?.signal ?? signal,
-        config: this.config,
-        fetch: this.fetch,
-      });
-      if (this.debug) console.log(result);
-      this.#checkUsage(usage, messages);
+      let result = await runChat();
 
       if (result.reasoning_content && onthinking) {
         await onthinking(result.reasoning_content);
@@ -252,6 +259,26 @@ ${rows.join("\n")}
       const addMessage = (message) => {
         messages.push(message);
       };
+
+      /**
+       * Check for a user interjection after a chat round. If one arrived,
+       * record the pending assistant message and the interjection as a user
+       * message. The caller runs a fresh chat round when this returns true.
+       * @param {Message | null} pending Assistant message not yet in messages
+       * @returns {boolean} true if an interjection was recorded
+       */
+      const checkInterjection = (pending) => {
+        const interjection = onInterjection?.();
+        if (!interjection) return false;
+        if (pending) addMessage(pending);
+        addMessage({ role: USER, content: interjection });
+        return true;
+      };
+
+      // Check after the first chat, before any tools run.
+      if (checkInterjection(result)) {
+        result = await runChat();
+      }
 
       while (result.tool_calls?.length) {
         if (this.maxIterations >= 0 && iteration > this.maxIterations) {
@@ -322,18 +349,10 @@ ${rows.join("\n")}
           }
         }
 
-        using cancel = listenForCancel();
-
-        // if(this.debug) console.log(messages)
-        ({ message: result, usage } = await chat({
-          messages,
-          tools,
-          signal: cancel?.signal ?? signal,
-          config: this.config,
-          fetch: this.fetch,
-        }));
-        if (this.debug) console.log(result);
-        this.#checkUsage(usage, messages);
+        // Check before the next chat round; the round runs either way,
+        // now with the interjection (if any) in the messages.
+        checkInterjection(null);
+        result = await runChat();
       }
 
       history.push(result);
@@ -401,6 +420,7 @@ ${rows.join("\n")}
    * @param {(message: string) => void} [options.onprogress] Optional callback for progress on the task
    * @param {(name:string, args: object) => Promise<void>} [options.onbeforetool] Optional callback before each tool call. Throw to cancel the tool.
    * @param {(message: string) => void} [options.onthinking] Optional callback for intermediate thinking steps
+   * @param {() => string} [options.onInterjection] Optional callback checked after each model response
    * @param {() => CancelResource?} [options.listenForCancel] Optional function to listen on cancellation during inference
    * @param {AbortSignal} [options.signal] Cancellation signal
    * @returns {Promise<string>}

@@ -16,6 +16,7 @@ Your friendly internet enabled assistant.
 - **Thinking Display**: Optional display of reasoning steps during chat
 - **Readline History**: Command history populated when resuming sessions
 - **Audio Notifications**: Bell sound on response completion
+- **Interjections**: Type a line while the goblin is mid-turn to interrupt its train of thought; it incorporates your message and continues from where it left off
 - **Sub-agents**: Fork specialized agents with limited tool access
 - **Project Context**: Automatically loads `AGENTS.md` (or `CLAUDE.md`, `QWEN.md`, `GEMINI.md`, `.cursorrules`) from the working directory into the system prompt, so the goblin knows your project conventions
 - **Persistent Memory**: Optional `MEMORY.md` file injected into the system prompt. The goblin can read and update it to remember instructions and facts across sessions
@@ -109,6 +110,8 @@ Have a conversation via the TUI.
 - `--thinking-history`: Preserve thinking history. Increases context size but speeds up inference from better caching.
 
 See [Built-in Commands](#built-in-commands) for REPL commands like `!`, `/compact`, `/tail`, `/help`, `/clear`, `/fork`, `/retry`, `/skill`, and more.
+
+**Interjections:** While the goblin is working, you can type a line and press Enter to interrupt its train of thought. The interjection is picked up at the next checkpoint (after each model response, between tool batches) and injected as a new user message; the goblin runs a fresh model round with it in context and continues the same turn. Type multiple lines before the next checkpoint and they're combined into a single interjection. Tool work completed before the interjection stays in context for the rest of the turn. Interjections are not saved to the session history — only the final response is. As always, Escape still cancels the entire turn.
 
 #### `mind-goblin transform <prompt> <file>`
 

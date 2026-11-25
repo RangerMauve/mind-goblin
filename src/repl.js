@@ -45,6 +45,9 @@ export class REPLContext extends Context {
   /** @type {{fn: ((prompt: string) => Promise<void>) | null}} */
   #confirmRef = { fn: null };
 
+  /** @type {(() => string) | null} */
+  #interject = null;
+
   /**
    * @param {Goblin} goblin
    * @param {import("./sessions.js").Session} session
@@ -113,11 +116,23 @@ export class REPLContext extends Context {
   }
 
   /**
+   * Set the callback that supplies user interjections, checked after each
+   * model response. Return an empty string for none.
+   * @param {() => string} interject
+   */
+  setInterject(interject) {
+    this.#interject = interject;
+  }
+
+  /**
    * Run a full agentic turn: crank the goblin, log the response, play bell.
    * @param {AbortSignal} [signal] Fallback cancellation signal
    */
   async crank(signal) {
-    const response = await super.crank(signal, this.#crankOptions);
+    const response = await super.crank(signal, {
+      ...this.#crankOptions,
+      ...(this.#interject && { onInterjection: this.#interject }),
+    });
     this.#logger.assistant(/** @type {string} */ (response?.content));
     playBell();
     return response;
@@ -168,6 +183,21 @@ export async function repl(options) {
 
   context.setConfirm(makeConfirm(rl, input));
 
+  // Captures lines typed mid-crank as interjections. The listener is
+  // attached only during the crank so the prompt line is never swallowed.
+  // Multiple lines are appended into a single interjection.
+  /** @type {string} */
+  let interjection = "";
+  /** @param {string} line */
+  const onLine = (line) => {
+    if (line.trim()) interjection += (interjection ? "\n" : "") + line;
+  };
+  context.setInterject(() => {
+    const v = interjection;
+    interjection = "";
+    return v;
+  });
+
   while (true) {
     try {
       const content = await rl.question("> ");
@@ -177,11 +207,14 @@ export async function repl(options) {
         await commands.run(content, context, cancel.signal);
       } else if (content.trimStart().startsWith("/")) {
         context.logger.warn(`Unknown command: ${content.trim()}. Try /help`);
-      } else if (!content.trim()) {
-        await context.crank();
       } else {
-        context.messages.push({ role: USER, content });
-        await context.crank();
+        if (content.trim()) context.messages.push({ role: USER, content });
+        rl.on("line", onLine);
+        try {
+          await context.crank();
+        } finally {
+          rl.removeListener("line", onLine);
+        }
       }
     } catch (e) {
       console.error(e.stack);
