@@ -124,6 +124,21 @@ export class Sessions {
   }
 
   /**
+   * Delete a named session in the current directory.
+   * @param {string} name Session name (not the full slug)
+   * @returns {Promise<boolean>} true if a session file was deleted, false if none existed
+   */
+  async delete(name) {
+    try {
+      await fs.unlink(this.#file(this.slug(name)));
+      return true;
+    } catch (err) {
+      if (err?.code === "ENOENT") return false;
+      throw err;
+    }
+  }
+
+  /**
    * List session names for the current working directory.
    * @returns {Promise<string[]>} Sorted list of session names
    */

@@ -163,6 +163,18 @@ program
     for (const name of names) {
       console.log(name);
     }
+  })
+  .command("delete <name>")
+  .description("Delete a session for the current directory")
+  .action(async (name) => {
+    const sessions = new Sessions(sessionFolder);
+    const deleted = await sessions.delete(name);
+    if (!deleted) {
+      console.error(`No session "${name}" found.`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log(`Deleted session "${name}".`);
   });
 
 await program.parseAsync(process.argv);
