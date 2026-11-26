@@ -195,6 +195,7 @@ export async function repl(options) {
   context.setInterject(() => {
     const v = interjection;
     interjection = "";
+    if (v) context.logger.info("Reading interjection");
     return v;
   });
 
