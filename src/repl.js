@@ -201,7 +201,8 @@ export async function repl(options) {
 
   while (true) {
     try {
-      const content = await rl.question("> ");
+      const content = interjection || (await rl.question("> "));
+      interjection = "";
       // Run shell commands directly, recording them as a tool call in the history
       if (commands.has(content)) {
         using cancel = makeCancelSignalResource(input);
